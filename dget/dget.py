@@ -74,6 +74,8 @@ class DGet(object):
 
         ax.plot(x, y, color="black")
         # Scaled prediction
+        if prediction.size == 0 or y.size == 0:
+            return
         prediction *= y.max() / prediction.max()
         ax.stem(
             self.targets,
@@ -98,15 +100,12 @@ class DGet(object):
         atoms = parse_formula_string(formula)
 
         if adduct is not None:
-            print(adduct)
             adduct_atoms = parse_formula_string(adduct[1:])
-            print(atoms, adduct_atoms)
             atoms = {
                 key: atoms.get(key, 0)
                 + adduct_atoms.get(key, 0) * (1 if adduct[0] == "+" else -1)
                 for key in set(atoms) | set(adduct_atoms)
             }
-            print(atoms)
         for k, v in atoms.items():
             if v < 0:
                 raise ValueError(f"Invalid number of {k}, {k} = {v}.")
