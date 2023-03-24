@@ -3,10 +3,8 @@ import re
 from pathlib import Path
 
 import numpy as np
-from masscalc import calculate_masses_and_ratios, sum_unique_masses_and_ratios
-from masscalc.parser import parse_formula_string
 
-from dget.convolve import deconvolve
+from dget.dget import DGet
 
 
 def parse_args() -> argparse.Namespace:
@@ -42,10 +40,10 @@ def parse_args() -> argparse.Namespace:
         parser.error("--formula, must contain at least one D atom.")
 
     if args.species is not None:
-        m = re.match("M([+-])([A-Z][A-Za-z0-9]*)?", args.species)
+        m = re.match("M([+-][A-Z][A-Za-z0-9]*)?", args.species)
         if m is None:
             parser.error("--species must have the form M<+-><formula>.")
-        args.species = m[2], 1 if m[1] == "+" else -1
+        args.species = m[1]
 
     return args
 
@@ -81,17 +79,7 @@ def targets_for_masses(masses: np.ndarray, num_D: int) -> np.ndarray:
 
 def main():
     args = parse_args()
-    atoms = parse_formula_string(args.formula)
-
-    if args.species:
-        species_atoms = parse_formula_string(args.species[0])
-        atoms = {
-            key: atoms.get(key, 0) + species_atoms.get(key, 0) * args.species[1]
-            for key in set(atoms) | set(species_atoms)
-        }
-    for k, v in atoms.items():
-        if v < 0:
-            raise ValueError(f"Invalid number of {k}, {k} = {v}.")
+    dget = DGet.from_formula(args.formula, args.species, args.charge)
 
     data = read_ms_data_file(
         args.tofdata,
@@ -101,44 +89,17 @@ def main():
         signal_column=args.columns[1],
     )
 
-    masses, ratios = calculate_masses_and_ratios(atoms, charge=args.charge)
-    masses, ratios = sum_unique_masses_and_ratios(
-        masses, ratios, decimals=0, sort_ratio=False
-    )
-    psf = ratios / ratios.sum()
-
-    targets = targets_for_masses(masses, atoms["D"])
-    areas = ms_peak_areas(data["mass"], data["signal"], targets)
-    areas /= areas.sum()
-
-    prob = deconvolve(areas, psf, mode="same")[: atoms["D"] + 1]
-    deuteration = 1.0 - np.sum(prob * np.arange(prob.size)[::-1]) / prob.size
+    deuteration = dget.deuteration_from_tofdata(data["mass"], data["signal"])
 
     print(f"Formula: {args.formula}")
-    print(f"M/Z    : {np.average(masses, weights=ratios)}")
+    print(f"M/Z    : {dget.average_mass()}")
     print(f"%D     : {deuteration * 100.0:.2f}")
 
     if args.plot:
         import matplotlib.pyplot as plt
 
-        s, e = np.searchsorted(data["mass"], [targets[0] - 5.0, targets[-1] + 5.0])
-        x, y = data["mass"][s:e], data["signal"][s:e]
-
-        prediction = np.convolve(prob, psf, mode="full")
-
-        prediction *= y.max() / prediction.max()
-
-        plt.plot(x, y, color="black")
-        plt.stem(
-            targets,
-            prediction,
-            markerfmt=" ",
-            basefmt=" ",
-            linefmt="red",
-            label="prediction",
-        )
-        plt.xlabel("mass")
-        plt.ylabel("signal")
+        fig, axes = plt.subplots(1, 1)
+        dget.plot_predicted_spectra(axes, data["mass"], data["signal"])
         plt.show()
 
 
