@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 
-from dget.dget import DGet
+from dget import DGet
 
 
 def parse_args() -> argparse.Namespace:
