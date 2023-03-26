@@ -99,6 +99,7 @@ class DGet(object):
         prediction = np.convolve(self.deuteration_probabilites, self.psf, mode="full")
         # Data
         ax.plot(x, y, color="black")
+
         # Scaled prediction
         if prediction.size == 0 or y.size == 0:
             return
@@ -109,14 +110,24 @@ class DGet(object):
             markerfmt=" ",
             basefmt=" ",
             linefmt="red",
-            label="prediction",
+            label="Predicted Specta",
         )
+
         # Scaled PSF
         psf = self.psf * y.max()
         masses = [i.mass for i in self.spectrum.values()]
-        ax.stem(masses, psf, markerfmt=" ", basefmt=" ", linefmt="blue", label="PSF")
-        ax.set_xlabel("mass")
-        ax.set_ylabel("signal")
+        ax.stem(
+            masses,
+            psf,
+            markerfmt=" ",
+            basefmt=" ",
+            linefmt="blue",
+            label="Formula Spectra",
+        )
+        ax.set_title(self.formula.formula)
+        ax.set_xlabel("Mass")
+        ax.set_ylabel("Signal")
+        ax.legend()
 
     def read_tofdata(self, path: Path, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         if len(kwargs["usecols"]) != 2:
@@ -126,5 +137,5 @@ class DGet(object):
         for kw in ["unpack", "dtype"]:
             if kw in kwargs:
                 kwargs.pop(kw)
-                print("warning: removing loadtxt keyword ", kw)
+                print(f"warning: removing loadtxt keyword '{kw}'")
         return np.loadtxt(path, unpack=True, dtype=np.float32, **kwargs)  # type: ignore
