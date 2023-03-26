@@ -5,7 +5,7 @@ from dget import DGet
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser("DGet")
+    parser = argparse.ArgumentParser("dget")
     parser.add_argument(
         "formula", help="Molecular formula of the compound, see molmass."
     )
