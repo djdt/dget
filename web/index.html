@@ -8,16 +8,68 @@
     <style>
     * {box-sizing: border-box;}
     .header, .footer {padding: 10px}
-    .clearfix::after { content: ""; clear: both; display: table}
+    .input, .figure { float: left; width: 50%; padding: 10px}
+    .clearfix::after {background: lightgrey; content: ""; clear: both; display: table}
     label {display: inline-block; text-align: left; width: 30%}
     label[type=radio] {width: 5%}
     input:not([type=radio]) {display: inline-block; width: 60%}
-    .input, .output {background: lightgrey; float: left; width: 50%; padding: 10px}
     </style>
 <body>
     <py-config>
         packages = ["numpy", "matplotlib", "dget"]
     </py-config>
+    <py-script>
+import matplotlib.pyplot as plt
+from pyodide.ffi import create_proxy
+from pathlib import Path
+from dget import DGet
+
+def parse_inputs() -> dict | None:
+    inputs = {"formula": Element('formula').value}
+    inputs['delimiter'] = js.document.querySelector("[name='delimiter']:checked").value
+    if inputs['delimiter'] == "tab":
+        inputs['delimiter'] = "\t"
+    inputs['skiprows'] = int(Element('skiprows').value or 0)
+    masscol = int(Element('masscol').value or 1) - 1
+    signalcol = int(Element('signalcol').value or 1) - 1
+    inputs['usecols'] = (masscol, signalcol)
+    return inputs
+
+def run():
+    inputs = parse_inputs()
+    path = Path("data.csv")
+    if inputs["formula"] == "":
+        print("Error: invalid formula input.")
+        return
+    if inputs["usecols"][0] == inputs["usecols"][1]:
+        print("Error: signal and massmcolumns cannot be the same.")
+        return
+    if not path.exists():
+        print("Error: no file uploaded.")
+        return
+    
+    try:
+        dget = DGet(inputs.pop("formula"), path, loadtxt_kws=inputs)
+    except Exception as e:
+        print(e)
+        return
+
+    fig, ax = plt.subplots(1, 1, figsize=(5,3))
+    dget.plot_predicted_spectra(ax)
+    fig.tight_layout()
+    display(fig, target="figure", append=False)
+    print("Success")
+
+async def get_ms_data(event):
+    file = event.target.files.item(0)
+    text = await file.text()
+    path = Path("data.csv")
+    with Path("data.csv").open("w") as fp:
+        fp.write(text)
+
+proxy = create_proxy(get_ms_data)
+js.document.getElementById("file").addEventListener("change", proxy, False)
+    </py-script>
 
     <div class="header">
         <h1>DGet!</h1>
@@ -36,7 +88,7 @@
             <label for="comma", type="radio"> , </label>
             <input type="radio" id="semicolon", name="delimiter", value=";">
             <label for="semicolon", type="radio"> ; </label>
-            <input type="radio" id="tab", name="delimiter", value="\t">
+            <input type="radio" id="tab", name="delimiter", value="tab">
             <label for="tab", type="radio"> Tab </label>
             <input type="radio" id="space", name="delimiter", value=" ">
             <label for="space", type="radio"> Space </label>
@@ -52,8 +104,8 @@
             <br><br>
             <button py-click="run()", id="submit">Get D</button>
         </div>
-        <br>
-        <div class="figure", id="figure"></div>
+        <div class="figure", id="figure">
+        </div>
     </div>
     <br>
     <div class="footer">
@@ -61,54 +113,5 @@
             <py-terminal></py-terminal>
         </div>
     </div>
-
-    <py-script>
-        import matplotlib.pyplot as plt
-        from pyodide import create_proxy
-        import io
-        import asyncio
-        from dget import DGet
-
-        path = None
-        reader = js.FileReader
-
-        def parse_inputs() -> dict | None:
-            inputs = {"formula": Element('formula').value}
-            if inputs['formula'] == "":
-                print('Formula is empty.')
-                return None
-            inputs['delimiter'] = js.document.querySelector("[name='delimiter']:checked").value
-            inputs['skiprows'] = int(Element('skiprows').value or 0)
-            masscol = int(Element('masscol').value or 1) - 1
-            signalcol = int(Element('signalcol').value or 1) - 1
-            if masscol == signalcol:
-                print("Mass and signal columns must be different.")
-                return None
-            inputs['usecols'] = (masscol, signalcol)
-            return inputs
-
-        def run():
-            inputs = parse_inputs()
-            print(inputs, path)
-            if inputs is None or path is None:
-                return
-            
-            dget = DGet(inputs.pop("formula"), path, loadtxt_kws=inputs)
-
-            fig, ax = plt.subplots(1, 1)
-            dget.plot_predicted_spectra(ax)
-            display(fig, target="figure")
-            print("Success")
-
-        async def _get_ms_data(event):
-            file = event.target.files.item(0)
-            path = io.StringIO(await file.text())
-
-        def make_async_event(event):
-            asyncio.ensure_future(_get_ms_data(event))
-
-        proxy = create_proxy(make_async_event)
-        js.document.getElementById("file").addEventListener("change", proxy)
-    </py-script>
 
 </body>
