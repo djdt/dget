@@ -1,0 +1,56 @@
+<html>
+<head>
+    <title>D Get</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+</head>
+    <style>
+    label {display: inline-block; text-align: left; width: 200px;}
+    input:not([type=radio]) {display: inline-block; width: 250px;}
+    input[type=submit] {display: inline-block; float: right; text-align: center; width: 100px}
+    label[type=radio] {width: 40px;}
+    #input {display: inline-block; float: left; margin: 20px;}
+    </style>
+<body>
+    <py-config>
+        packages = ["numpy", "matplotlib", "dget"]
+    </py-config>
+
+    <div id="input">
+        <label for="formula"> Formula: </label>
+        <input type="text" id="formula" name="formula">
+        <br><br>
+        <label for="file"> Upload Data: </label>
+        <input type="file" id="file", name="file">
+        <br><br>
+        <label for="delimiter"> File delimiter: </label>
+        <input type="radio" id="comma", name="delimiter", value=",", checked="checked">
+        <label for="comma", type="radio"> , </label>
+        <input type="radio" id="semicolon", name="delimiter", value=";">
+        <label for="semicolon", type="radio"> ; </label>
+        <input type="radio" id="tab", name="delimiter", value="\t">
+        <label for="tab", type="radio"> Tab </label>
+        <input type="radio" id="space", name="delimiter", value=" ">
+        <label for="space", type="radio"> Space </label>
+        <br><br>
+        <label for="skiprows"> Skip rows: </label>
+        <input type="number", id="skiprows", name="skiprows", value="0">
+        <br><br>
+        <label for="masscol"> Mass column: </label>
+        <input type="number", id="masscol", name="masscol", value="1">
+        <br><br>
+        <label for="signalcol"> Signal column: </label>
+        <input type="number", id="signalcol", name="signalcol", value="2">
+        <br><br>
+        <input py-click="run()", type="submit", value="Get D">
+    </div>
+
+    <p id="output"></p>
+    <py-script>
+        def run(*args, **kwargs):
+            formula = Element('formula').value
+            Element('output').write(formula)
+    </py-script>
+
+</body>
