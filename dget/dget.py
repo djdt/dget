@@ -38,6 +38,11 @@ class DGet(object):
         return self.formula.composition()["2H"].count
 
     @property
+    def deuteration(self) -> float:
+        prob = self.deuteration_probabilites
+        return 1.0 - np.sum(prob * np.arange(prob.size)[::-1]) / prob.size
+
+    @property
     def deuteration_probabilites(self) -> np.ndarray:
         if self._probabilities is None:
             starts = np.searchsorted(self.x, self.targets - self.mass_width / 2.0)
@@ -82,10 +87,6 @@ class DGet(object):
         if abs(offset) > 1.0:
             print("warning: calculated alignment offset greater than 1 Da!")
         self.x -= offset
-
-    def deuteration(self) -> float:
-        prob = self.deuteration_probabilites
-        return 1.0 - np.sum(prob * np.arange(prob.size)[::-1]) / prob.size
 
     def plot_predicted_spectra(
         self, ax: "matplotlib.axes.Axes", pad_mz: float = 5.0  # noqa: F821
