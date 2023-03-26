@@ -74,7 +74,7 @@ def main():
     print(f"Formula          : {dget.formula}")
     print(f"M/Z              : {dget.formula.mz}")
     print(f"Monoisotopic M/Z : {dget.formula.isotope.mz}")
-    print(f"%D               : {dget.deuteration() * 100.0:.2f}")
+    print(f"%D               : {dget.deuteration * 100.0:.2f}")
     print()
     print("Deuteration Ratio Spectra")
     for i, p in enumerate(dget.deuteration_probabilites):
