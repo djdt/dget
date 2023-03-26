@@ -1,46 +1,48 @@
-from typing import Dict
-
 import numpy as np
-from masscalc import calculate_masses_and_ratios, sum_unique_masses_and_ratios
-from masscalc.parser import parse_formula_string
+from molmass import Formula, ELEMENTS
 
 from dget.convolve import deconvolve
 
-mass_D = 2.01410177812
-mass_H = 1.00782503223
-
 
 class DGet(object):
-    def __init__(self, atoms: Dict[str, int], charge: int = 0):
-        self.atoms = atoms
-        self.charge = charge
+    def __init__(
+        self, formula: str, adduct: str | None = None, loss: str | None = None
+    ):
 
-        masses, ratios = calculate_masses_and_ratios(self.atoms, charge=self.charge)
-        self.masses, self.ratios = sum_unique_masses_and_ratios(
-            masses, ratios, decimals=0, sort_ratio=False
-        )
-        diff_HD = mass_D - mass_H
-        self.targets = np.arange(
-            self.masses[0] - (self.nD * diff_HD), self.masses[-1] + diff_HD, diff_HD
-        )
+        self.formula = Formula(formula)
+        if adduct is not None:
+            self.formula += Formula(adduct)
+        if loss is not None:
+            self.formula -= Formula(loss)
+
+        self.spectrum = self.formula.spectrum(min_intensity=0.01)
+
         self.probabilites = np.array([])
 
     @property
     def nD(self) -> int:
-        return self.atoms["D"]
+        return self.formula.composition()["2H"].count
 
     @property
     def psf(self) -> np.ndarray:
-        return self.ratios / self.ratios.sum()
+        fractions = np.array([i.fraction for i in self.spectrum.values()])
+        return fractions / fractions.sum()
 
-    def average_mass(self) -> float:
-        return np.average(self.masses, weights=self.ratios)
+    def targets(self) -> np.ndarray:
+        diff_HD = ELEMENTS["H"].isotopes[2].mass - ELEMENTS["H"].isotopes[1].mass
+        smin, smax = self.spectrum.range
+        return np.arange(
+            self.spectrum[smin].mass - (self.nD * diff_HD),
+            self.spectrum[smax].mass + diff_HD,
+            diff_HD,
+        )
 
     def deuteration_from_tofdata(
         self, x: np.ndarray, y: np.ndarray, mass_width: float = 0.5
     ) -> float:
-        starts = np.searchsorted(x, self.targets - mass_width / 2.0)
-        ends = np.searchsorted(x, self.targets + mass_width / 2.0)
+        targets = self.targets()
+        starts = np.searchsorted(x, targets - mass_width / 2.0)
+        ends = np.searchsorted(x, targets + mass_width / 2.0)
 
         areas = np.array([np.trapz(y[s:e], x=x[s:e]) for s, e in zip(starts, ends)])
         areas = areas / areas.sum()
@@ -64,10 +66,9 @@ class DGet(object):
             raise ValueError(
                 "plot_predicted_spectra: must run `deuteration_from_tofdata` first."
             )
+        targets = self.targets()
 
-        start, end = np.searchsorted(
-            x, [self.targets[0] - pad_mz, self.targets[-1] + pad_mz]
-        )
+        start, end = np.searchsorted(x, [targets[0] - pad_mz, targets[-1] + pad_mz])
         x, y = x[start:end], y[start:end]
 
         prediction = np.convolve(self.probabilites, self.psf, mode="full")
@@ -78,7 +79,7 @@ class DGet(object):
             return
         prediction *= y.max() / prediction.max()
         ax.stem(
-            self.targets,
+            targets,
             prediction,
             markerfmt=" ",
             basefmt=" ",
@@ -86,27 +87,8 @@ class DGet(object):
             label="prediction",
         )
         # Scaled PSF
-        psf = self.ratios / self.ratios.max() * y.max()
-        ax.stem(
-            self.masses, psf, markerfmt=" ", basefmt=" ", linefmt="blue", label="PSF"
-        )
+        psf = self.psf * y.max()
+        masses = [i.mass for i in self.spectrum.values()]
+        ax.stem(masses, psf, markerfmt=" ", basefmt=" ", linefmt="blue", label="PSF")
         ax.set_xlabel("mass")
         ax.set_ylabel("signal")
-
-    @classmethod
-    def from_formula(
-        cls, formula: str, adduct: str | None = None, charge: int = 0
-    ) -> "DGet":
-        atoms = parse_formula_string(formula)
-
-        if adduct is not None:
-            adduct_atoms = parse_formula_string(adduct[1:])
-            atoms = {
-                key: atoms.get(key, 0)
-                + adduct_atoms.get(key, 0) * (1 if adduct[0] == "+" else -1)
-                for key in set(atoms) | set(adduct_atoms)
-            }
-        for k, v in atoms.items():
-            if v < 0:
-                raise ValueError(f"Invalid number of {k}, {k} = {v}.")
-        return DGet(atoms, charge=charge)
