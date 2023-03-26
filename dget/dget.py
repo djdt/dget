@@ -1,13 +1,28 @@
+from pathlib import Path
+from typing import Tuple
+
 import numpy as np
-from molmass import Formula, ELEMENTS
+from molmass import ELEMENTS, Formula
 
 from dget.convolve import deconvolve
 
 
 class DGet(object):
     def __init__(
-        self, formula: str, adduct: str | None = None, loss: str | None = None
+        self,
+        formula: str,
+        tofdata: Path,
+        adduct: str | None = None,
+        loss: str | None = None,
+        loadtxt_kws: dict | None = None,
     ):
+        _loadtxt_kws = {"delimiter": ",", "usecols": (0, 1)}
+        if loadtxt_kws is not None:
+            _loadtxt_kws.update(loadtxt_kws)
+
+        self.mass_width = 0.5
+        self._targets: np.ndarray | None = None
+        self._probabilities: np.ndarray | None = None
 
         self.formula = Formula(formula)
         if adduct is not None:
@@ -15,64 +30,73 @@ class DGet(object):
         if loss is not None:
             self.formula -= Formula(loss)
 
-        self.spectrum = self.formula.spectrum(min_intensity=0.01)
-
-        self.probabilites = np.array([])
+        self.spectrum = self.formula.spectrum(min_intensity=0.01)  # min 1%
+        self.x, self.y = self.read_tofdata(tofdata, **_loadtxt_kws)
 
     @property
-    def nD(self) -> int:
+    def deuterium_count(self) -> int:
         return self.formula.composition()["2H"].count
+
+    @property
+    def deuteration_probabilites(self) -> np.ndarray:
+        if self._probabilities is None:
+            starts = np.searchsorted(self.x, self.targets - self.mass_width / 2.0)
+            ends = np.searchsorted(self.x, self.targets + self.mass_width / 2.0)
+
+            areas = np.array(
+                [np.trapz(self.y[s:e], x=self.x[s:e]) for s, e in zip(starts, ends)]
+            )
+            areas = areas / areas.sum()
+
+            self._probabilities = deconvolve(areas, self.psf, mode="same")[
+                : self.deuterium_count + 1
+            ]
+        return self._probabilities
 
     @property
     def psf(self) -> np.ndarray:
         fractions = np.array([i.fraction for i in self.spectrum.values()])
         return fractions / fractions.sum()
 
+    @property
     def targets(self) -> np.ndarray:
-        diff_HD = ELEMENTS["H"].isotopes[2].mass - ELEMENTS["H"].isotopes[1].mass
-        smin, smax = self.spectrum.range
-        return np.arange(
-            self.spectrum[smin].mass - (self.nD * diff_HD),
-            self.spectrum[smax].mass + diff_HD,
-            diff_HD,
+        if self._targets is None:
+            diff_HD = ELEMENTS["H"].isotopes[2].mass - ELEMENTS["H"].isotopes[1].mass
+            smin, smax = self.spectrum.range
+            self._targets = np.arange(
+                self.spectrum[smin].mz - (self.deuterium_count * diff_HD),
+                self.spectrum[smax].mz + diff_HD,
+                diff_HD,
+            )
+        return self._targets
+
+    def align_tof_with_spectra(self) -> None:
+        """Shifts ToF data to better align with monoisotopic m/z.
+        Please calibrate your MS instead of using this.
+        """
+        mz = self.formula.monoisotopic_mass
+        start, onmass, end = np.searchsorted(
+            self.x, [mz - self.mass_width, mz, mz + self.mass_width]
         )
+        offset = self.x[start + np.argmax(self.y[start:end])] - self.x[onmass]
+        if abs(offset) > 1.0:
+            print("warning: calculated alignment offset greater than 1 Da!")
+        self.x -= offset
 
-    def deuteration_from_tofdata(
-        self, x: np.ndarray, y: np.ndarray, mass_width: float = 0.5
-    ) -> float:
-        targets = self.targets()
-        starts = np.searchsorted(x, targets - mass_width / 2.0)
-        ends = np.searchsorted(x, targets + mass_width / 2.0)
-
-        areas = np.array([np.trapz(y[s:e], x=x[s:e]) for s, e in zip(starts, ends)])
-        areas = areas / areas.sum()
-
-        self.probabilites = deconvolve(areas, self.psf, mode="same")[: self.nD + 1]
-
-        return (
-            1.0
-            - np.sum(self.probabilites * np.arange(self.probabilites.size)[::-1])
-            / self.probabilites.size
-        )
+    def deuteration(self) -> float:
+        prob = self.deuteration_probabilites
+        return 1.0 - np.sum(prob * np.arange(prob.size)[::-1]) / prob.size
 
     def plot_predicted_spectra(
-        self,
-        ax: "matplotlib.axes.Axes",
-        x: np.ndarray,
-        y: np.ndarray,
-        pad_mz: float = 5.0,
+        self, ax: "matplotlib.axes.Axes", pad_mz: float = 5.0  # noqa: F821
     ) -> None:
-        if self.probabilites.size == 0:
-            raise ValueError(
-                "plot_predicted_spectra: must run `deuteration_from_tofdata` first."
-            )
-        targets = self.targets()
+        targets = self.targets
 
-        start, end = np.searchsorted(x, [targets[0] - pad_mz, targets[-1] + pad_mz])
-        x, y = x[start:end], y[start:end]
+        start, end = np.searchsorted(self.x, [targets[0], targets[-1]])
+        x, y = self.x[start:end], self.y[start:end]
 
-        prediction = np.convolve(self.probabilites, self.psf, mode="full")
-
+        prediction = np.convolve(self.deuteration_probabilites, self.psf, mode="full")
+        # Data
         ax.plot(x, y, color="black")
         # Scaled prediction
         if prediction.size == 0 or y.size == 0:
@@ -92,3 +116,14 @@ class DGet(object):
         ax.stem(masses, psf, markerfmt=" ", basefmt=" ", linefmt="blue", label="PSF")
         ax.set_xlabel("mass")
         ax.set_ylabel("signal")
+
+    def read_tofdata(self, path: Path, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
+        if len(kwargs["usecols"]) != 2:
+            raise ValueError(
+                "exactly two columns (mass, signal) must be specified by 'usecols'"
+            )
+        for kw in ["unpack", "dtype"]:
+            if kw in kwargs:
+                kwargs.pop(kw)
+                print("warning: removing loadtxt keyword ", kw)
+        return np.loadtxt(path, unpack=True, dtype=np.float32, **kwargs)  # type: ignore

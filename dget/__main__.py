@@ -1,8 +1,6 @@
 import argparse
 from pathlib import Path
 
-import numpy as np
-
 from dget import DGet
 
 
@@ -34,6 +32,18 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Plot the convolved match against the MS data.",
     )
+    parser.add_argument(
+        "--masswidth",
+        type=float,
+        default=0.5,
+        help="Window for integration of MS data.",
+    )
+    parser.add_argument(
+        "--realign",
+        action="store_true",
+        help="Force alignment of MS data with predicted spectra, "
+        "please just calibrate your MS.",
+    )
 
     args = parser.parse_args()
 
@@ -43,45 +53,38 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def read_ms_data_file(
-    path: Path,
-    delimiter: str = "\t",
-    skiprows: int = 0,
-    mass_column: int = 0,
-    signal_column: int = 1,
-) -> np.ndarray:
-    return np.loadtxt(
-        path,
-        delimiter=delimiter,
-        skiprows=skiprows,
-        usecols=(mass_column, signal_column),
-        dtype=[("mass", np.float32), ("signal", np.float32)],
-    )
-
-
 def main():
     args = parse_args()
-    dget = DGet(args.formula, args.adduct, args.loss)
-
-    data = read_ms_data_file(
+    loadtxt_kws = {
+        "delimiter": args.delimiter,
+        "skiprows": args.skiprows,
+        "usecols": args.columns,
+    }
+    dget = DGet(
+        args.formula,
         args.tofdata,
-        delimiter=args.delimiter,
-        skiprows=args.skiprows,
-        mass_column=args.columns[0],
-        signal_column=args.columns[1],
+        adduct=args.adduct,
+        loss=args.loss,
+        loadtxt_kws=loadtxt_kws,
     )
+    dget.mass_width = args.masswidth
+    if args.realign:
+        dget.align_tof_with_spectra()
 
-    deuteration = dget.deuteration_from_tofdata(data["mass"], data["signal"])
-
-    print(f"Formula: {args.formula}")
-    print(f"MW     : {dget.formula.mass}")
-    print(f"%D     : {deuteration * 100.0:.2f}")
+    print(f"Formula          : {dget.formula}")
+    print(f"M/Z              : {dget.formula.mz}")
+    print(f"Monoisotopic M/Z : {dget.formula.isotope.mz}")
+    print(f"%D               : {dget.deuteration() * 100.0:.2f}")
+    print()
+    print("Deuteration Ratio Spectra")
+    for i, p in enumerate(dget.deuteration_probabilites):
+        print(f"D{i:<2}              : {p:.4f}")
 
     if args.plot:
         import matplotlib.pyplot as plt
 
         fig, axes = plt.subplots(1, 1)
-        dget.plot_predicted_spectra(axes, data["mass"], data["signal"])
+        dget.plot_predicted_spectra(axes)
         plt.show()
 
 
