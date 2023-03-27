@@ -58,7 +58,14 @@ def run():
     dget.plot_predicted_spectra(ax)
     fig.tight_layout()
     display(fig, target="figure", append=False)
-    print("Success")
+    print(f"Formula          : {dget.formula}")
+    print(f"M/Z              : {dget.formula.mz}")
+    print(f"Monoisotopic M/Z : {dget.formula.isotope.mz}")
+    print(f"%D               : {dget.deuteration * 100.0:.2f}")
+    print()
+    print("Deuteration Ratio Spectra")
+    for i, p in enumerate(dget.deuteration_probabilites):
+        print(f"D{i:<2}              : {p:.4f}")
 
 async def get_ms_data(event):
     file = event.target.files.item(0)
