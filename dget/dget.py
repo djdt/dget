@@ -30,12 +30,20 @@ class DGet(object):
         if loss is not None:
             self.formula -= Formula(loss)
 
+        if self.deuterium_count == 0:
+            raise ValueError(
+                f"formula: {self.formula.formula} does not contain deuterium"
+            )
+
         self.spectrum = self.formula.spectrum(min_intensity=0.01)  # min 1%
         self.x, self.y = self.read_tofdata(tofdata, **_loadtxt_kws)
 
     @property
     def deuterium_count(self) -> int:
-        return self.formula.composition()["2H"].count
+        comp = self.formula.composition()
+        if "2H" not in comp:
+            return 0
+        return comp["2H"].count
 
     @property
     def deuteration(self) -> float:
