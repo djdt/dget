@@ -58,6 +58,8 @@ def run():
     dget.plot_predicted_spectra(ax)
     fig.tight_layout()
     display(fig, target="figure", append=False)
+    # Clear the terminal
+    js.document.getElementsByClass("py-termial")[0].innerHTML = ""
     print(f"Formula          : {dget.formula}")
     print(f"M/Z              : {dget.formula.mz}")
     print(f"Monoisotopic M/Z : {dget.formula.isotope.mz}")
