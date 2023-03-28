@@ -98,5 +98,6 @@ async def get_ms_data(event):
     guess_inputs(Path("data.csv"))
 
 
+print("Welcome to DGet 0.3!")
 proxy = create_proxy(get_ms_data)
 js.document.getElementById("file").addEventListener("change", proxy, False)
