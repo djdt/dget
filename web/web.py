@@ -2,23 +2,22 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 from pyodide.ffi import create_proxy
-from pyscript import Element, display, js
+from pyscript import display, js
 
 from dget import DGet
 
-delimiters = {"Comma": ",", "Semicolon": ";", "Tab": "\t", "Space": " "}
+delimiters = {"comma": ",", "semicolon": ";", "tab": "\t", "space": " "}
 
 
 def parse_inputs() -> dict | None:
-    inputs = {"formula": Element("formula").value}
+    inputs = {"formula": js.document.getElementById("formula").value}
 
-    delimiter = js.document.querySelector("[name='delimiter']:checked").value
-    inputs["delimiter"] = delimiters[delimiter]
+    inputs["delimiter"] = delimiters[js.document.getElementById("delimiter").value]
 
-    inputs["skiprows"] = int(Element("skiprows").value or 0)
+    inputs["skiprows"] = int(js.document.getElementById("skiprows").value or 0)
 
-    masscol = int(Element("masscol").value or 1) - 1
-    signalcol = int(Element("signalcol").value or 1) - 1
+    masscol = int(js.document.getElementById("masscol").value or 1) - 1
+    signalcol = int(js.document.getElementById("signalcol").value or 1) - 1
     inputs["usecols"] = (masscol, signalcol)
 
     return inputs
@@ -26,15 +25,15 @@ def parse_inputs() -> dict | None:
 
 def guess_inputs(path: Path) -> None:
     with path.open("r") as fp:
-        lines = fp.readlines(1024)
+        lines = fp.readlines(2048)[:20]
 
-    print(lines)
+    # Check lines 10 to 20 -> for delimiter
     for key, val in delimiters.items():
-        if all(val in line for line in lines):
-            print("setting delimiter ", key, val)
-            Element("delimiter").value = key
+        if all(val in line for line in lines[10:]):
+            js.document.getElementById("delimiter").value = key
             break
 
+    # Check for first line able to be parsed
     skiprows = 0
     for line in lines:
         try:
@@ -43,26 +42,20 @@ def guess_inputs(path: Path) -> None:
         except ValueError:
             pass
         skiprows += 1
-    print('setting skiprows', skiprows)
-    Element("skiprows").write(skiprows)
-    print('setting skiprows', skiprows)
-    Element("skiprows").value = skiprows
-    print('setting skiprows', skiprows)
-    Element("skiprows").write(str(skiprows))
+
+    js.document.getElementById("skiprows").value = str(skiprows)
 
     header = lines[skiprows - 1].split(val)
     for i, text in enumerate(header):
         if any(x in text.lower() for x in ["mass", "m/z"]):
-            print('setting masscol', i)
-            Element("masscol").value = i
+            js.document.getElementById("masscol").value = i
         if any(x in text.lower() for x in ["signal", "intensity", "counts"]):
-            print('setting signalcol', i)
-            Element("signalcol").value = i
+            js.document.getElementById("signalcol").value = i
 
 
 def run():
     # Clear the terminal
-    js.document.getElementsByClass("py-termial")[0].innerHTML = ""
+    js.document.getElementsByClassName("py-termial")[0].innerHTML = ""
 
     inputs = parse_inputs()
     path = Path("data.csv")
