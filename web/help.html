@@ -2,10 +2,9 @@
 <head>
     <title>D Get</title>
     <meta charset="utf-8">
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
 </head>
     <style>
-    #3d5467
-    #686963
     * {box-sizing: border-box;}
     body {background-color: #f1edee}
 
@@ -20,9 +19,6 @@
     ul {list-style-type: none; margin: 0; padding: 0; overflow: hidden}
     li {float: right}
     li a {color: black; display: block; text-align: center; text-decoration: none; padding: 10px}
-    label {display: inline-block; text-align: left; width: 25%}
-    input, select {display: inline-block; align: right}
-    button {display: inline-block; align: right}
     h3 {background-color: #8aa29e; padding: 5px}
 
     @media screen and (max-width: 800px) {
@@ -33,10 +29,6 @@
     }
     </style>
 <body>
-    <!-- <py-config> -->
-    <!--     packages = ["numpy", "matplotlib", "dget"] -->
-    <!-- </py-config> -->
-
     <div class="header">
         <h1>DGet!</h1>
     </div>
@@ -51,23 +43,18 @@
         <div class="rightcolumn">
             <div class="card", id="details">
                 <h3>Usage</h3>
-                <p><b>Formula</b> - molecular formula with any adducts or losses accounted for. See <a href="https://github.com/cgohlke/molass">molmass</a> for more details.</p>
-                <p><b>MS Data File</b> - delimiter text file with a column of masses (Da) and column of signals.</p>
+                <p><b>Formula</b> - molecular formula with any adducts or losses accounted for, see <a href="https://github.com/cgohlke/molass">molmass</a> for more details.</p>
+                <p><b>MS Data File</b> - delimited text file with a column of masses (Da) and column of signal/intensity values.</p>
                 <p><b>File delimiter</b> - delimiter used in the file, DGet will try to guess on file upload.</p>
                 <p><b>Skip rows</b> - number of rows before data, DGet will attempt to guess on file upload.</p>
                 <p><b>Mass/signal column</b> - column in file containing the mass/signal data.</p>
             </div>
         </div>
     </div>
-    <!-- <div class="footer"> -->
     <ul class="footer">
-        <li><a href="https://github.com/djdt/dget">About</a></li>
+        <li><a href="https://github.com/djdt/dget">GitHub</a></li>
         <li><a href="help.html">Help</a></li>
         <li><a href="index.html">Home</a></li>
     </ul>
-    <!-- </div> -->
-
-    <!-- <py-script src="./web.py"> -->
-    <!-- </py-script> -->
 
 </body>

@@ -3,7 +3,7 @@
     <title>D Get</title>
     <meta charset="utf-8">
     <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
-    <!-- <script defer src="https://pyscript.net/latest/pyscript.js"></script> -->
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
 </head>
     <style>
     #3d5467
@@ -17,7 +17,7 @@
     .clearfix::after {background: lightgrey; content: ""; clear: both; display: table}
     .py-terminal {min-height: 200px}
 
-    #figure {min-height: 220px}
+    img {background: white; display: block; margin-left: auto; margin-right: auto}
 
     ul {list-style-type: none; margin: 0; padding: 0; overflow: hidden}
     li {float: right}
@@ -35,9 +35,9 @@
     }
     </style>
 <body>
-    <!-- <py-config> -->
-    <!--     packages = ["numpy", "matplotlib", "dget"] -->
-    <!-- </py-config> -->
+    <py-config>
+        packages = ["numpy", "matplotlib", "dget"]
+    </py-config>
 
     <div class="header">
         <h1>DGet!</h1>
@@ -77,22 +77,18 @@
             <div class="card">
                 <h3>Spectra</h3>
             </div>
-            <div id="figure"></div>
+            <div id="figure"><img height="300", width="300"></img></div>
         </div>
     </div>
     <div class="card">
         <h3>Output</h2>
         <py-terminal></py-terminal>
     </div>
-    <!-- <div class="footer"> -->
-        <ul class="footer">
-            <li><a href="https://github.com/djdt/dget">About</a></li>
-            <li><a href="help.html">Help</a></li>
-            <li><a href="index.html">Home</a></li>
-        </ul>
-    <!-- </div> -->
+    <ul class="footer">
+        <li><a href="https://github.com/djdt/dget">GitHub</a></li>
+        <li><a href="help.html">Help</a></li>
+        <li><a href="index.html">Home</a></li>
+    </ul>
 
-    <!-- <py-script src="./web.py"> -->
-    <!-- </py-script> -->
-
+    <py-script src="./web.py"></py-script>
 </body>
