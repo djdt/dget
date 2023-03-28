@@ -5,7 +5,7 @@ with open("README.md") as fp:
 
 setup(
     name="DGet",
-    version="0.2",
+    version="0.3",
     description="Calculates compound deuteration from ToF-MS data.",
     long_description=long_description,
     long_description_content_type="text/markdown",
