@@ -55,7 +55,7 @@ def guess_inputs(path: Path) -> None:
 
 def run():
     # Clear the terminal
-    js.document.getElementsByClassName("py-termial")[0].innerHTML = ""
+    js.document.getElementsByClassName("py-terminal")[0].innerHTML = ""
 
     inputs = parse_inputs()
     path = Path("data.csv")
