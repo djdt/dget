@@ -10,15 +10,15 @@ delimiters = {"comma": ",", "semicolon": ";", "tab": "\t", "space": " "}
 
 
 def parse_inputs() -> dict | None:
-    inputs = {"formula": js.document.getElementById("formula").value}
-
-    inputs["delimiter"] = delimiters[js.document.getElementById("delimiter").value]
-
-    inputs["skiprows"] = int(js.document.getElementById("skiprows").value or 0)
-
     masscol = int(js.document.getElementById("masscol").value or 1) - 1
     signalcol = int(js.document.getElementById("signalcol").value or 1) - 1
-    inputs["usecols"] = (masscol, signalcol)
+    inputs = {
+        "formula": js.document.getElementById("formula").value,
+        "species": js.document.getElementById("species").value,
+        "delimiter": delimiters[js.document.getElementById("delimiter").value],
+        "skiprows": int(js.document.getElementById("skiprows").value or 0),
+        "usecols": (masscol, signalcol),
+    }
 
     return inputs
 
@@ -69,8 +69,19 @@ def run():
         print("Error: no file uploaded.")
         return
 
+    # Find adduct / loss
+    formula = inputs.pop("formula")
+    species, charge = inputs.pop("species").split(";")
+    formula = formula + "_" + charge
+
+    adduct, loss = None, None
+    if species[0] == "-":
+        loss = species[1:]
+    elif species != "":
+        adduct = species
+
     try:
-        dget = DGet(inputs.pop("formula"), path, loadtxt_kws=inputs)
+        dget = DGet(formula, path, adduct=adduct, loss=loss, loadtxt_kws=inputs)
     except Exception as e:
         print("Error:", e)
         return

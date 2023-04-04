@@ -9,7 +9,7 @@
     #3d5467
     #686963
     * {box-sizing: border-box;}
-    body {background-color: #f1edee}
+    body {background-color: #f1edee; max-width: 1600px; margin: auto}
 
     .header, .footer {background-color: #db5461; padding: 10px}
     .leftcolumn, .rightcolumn {float: left; width: 50%}
@@ -49,6 +49,18 @@
                 <h3>Input</h3>
                 <label for="formula"> Formula: </label>
                 <input type="text" id="formula" name="formula">
+                <br><br>
+                <label for="species"> Species: </label>
+                <select name="species" id="species">
+                    <option id="mp" value=";+">M+</option>
+                    <option id="hp" value="H;+">[M+H]+</option>
+                    <option id="2hp" value="H2;2+">[M+2H]2+</option>
+                    <option id="nap" value="Na;+">[M+Na]+</option>
+                    <option id="mn" value=";-">M-</option>
+                    <option id="hn" value="-H;-">[M-H]-</option>
+                    <option id="hn" value="-H2;2-">[M-2H]2-</option>
+                    <option id="cln" value="Cl;-">[M+Cl]-</option>
+                </select>
                 <br><br>
                 <label for="file"> Upload MS Data: </label>
                 <input type="file" id="file", name="file">
