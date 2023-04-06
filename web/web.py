@@ -75,9 +75,11 @@ def run():
     formula = formula + "_" + charge
 
     adduct, loss = None, None
-    if species[0] == "-":
+    if len(species) == 0:
+        pass
+    elif species[0] == "-":
         loss = species[1:]
-    elif species != "":
+    else:
         adduct = species
 
     try:
