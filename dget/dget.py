@@ -23,6 +23,7 @@ class DGet(object):
         self.mass_width = 0.5
         self._targets: np.ndarray | None = None
         self._probabilities: np.ndarray | None = None
+        self._probability_remainders: np.ndarray | None = None
 
         self.formula = Formula(formula)
         if adduct is not None:
@@ -61,9 +62,11 @@ class DGet(object):
             )
             areas = areas / areas.sum()
 
-            self._probabilities = deconvolve(areas, self.psf, mode="same")[
-                : self.deuterium_count + 1
-            ]
+            self._probabilities, self._probability_remainders = deconvolve(
+                areas, self.psf
+            )[: self.deuterium_count + 1]
+            self._probabilities = self._probabilities / self._probabilities.sum()
+
         return self._probabilities
 
     @property

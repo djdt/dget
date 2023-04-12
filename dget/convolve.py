@@ -1,7 +1,9 @@
+from typing import Tuple
+
 import numpy as np
 
 
-def deconvolve(x: np.ndarray, psf: np.ndarray, mode: str = "valid"):
+def deconvolve(x: np.ndarray, psf: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Inverse of convolution.
 
     Deconvolution is performed in frequency domain.
@@ -20,10 +22,6 @@ def deconvolve(x: np.ndarray, psf: np.ndarray, mode: str = "valid"):
 
     r = shift_bit_length(max(x.size, psf.size))
     y = np.fft.irfft(np.fft.rfft(x, r) / np.fft.rfft(psf, r), r)
-    rec = np.trim_zeros(np.real(y))[: x.size - psf.size - 1]
-    if mode == "valid":
-        return rec
-    elif mode == "same":
-        return np.hstack((rec, x[rec.size :]))
-    else:  # pragma: no cover
-        raise ValueError("Valid modes are 'valid', 'same'.")
+    rec = np.trim_zeros(np.real(y))[: x.size - (psf.size - 1)]
+    rem = x - np.convolve(rec, psf, mode="full")
+    return rec, rem
