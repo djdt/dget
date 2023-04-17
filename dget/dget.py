@@ -1,13 +1,22 @@
 from pathlib import Path
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
-from molmass import ELEMENTS, Formula
+from molmass import ELEMENTS, Formula, Spectrum
 
 from dget.convolve import deconvolve
 
 
 class DGet(object):
+    common_adducts = [
+        Formula("+"),
+        Formula("H+"),
+        Formula("Na+"),
+        Formula("Cl-"),
+        Formula("H2_2+"),
+    ]
+    common_losses = [Formula("H+"), Formula("H2_2+")]
+
     def __init__(
         self,
         formula: str,
@@ -36,7 +45,6 @@ class DGet(object):
                 f"formula: {self.formula.formula} does not contain deuterium"
             )
 
-        self.spectrum = self.formula.spectrum(min_intensity=0.01)  # min 1%
         self.x, self.y = self.read_tofdata(tofdata, **_loadtxt_kws)
 
     @property
@@ -70,9 +78,13 @@ class DGet(object):
         return self._probabilities
 
     @property
-    def psf(self) -> np.ndarray:
+    def psf(self) -> np.ndarray:  # type: ignore
         fractions = np.array([i.fraction for i in self.spectrum.values()])
         return fractions / fractions.sum()
+
+    @property
+    def spectrum(self) -> Spectrum:
+        return self.formula.spectrum(min_intensity=0.01)
 
     @property
     def targets(self) -> np.ndarray:
@@ -90,14 +102,56 @@ class DGet(object):
         """Shifts ToF data to better align with monoisotopic m/z.
         Please calibrate your MS instead of using this.
         """
-        mz = self.formula.monoisotopic_mass
+        mz = self.formula.isotope.mz
         start, onmass, end = np.searchsorted(
             self.x, [mz - self.mass_width, mz, mz + self.mass_width]
         )
         offset = self.x[start + np.argmax(self.y[start:end])] - self.x[onmass]
         if abs(offset) > 1.0:
-            print("warning: calculated alignment offset greater than 1 Da!")
+            print("warning: calculated alignment offset greater than 0.5 Da!")
         self.x -= offset
+
+    def find_species_from_base_peak(
+        self,
+        adducts: List[Formula] | None = None,
+        losses: List[Formula] | None = None,
+        mass_range: Tuple[float, float] | None = None,
+    ) -> Tuple[Formula, float]:
+        """Finds the species closest to the m/z of the largest tof peak.
+
+        Args:
+            adducts: adducts to try, defaults to DGet.common_adducts
+            losses: losses to try, defaults to DGet.common_losses
+            mass_range: range to search for base peak, defaults to whole spectra
+
+        Returns:
+            best species
+            mass difference from base peak
+        """
+        if adducts is None:
+            adducts = self.common_adducts
+        if losses is None:
+            losses = self.common_losses
+
+        species = [self.formula + add for add in adducts]
+        for loss in losses:
+            try:
+                species.append(self.formula - loss)
+            except ValueError:
+                pass
+        species.append(self.formula)
+
+        masses = np.array([sp.isotope.mz for sp in species])
+
+        if mass_range is not None:
+            start, stop = np.searchsorted(self.x, mass_range)
+        else:
+            start, stop = 0, self.x.size
+
+        base = self.x[start:stop][np.argmax(self.y[start:stop])]
+        diffs = np.abs(base - masses)
+        best = np.argmin(diffs)
+        return species[best], diffs[best]
 
     def plot_predicted_spectra(
         self, ax: "matplotlib.axes.Axes", pad_mz: float = 5.0  # noqa: F821
