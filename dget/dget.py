@@ -75,7 +75,7 @@ class DGet(object):
             )[: self.deuterium_count + 1]
             self._probabilities = self._probabilities / self._probabilities.sum()
 
-        return self._probabilities
+        return self._probabilities  # type: ignore
 
     @property
     def psf(self) -> np.ndarray:  # type: ignore
