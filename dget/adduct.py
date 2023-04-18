@@ -1,8 +1,17 @@
 import re
+from typing import Tuple
 
 from molmass import Formula, FormulaError, format_charge
 
-# def divide_formulas(a: Formula, b: Formula) -> Tuple[int, Formula]:
+
+def divide_formulas(a: Formula, b: Formula) -> Tuple[int, Formula]:
+    divs = 0
+    while formula_in_formula(b, a) and b.mass > a.mass:
+        a -= b
+        divs += 1
+    if b.mass == a.mass:
+        return divs + 1, None
+    return divs, a
 
 
 def formula_in_formula(a: Formula, b: Formula) -> bool:
@@ -38,24 +47,20 @@ def adduct_from_formula(formula: Formula | str, base: Formula | str) -> str:
 
     if isinstance(formula, str):
         formula = Formula(formula)
-    charge, formula = formula.charge, Formula(formula._formula_nocharge)
+    charge, adduct = formula.charge, Formula(formula._formula_nocharge)
     if isinstance(base, str):
         base = Formula(base)
 
+    print(divide_formulas(adduct, base))
     multiples = 0
-    while formula.nominal_mass > base.nominal_mass:
-        try:
-            formula -= base
-        except (FormulaError, ValueError):
-            break
+    while formula_in_formula(base, adduct):
+        adduct -= base
         multiples += 1
 
-    print(formula, base)
-    if formula.mass == base.mass:  # formula and base same, no adduct
+    if adduct.mass == base.mass:  # formula and base same, no adduct
         adduct = ""
-    elif (base - formula).mass > formula.mass:  # simpler will be adduct
-        adduct = "+" + formula._formula_nocharge
+    elif formula_in_formula(formula, base):  # simpler will be adduct
+        adduct = "+" + adduct._formula_nocharge
     else:
         adduct = "-" + (base - formula)._formula_nocharge
-        multiples += 1
     return f"[{multiples if multiples > 1 else ''}M{adduct}]{format_charge(charge)}"
