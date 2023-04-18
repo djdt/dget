@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from typing import List, Tuple
 
@@ -8,7 +9,7 @@ from dget.convolve import deconvolve
 
 
 class DGet(object):
-    common_adducts = [
+    common_gains = [
         Formula("+"),
         Formula("H+"),
         Formula("Na+"),
@@ -21,7 +22,7 @@ class DGet(object):
         self,
         formula: str,
         tofdata: Path,
-        adduct: str | None = None,
+        gain: str | None = None,
         loss: str | None = None,
         loadtxt_kws: dict | None = None,
     ):
@@ -34,10 +35,10 @@ class DGet(object):
         self._probabilities: np.ndarray | None = None
         self._probability_remainders: np.ndarray | None = None
 
-        self._formula = Formula(formula)  # store original formula
+        self._formula = Formula(formula)  # store original for adduct calcs
         self.formula = Formula(formula)
-        if adduct is not None:
-            self.formula += Formula(adduct)
+        if gain is not None:
+            self.formula += Formula(gain)
         if loss is not None:
             self.formula -= Formula(loss)
 
@@ -47,6 +48,35 @@ class DGet(object):
             )
 
         self.x, self.y = self._read_tofdata(tofdata, **_loadtxt_kws)
+
+    @property
+    def adduct(self) -> str:
+        """Get the adduct as a string.
+        Eg [M+H]+, [M+Cl]-, [M-H]-"""
+        adduct = "M"
+        if self.formula.mass > self._formula.mass:
+            gain = (self.formula - self._formula)._formula_nocharge
+            if len(gain) > 0:
+                adduct += "+" + gain
+        elif self.formula.mass < self._formula.mass:
+            loss = (self._formula - self.formula)._formula_nocharge
+            if len(loss) > 0:
+                adduct += "-" + loss
+        return "[" + adduct + "]" + format_charge(self.formula.charge)
+
+    @adduct.setter
+    def adduct(self, adduct: str) -> None:
+        """Set the formula from an adduct str.
+        Must in the the form [M<+-><adduct>]<+->
+        Examples:
+            dget.adduct("[M]+")
+            dget.adduct("[M-H]+")
+            dget.adduct("[M+2H]2+")
+        """
+       match = re.match("\\[M([+-])?(.*)\\](\\d?[+-])", adduct) 
+       if match is None:
+           raise ValueError("adduct must be in the form '[M<+-><formula>]n<+->")
+       
 
     @property
     def deuterium_count(self) -> int:
@@ -82,22 +112,6 @@ class DGet(object):
     def psf(self) -> np.ndarray:  # type: ignore
         fractions = np.array([i.fraction for i in self.spectrum.values()])
         return fractions / fractions.sum()
-
-    @property
-    def species(self) -> str:
-        """Get the species as a string.
-        Eg [M+H]+, [M+Cl]-, [M-H]-"""
-        charge = format_charge(self.formula.charge)
-        species = "M"
-        if self.formula.mass > self._formula.mass:
-            adduct = (self.formula - self._formula)._formula_nocharge
-            if len(adduct) > 0:
-                species += "+" + adduct
-        elif self.formula.mass < self._formula.mass:
-            loss = (self._formula - self.formula)._formula_nocharge
-            if len(loss) > 0:
-                species += "-" + loss
-        return "[" + species + "]" + charge
 
     @property
     def spectrum(self) -> Spectrum:
@@ -139,16 +153,16 @@ class DGet(object):
             print("warning: calculated alignment offset greater than 0.5 Da!")
         self.x -= offset
 
-    def guess_species_from_base_peak(
+    def guess_adduct_from_base_peak(
         self,
-        adducts: List[Formula] | None = None,
+        gains: List[Formula] | None = None,
         losses: List[Formula] | None = None,
         mass_range: Tuple[float, float] | None = None,
     ) -> Tuple[Formula, float]:
-        """Finds the species closest to the m/z of the largest tof peak.
+        """Finds the adduct closest to the m/z of the largest tof peak.
 
         Args:
-            adducts: adducts to try, defaults to DGet.common_adducts
+            gains: gains to try, defaults to DGet.common_adducts
             losses: losses to try, defaults to DGet.common_losses
             mass_range: range to search for base peak, defaults to whole spectra
 
