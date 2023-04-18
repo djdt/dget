@@ -45,7 +45,7 @@ class DGet(object):
                 f"formula: {self.formula.formula} does not contain deuterium"
             )
 
-        self.x, self.y = self.read_tofdata(tofdata, **_loadtxt_kws)
+        self.x, self.y = self._read_tofdata(tofdata, **_loadtxt_kws)
 
     @property
     def deuterium_count(self) -> int:
@@ -98,6 +98,17 @@ class DGet(object):
             )
         return self._targets
 
+    def _read_tofdata(self, path: Path, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
+        if len(kwargs["usecols"]) != 2:
+            raise ValueError(
+                "exactly two columns (mass, signal) must be specified by 'usecols'"
+            )
+        for kw in ["unpack", "dtype"]:
+            if kw in kwargs:
+                kwargs.pop(kw)
+                print(f"warning: removing loadtxt keyword '{kw}'")
+        return np.loadtxt(path, unpack=True, dtype=np.float32, **kwargs)  # type: ignore
+
     def align_tof_with_spectra(self) -> None:
         """Shifts ToF data to better align with monoisotopic m/z.
         Please calibrate your MS instead of using this.
@@ -111,7 +122,7 @@ class DGet(object):
             print("warning: calculated alignment offset greater than 0.5 Da!")
         self.x -= offset
 
-    def find_species_from_base_peak(
+    def guess_species_from_base_peak(
         self,
         adducts: List[Formula] | None = None,
         losses: List[Formula] | None = None,
@@ -156,6 +167,12 @@ class DGet(object):
     def plot_predicted_spectra(
         self, ax: "matplotlib.axes.Axes", pad_mz: float = 5.0  # noqa: F821
     ) -> None:
+        """Plot spectra over mass spectra on `ax`.
+
+        Args:
+            ax: matplotlib axes
+            pad_mz: window around targets to show
+        """
         targets = self.targets
 
         start, end = np.searchsorted(self.x, [targets[0], targets[-1]])
@@ -193,14 +210,3 @@ class DGet(object):
         ax.set_xlabel("Mass")
         ax.set_ylabel("Signal")
         ax.legend()
-
-    def read_tofdata(self, path: Path, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
-        if len(kwargs["usecols"]) != 2:
-            raise ValueError(
-                "exactly two columns (mass, signal) must be specified by 'usecols'"
-            )
-        for kw in ["unpack", "dtype"]:
-            if kw in kwargs:
-                kwargs.pop(kw)
-                print(f"warning: removing loadtxt keyword '{kw}'")
-        return np.loadtxt(path, unpack=True, dtype=np.float32, **kwargs)  # type: ignore
