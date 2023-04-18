@@ -9,13 +9,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "formula", help="Molecular formula of the compound, see molmass."
     )
-    parser.add_argument("--adduct", help="Formula of adduct.")
-    parser.add_argument("--loss", help="Formula of loss.")
     parser.add_argument(
-        "--autospecies",
+        "--adduct",
+        help="Formula of adduct, see molmass. Treated as a mass loss if "
+        " there is a leading '-' otherwise, a mass addition.",
+    )
+    parser.add_argument(
+        "--autoadduct",
         action="store_true",
-        help="Guess the species from the mass spectra base peak. "
-        "Overrides --adduct and --loss.",
+        help="Guess the adduct from the mass spectra base peak. Overrides --adduct.",
     )
     parser.add_argument("tofdata", type=Path, help="Path to mass spec data file.")
     parser.add_argument("--delimiter", default="\t", help="MS data file delimiter.")
@@ -53,9 +55,8 @@ def parse_args() -> argparse.Namespace:
 
     args = parser.parse_args()
 
-    if args.autospecies:
+    if args.autoadduct:
         args.adduct = None
-        args.loss = None
 
     if "D" not in args.formula:
         parser.error("--formula, must contain at least one D atom.")
@@ -77,10 +78,10 @@ def main():
         loss=args.loss,
         loadtxt_kws=loadtxt_kws,
     )
-    if args.autospecies:
-        species, diff = dget.guess_species_from_base_peak()
-        dget.formula = species
-        print(f"Species difference from base peak m/z: {diff:.4f}")
+    if args.autoadduct:
+        adduct, diff = dget.guess_adduct_from_base_peak()
+        dget.formula = adduct
+        print(f"Adduct difference from base peak m/z: {diff:.4f}")
         print()
 
     dget.mass_width = args.masswidth
@@ -88,7 +89,7 @@ def main():
         dget.align_tof_with_spectra()
 
     print(f"Formula          : {dget._formula}")
-    print(f"Species          : {dget.species}")
+    print(f"Adduct           : {dget.adduct}")
     print(f"M/Z              : {dget.formula.mz}")
     print(f"Monoisotopic M/Z : {dget.formula.isotope.mz}")
     print(f"%D               : {dget.deuteration * 100.0:.2f}")

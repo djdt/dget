@@ -8,22 +8,41 @@ from molmass import ELEMENTS, Formula, Spectrum, format_charge
 from dget.convolve import deconvolve
 
 
+def formula_from_adduct(formula: str | Formula, adduct: str) -> Formula:
+    if isinstance(formula, str):
+        formula = Formula(formula)
+
+    match = re.match("\\[(\\d*)M([+-])?(.*)\\](\\d*[+-])", adduct)
+    if match is None:
+        raise ValueError("adduct must be in the format [xM<+-><formula>]x<+->")
+
+    formula = int(match.group(1) or 1) * formula
+    if match.group(2) == "-":
+        formula -= Formula(match.group(3))
+    else:
+        formula += Formula(match.group(3))
+    formula += Formula("_" + match.group(4))
+    return formula
+
+
 class DGet(object):
-    common_gains = [
-        Formula("+"),
-        Formula("H+"),
-        Formula("Na+"),
-        Formula("Cl-"),
-        Formula("H2_2+"),
+    common_adducts = [
+        "[M]+",
+        "[M+H]+",
+        "[M+Na]+",
+        "[M+H2]2+",
+        "[2M+H]+",
+        "[M-H]-",
+        "[2M-H]-",
+        "[M-H2]2-",
+        "[M+Cl]-",
     ]
-    common_losses = [Formula("H+"), Formula("H2_2+")]
 
     def __init__(
         self,
         formula: str,
         tofdata: Path,
-        gain: str | None = None,
-        loss: str | None = None,
+        adduct: str | None = None,
         loadtxt_kws: dict | None = None,
     ):
         _loadtxt_kws = {"delimiter": ",", "usecols": (0, 1)}
@@ -37,10 +56,8 @@ class DGet(object):
 
         self._formula = Formula(formula)  # store original for adduct calcs
         self.formula = Formula(formula)
-        if gain is not None:
-            self.formula += Formula(gain)
-        if loss is not None:
-            self.formula -= Formula(loss)
+        if adduct is not None:
+            self.formula = formula_from_adduct(formula, adduct)
 
         if self.deuterium_count == 0:
             raise ValueError(
@@ -141,35 +158,30 @@ class DGet(object):
 
     def guess_adduct_from_base_peak(
         self,
-        gains: List[Formula] | None = None,
-        losses: List[Formula] | None = None,
+        adducts: List[Formula] | None = None,
         mass_range: Tuple[float, float] | None = None,
     ) -> Tuple[Formula, float]:
         """Finds the adduct closest to the m/z of the largest tof peak.
 
         Args:
-            gains: gains to try, defaults to DGet.common_gains
-            losses: losses to try, defaults to DGet.common_losses
+            adducts: adducts to try, defaults to DGet.common_adducts
             mass_range: range to search for base peak, defaults to whole spectra
 
         Returns:
             best adduct
             mass difference from base peak
         """
-        if gains is None:
-            gains = self.common_gains
-        if losses is None:
-            losses = self.common_losses
+        if adducts is None:
+            adducts = DGet.common_adducts
 
-        adduct = [self.formula + gain for gain in gains]
-        for loss in losses:
+        formulas = []
+        for adduct in adducts:
             try:
-                adduct.append(self.formula - loss)
+                formulas.append(formula_from_adduct(self.formula, adduct))
             except ValueError:
                 pass
-        adduct.append(self.formula)
 
-        masses = np.array([sp.isotope.mz for sp in adduct])
+        masses = np.array([f.isotope.mz for f in formulas])
 
         if mass_range is not None:
             start, stop = np.searchsorted(self.x, mass_range)
@@ -179,7 +191,7 @@ class DGet(object):
         base = self.x[start:stop][np.argmax(self.y[start:stop])]
         diffs = np.abs(base - masses)
         best = np.argmin(diffs)
-        return adduct[best], diffs[best]
+        return adducts[best], diffs[best]
 
     def plot_predicted_spectra(
         self, ax: "matplotlib.axes.Axes", pad_mz: float = 5.0  # noqa: F821
