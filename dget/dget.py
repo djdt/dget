@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
-from molmass import ELEMENTS, Formula, Spectrum
+from molmass import ELEMENTS, Formula, Spectrum, format_charge
 
 from dget.convolve import deconvolve
 
@@ -34,6 +34,7 @@ class DGet(object):
         self._probabilities: np.ndarray | None = None
         self._probability_remainders: np.ndarray | None = None
 
+        self._formula = Formula(formula)  # store original formula
         self.formula = Formula(formula)
         if adduct is not None:
             self.formula += Formula(adduct)
@@ -81,6 +82,22 @@ class DGet(object):
     def psf(self) -> np.ndarray:  # type: ignore
         fractions = np.array([i.fraction for i in self.spectrum.values()])
         return fractions / fractions.sum()
+
+    @property
+    def species(self) -> str:
+        """Get the species as a string.
+        Eg [M+H]+, [M+Cl]-, [M-H]-"""
+        charge = format_charge(self.formula.charge)
+        species = "M"
+        if self.formula.mass > self._formula.mass:
+            adduct = (self.formula - self._formula)._formula_nocharge
+            if len(adduct) > 0:
+                species += "+" + adduct
+        elif self.formula.mass < self._formula.mass:
+            loss = (self._formula - self.formula)._formula_nocharge
+            if len(loss) > 0:
+                species += "-" + loss
+        return "[" + species + "]" + charge
 
     @property
     def spectrum(self) -> Spectrum:
