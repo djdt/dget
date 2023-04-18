@@ -1,6 +1,8 @@
 from pathlib import Path
+from typing import Tuple
 
 import matplotlib.pyplot as plt
+from molmass import Formula
 from pyodide.ffi import create_proxy
 from pyscript import display, js
 
@@ -77,6 +79,8 @@ def run():
     adduct, loss = None, None
     if len(species) == 0:
         pass
+    elif species == "Auto":
+        pass
     elif species[0] == "-":
         loss = species[1:]
     else:
@@ -84,6 +88,13 @@ def run():
 
     try:
         dget = DGet(formula, path, adduct=adduct, loss=loss, loadtxt_kws=inputs)
+        if species == "Auto":
+            species, diff = dget.guess_species_from_base_peak()
+            dget.formula = species
+            print(f"Species difference from base peak m/z: {diff:.4f}")
+            print()
+        if True:
+            dget.align_tof_with_spectra()
     except Exception as e:
         print("Error:", e)
         return
@@ -93,7 +104,8 @@ def run():
     fig.tight_layout()
     display(fig, target="figure", append=False)
 
-    print(f"Formula          : {dget.formula}")
+    print(f"Formula          : {dget._formula}")
+    print(f"Species          : {dget.species}")
     print(f"M/Z              : {dget.formula.mz}")
     print(f"Monoisotopic M/Z : {dget.formula.isotope.mz}")
     print(f"%D               : {dget.deuteration * 100.0:.2f}")
