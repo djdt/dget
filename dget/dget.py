@@ -64,20 +64,6 @@ class DGet(object):
                 adduct += "-" + loss
         return "[" + adduct + "]" + format_charge(self.formula.charge)
 
-    @adduct.setter
-    def adduct(self, adduct: str) -> None:
-        """Set the formula from an adduct str.
-        Must in the the form [M<+-><adduct>]<+->
-        Examples:
-            dget.adduct("[M]+")
-            dget.adduct("[M-H]+")
-            dget.adduct("[M+2H]2+")
-        """
-       match = re.match("\\[M([+-])?(.*)\\](\\d?[+-])", adduct) 
-       if match is None:
-           raise ValueError("adduct must be in the form '[M<+-><formula>]n<+->")
-       
-
     @property
     def deuterium_count(self) -> int:
         comp = self.formula.composition()
@@ -162,28 +148,28 @@ class DGet(object):
         """Finds the adduct closest to the m/z of the largest tof peak.
 
         Args:
-            gains: gains to try, defaults to DGet.common_adducts
+            gains: gains to try, defaults to DGet.common_gains
             losses: losses to try, defaults to DGet.common_losses
             mass_range: range to search for base peak, defaults to whole spectra
 
         Returns:
-            best species
+            best adduct
             mass difference from base peak
         """
-        if adducts is None:
-            adducts = self.common_adducts
+        if gains is None:
+            gains = self.common_gains
         if losses is None:
             losses = self.common_losses
 
-        species = [self.formula + add for add in adducts]
+        adduct = [self.formula + gain for gain in gains]
         for loss in losses:
             try:
-                species.append(self.formula - loss)
+                adduct.append(self.formula - loss)
             except ValueError:
                 pass
-        species.append(self.formula)
+        adduct.append(self.formula)
 
-        masses = np.array([sp.isotope.mz for sp in species])
+        masses = np.array([sp.isotope.mz for sp in adduct])
 
         if mass_range is not None:
             start, stop = np.searchsorted(self.x, mass_range)
@@ -193,7 +179,7 @@ class DGet(object):
         base = self.x[start:stop][np.argmax(self.y[start:stop])]
         diffs = np.abs(base - masses)
         best = np.argmin(diffs)
-        return species[best], diffs[best]
+        return adduct[best], diffs[best]
 
     def plot_predicted_spectra(
         self, ax: "matplotlib.axes.Axes", pad_mz: float = 5.0  # noqa: F821
