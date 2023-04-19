@@ -1,28 +1,11 @@
-import re
 from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
-from molmass import ELEMENTS, Formula, Spectrum, format_charge
+from molmass import ELEMENTS, Formula, Spectrum
 
+from dget.adduct import adduct_from_formula, formula_from_adduct
 from dget.convolve import deconvolve
-
-
-def formula_from_adduct(formula: str | Formula, adduct: str) -> Formula:
-    if isinstance(formula, str):
-        formula = Formula(formula)
-
-    match = re.match("\\[(\\d*)M([+-])?(.*)\\](\\d*[+-])", adduct)
-    if match is None:
-        raise ValueError("adduct must be in the format [xM<+-><formula>]x<+->")
-
-    formula = int(match.group(1) or 1) * formula
-    if match.group(2) == "-":
-        formula -= Formula(match.group(3))
-    else:
-        formula += Formula(match.group(3))
-    formula += Formula("_" + match.group(4))
-    return formula
 
 
 class DGet(object):
@@ -42,7 +25,7 @@ class DGet(object):
         self,
         formula: str,
         tofdata: Path,
-        adduct: str | None = None,
+        adduct: str = "[M]+",
         loadtxt_kws: dict | None = None,
     ):
         _loadtxt_kws = {"delimiter": ",", "usecols": (0, 1)}
@@ -54,10 +37,8 @@ class DGet(object):
         self._probabilities: np.ndarray | None = None
         self._probability_remainders: np.ndarray | None = None
 
-        self._formula = Formula(formula)  # store original for adduct calcs
-        self.formula = Formula(formula)
-        if adduct is not None:
-            self.formula = formula_from_adduct(formula, adduct)
+        self.base = Formula(formula)  # store original for adduct calcs
+        self.formula = formula_from_adduct(formula, adduct)
 
         if self.deuterium_count == 0:
             raise ValueError(
@@ -68,18 +49,7 @@ class DGet(object):
 
     @property
     def adduct(self) -> str:
-        """Get the adduct as a string.
-        Eg [M+H]+, [M+Cl]-, [M-H]-"""
-        adduct = "M"
-        if self.formula.mass > self._formula.mass:
-            gain = (self.formula - self._formula)._formula_nocharge
-            if len(gain) > 0:
-                adduct += "+" + gain
-        elif self.formula.mass < self._formula.mass:
-            loss = (self._formula - self.formula)._formula_nocharge
-            if len(loss) > 0:
-                adduct += "-" + loss
-        return "[" + adduct + "]" + format_charge(self.formula.charge)
+        return adduct_from_formula(self.formula, self.base)
 
     @property
     def deuterium_count(self) -> int:
@@ -177,7 +147,7 @@ class DGet(object):
         formulas = []
         for adduct in adducts:
             try:
-                formulas.append(formula_from_adduct(self.formula, adduct))
+                formulas.append(formula_from_adduct(self.base, adduct))
             except ValueError:
                 pass
 
@@ -191,7 +161,7 @@ class DGet(object):
         base = self.x[start:stop][np.argmax(self.y[start:stop])]
         diffs = np.abs(base - masses)
         best = np.argmin(diffs)
-        return adducts[best], diffs[best]
+        return formulas[best], diffs[best]
 
     def plot_predicted_spectra(
         self, ax: "matplotlib.axes.Axes", pad_mz: float = 5.0  # noqa: F821

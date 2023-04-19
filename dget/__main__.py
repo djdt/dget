@@ -11,8 +11,9 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--adduct",
-        help="Formula of adduct, see molmass. Treated as a mass loss if "
-        " there is a leading '-' otherwise, a mass addition.",
+        default="[M]+",
+        help="Type of adduct in form [xM<+-><adduct>]x<+->. Valid examples are [M]-, "
+        "[M+H]+, [2M+Na2]2+, [M-H2]2-. Defaults to [M]+.",
     )
     parser.add_argument(
         "--autoadduct",
@@ -56,7 +57,7 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
 
     if args.autoadduct:
-        args.adduct = None
+        args.adduct = "[M]+"
 
     if "D" not in args.formula:
         parser.error("--formula, must contain at least one D atom.")
@@ -75,7 +76,6 @@ def main():
         args.formula,
         args.tofdata,
         adduct=args.adduct,
-        loss=args.loss,
         loadtxt_kws=loadtxt_kws,
     )
     if args.autoadduct:
@@ -88,7 +88,7 @@ def main():
     if args.realign:
         dget.align_tof_with_spectra()
 
-    print(f"Formula          : {dget._formula}")
+    print(f"Formula          : {dget.base.empirical}")
     print(f"Adduct           : {dget.adduct}")
     print(f"M/Z              : {dget.formula.mz}")
     print(f"Monoisotopic M/Z : {dget.formula.isotope.mz}")
