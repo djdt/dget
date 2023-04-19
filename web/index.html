@@ -6,8 +6,6 @@
     <script defer src="https://pyscript.net/latest/pyscript.js"></script>
 </head>
     <style>
-    #3d5467
-    #686963
     * {box-sizing: border-box;}
     body {background-color: #f1edee; max-width: 1600px; margin: auto}
 
@@ -52,15 +50,17 @@
                 <br><br>
                 <label for="adduct"> Adduct: </label>
                 <select name="adduct" id="adduct">
-                    <option id="auto" value="Auto;+">Auto</option>
-                    <option id="mp" value=";+">M+</option>
-                    <option id="hp" value="H;+">[M+H]+</option>
-                    <option id="2hp" value="H2;2+">[M+2H]2+</option>
-                    <option id="nap" value="Na;+">[M+Na]+</option>
-                    <option id="mn" value=";-">M-</option>
-                    <option id="hn" value="-H;-">[M-H]-</option>
-                    <option id="hn" value="-H2;2-">[M-2H]2-</option>
-                    <option id="cln" value="Cl;-">[M+Cl]-</option>
+                    <option id="auto" value="Auto">Auto</option>
+                    <option id="mp" value="[M]+">M+</option>
+                    <option id="hp" value="[M+H]+">[M+H]+</option>
+                    <option id="nap" value="[M+Na]+">[M+Na]+</option>
+                    <option id="2hp" value="[M+H2]2+">[M+2H]2+</option>
+                    <option id="2mhp" value="[2M+H]+">[2M+H]+</option>
+                    <option id="mn" value="[M]-">M-</option>
+                    <option id="hn" value="[M-H]-">[M-H]-</option>
+                    <option id="2mhn" value="[2M-H]-">[2M-H]-</option>
+                    <option id="hn" value="[M-H2]2-">[M-2H]2-</option>
+                    <option id="cln" value="[M+Cl]-">[M+Cl]-</option>
                 </select>
                 <br><br>
                 <label for="file"> Upload MS Data: </label>

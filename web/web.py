@@ -16,7 +16,7 @@ def parse_inputs() -> dict | None:
     signalcol = int(js.document.getElementById("signalcol").value or 1) - 1
     inputs = {
         "formula": js.document.getElementById("formula").value,
-        "species": js.document.getElementById("species").value,
+        "adduct": js.document.getElementById("adduct").value,
         "delimiter": delimiters[js.document.getElementById("delimiter").value],
         "skiprows": int(js.document.getElementById("skiprows").value or 0),
         "usecols": (masscol, signalcol),
@@ -73,25 +73,19 @@ def run():
 
     # Find adduct / loss
     formula = inputs.pop("formula")
-    species, charge = inputs.pop("species").split(";")
-    formula = formula + "_" + charge
-
-    adduct, loss = None, None
-    if len(species) == 0:
-        pass
-    elif species == "Auto":
-        pass
-    elif species[0] == "-":
-        loss = species[1:]
+    adduct = inputs.pop("adduct")
+    if adduct == "Auto":
+        auto_adduct = True
+        adduct = "[M]+"
     else:
-        adduct = species
+        auto_adduct = False
 
     try:
-        dget = DGet(formula, path, adduct=adduct, loss=loss, loadtxt_kws=inputs)
-        if species == "Auto":
-            species, diff = dget.guess_species_from_base_peak()
-            dget.formula = species
-            print(f"Species difference from base peak m/z: {diff:.4f}")
+        dget = DGet(formula, path, adduct=adduct, loadtxt_kws=inputs)
+        if auto_adduct:
+            adduct, diff = dget.guess_adduct_from_base_peak()
+            dget.formula = adduct
+            print(f"Adduct difference from base peak m/z: {diff:.4f}")
             print()
         if True:
             dget.align_tof_with_spectra()
@@ -104,8 +98,8 @@ def run():
     fig.tight_layout()
     display(fig, target="figure", append=False)
 
-    print(f"Formula          : {dget._formula}")
-    print(f"Species          : {dget.species}")
+    print(f"Formula          : {dget.formula.empirical}")
+    print(f"Adduct           : {dget.adduct}")
     print(f"M/Z              : {dget.formula.mz}")
     print(f"Monoisotopic M/Z : {dget.formula.isotope.mz}")
     print(f"%D               : {dget.deuteration * 100.0:.2f}")
