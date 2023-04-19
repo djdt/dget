@@ -57,7 +57,6 @@ def adduct_from_formula(formula: Formula | str, base: Formula | str) -> str:
         base = Formula(base)
 
     n, rem = divide_formulas(Formula(formula._formula_nocharge), base)
-    print(formula, base, n)
 
     if rem is None:
         adduct_str = ""
