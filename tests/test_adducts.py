@@ -1,21 +1,30 @@
+import pytest
 from molmass import Formula
 
-from dget.adduct import adduct_from_formula, divide_formulas, formula_from_adduct, formula_in_formula
+from dget.adduct import (
+    adduct_from_formula,
+    divide_formulas,
+    formula_from_adduct,
+    formula_in_formula,
+)
 
 
 def test_divide_formulas():
     n, r = divide_formulas(Formula("H"), Formula("H"))
     assert n == 1
     assert r is None
+    n, r = divide_formulas(Formula("Na"), Formula("H"))
+    assert n == 0
+    assert r._formula == "Na"
     n, r = divide_formulas(Formula("H5"), Formula("H"))
     assert n == 5
     assert r is None
-    n, r = divide_formulas(Formula("C2H8"), Formula("CH"))
+    n, r = divide_formulas(Formula("C4H8"), Formula("CH"))
+    assert n == 4
+    assert r._formula == "H4"
+    n, r = divide_formulas(Formula("C4H8"), Formula("C2H2"))
     assert n == 2
-    assert r == Formula("H4")
-    n, r = divide_formulas(Formula("H"), Formula("H"))
-    assert n == 1
-    assert r is None
+    assert r._formula == "H4"
 
 
 def test_formula_in_formula():
@@ -43,6 +52,15 @@ def test_formula_from_adduct():
     adduct = formula_from_adduct(formula, "[2M-H]-")
     assert adduct.formula == "[C12H11]-"
 
+    with pytest.raises(ValueError):
+        formula_from_adduct(formula, "M+")
+    with pytest.raises(ValueError):
+        formula_from_adduct(formula, "[MNa]+")
+    with pytest.raises(ValueError):
+        formula_from_adduct(formula, "[M+Na]")
+    with pytest.raises(ValueError):
+        formula_from_adduct(formula, "[M-Na]+")
+
 
 def test_adduct_from_formula():
     formula = "C6H6"
@@ -64,8 +82,7 @@ def test_adduct_from_formula():
     adduct = adduct_from_formula("[CHNa]+", "CH")
     assert adduct == "[M+Na]+"
 
-
-test_divide_formulas()
-# test_formula_in_formula()
-# test_formula_from_adduct()
-# test_adduct_from_formula()
+    with pytest.raises(ValueError):
+        formula_from_adduct("[C2H2]+", "Na")
+    with pytest.raises(ValueError):
+        formula_from_adduct("[C2H2]+", "[C2H2]+")
