@@ -3,6 +3,8 @@ from typing import Tuple
 
 from molmass import Formula, format_charge
 
+adduct_regex = re.compile("\\[(\\d*)M(?:([+-])(.+))?\\](\\d*[+-])")
+
 
 def divide_formulas(a: Formula, b: Formula) -> Tuple[int, Formula]:
     divs = 0
@@ -28,18 +30,19 @@ def formula_from_adduct(formula: str | Formula, adduct: str) -> Formula:
     if isinstance(formula, str):
         formula = Formula(formula)
 
-    match = re.match("\\[(\\d*)M([+-])?(.*)\\](\\d*[+-])", adduct)
+    match = adduct_regex.match(adduct)
     if match is None:
         raise ValueError("adduct must be in the format [xM<+-><formula>]x<+->")
 
     formula = int(match.group(1) or 1) * formula
-    if match.group(2) is None and match.group(3):
+    if match.group(2) is None and match.group(3) is not None:
         raise ValueError("adduct must be in the format [xM<+-><formula>]x<+->")
 
     if match.group(2) == "-":
         formula -= Formula(match.group(3))
-    else:
+    elif match.group(2) == "+":
         formula += Formula(match.group(3))
+
     formula += Formula("_" + match.group(4))
     return formula
 
