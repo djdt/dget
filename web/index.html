@@ -3,34 +3,11 @@
     <title>D Get</title>
     <meta charset="utf-8">
     <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <link rel="stylesheet" href="dget.css" />
     <script defer src="https://pyscript.net/latest/pyscript.js"></script>
 </head>
     <style>
-    * {box-sizing: border-box;}
-    body {background-color: #f1edee; max-width: 1600px; margin: auto}
-
-    .header, .footer {background-color: #db5461; padding: 10px}
-    .leftcolumn, .rightcolumn {float: left; width: 50%}
-    .card {background-color: #f1edee; padding: 10px; margin-bottom: 10px}
-    .clearfix::after {background: lightgrey; content: ""; clear: both; display: table}
-    .py-terminal {min-height: 200px}
-
     img {background: white; display: block; margin-left: auto; margin-right: auto}
-
-    ul {list-style-type: none; margin: 0; padding: 0; overflow: hidden}
-    li {float: right}
-    li a {color: black; display: block; text-align: center; text-decoration: none; padding: 10px}
-    label {display: inline-block; text-align: left; width: 25%}
-    input, select {display: inline-block; align: right}
-    button {display: inline-block; align: right}
-    h3 {background-color: #8aa29e; padding: 5px}
-
-    @media screen and (max-width: 800px) {
-      .leftcolumn, .rightcolumn {   
-        width: 100%;
-        padding: 0;
-      }
-    }
     </style>
 <body>
     <py-config>
@@ -96,10 +73,12 @@
             <div id="figure"><img height="300", width="300"></img></div>
         </div>
     </div>
+
     <div class="card">
         <h3>Output</h2>
         <py-terminal></py-terminal>
     </div>
+
     <ul class="footer">
         <li><a href="https://github.com/djdt/dget">GitHub</a></li>
         <li><a href="help.html">Help</a></li>
@@ -108,3 +87,4 @@
 
     <py-script src="./web.py"></py-script>
 </body>
+<!--#include virtual="help.html" --> 
