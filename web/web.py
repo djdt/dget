@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from pyodide.ffi import create_proxy
 from pyscript import display, js
 
-from dget import DGet
+from dget import DGet, __version__
 
 delimiters = {"comma": ",", "semicolon": ";", "tab": "\t", "space": " "}
 
@@ -114,6 +114,6 @@ async def get_ms_data(event):
     guess_inputs(Path("data.csv"))
 
 
-print("Welcome to DGet 0.3!")
+print(f"Welcome to DGet {__version__}!")
 proxy = create_proxy(get_ms_data)
 js.document.getElementById("file").addEventListener("change", proxy, False)
