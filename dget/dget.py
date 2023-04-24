@@ -26,13 +26,16 @@ class DGet(object):
         formula: str,
         tofdata: Path,
         adduct: str = "[M]+",
+        mass_width: float = 0.5,
         loadtxt_kws: dict | None = None,
     ):
         _loadtxt_kws = {"delimiter": ",", "usecols": (0, 1)}
         if loadtxt_kws is not None:
             _loadtxt_kws.update(loadtxt_kws)
 
-        self.mass_width = 0.5
+        self.mass_width = mass_width
+        self.offset_mz: float | None = None
+
         self._targets: np.ndarray | None = None
         self._probabilities: np.ndarray | None = None
         self._probability_remainders: np.ndarray | None = None
@@ -102,6 +105,9 @@ class DGet(object):
             )
         return self._targets
 
+    def __str__(self) -> str:
+        return f"DGet({self.formula.formula})"
+
     def _read_tofdata(self, path: Path, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         if len(kwargs["usecols"]) != 2:
             raise ValueError(
@@ -115,16 +121,17 @@ class DGet(object):
 
     def align_tof_with_spectra(self) -> None:
         """Shifts ToF data to better align with monoisotopic m/z.
+        Sets the 'offset_mz' attribute.
         Please calibrate your MS instead of using this.
         """
         mz = self.formula.isotope.mz
         start, onmass, end = np.searchsorted(
             self.x, [mz - self.mass_width, mz, mz + self.mass_width]
         )
-        offset = self.x[start + np.argmax(self.y[start:end])] - self.x[onmass]
-        if abs(offset) > 1.0:
+        self.offset_mz = self.x[start + np.argmax(self.y[start:end])] - self.x[onmass]
+        if abs(self.offset_mz) > 1.0:  # type: ignore
             print("warning: calculated alignment offset greater than 0.5 Da!")
-        self.x -= offset
+        self.x -= self.offset_mz
 
     def guess_adduct_from_base_peak(
         self,
@@ -164,7 +171,7 @@ class DGet(object):
         return formulas[best], diffs[best]
 
     def plot_predicted_spectra(
-        self, ax: "matplotlib.axes.Axes", pad_mz: float = 5.0  # noqa: F821
+        self, ax: "matplotlib.axes.Axes", pad_mz: float = 2.0  # noqa: F821
     ) -> None:
         """Plot spectra over mass spectra on `ax`.
 
@@ -179,11 +186,13 @@ class DGet(object):
             return spectra * np.amax(y[start:end]) / spectra.max()
 
         targets = self.targets
-
-        start, end = np.searchsorted(self.x, [targets[0], targets[-1]])
+        start, end = np.searchsorted(
+            self.x, [targets[0] - pad_mz, targets[-1] + pad_mz]
+        )
         x, y = self.x[start:end], self.y[start:end]
 
         prediction = np.convolve(self.deuteration_probabilites, self.psf, mode="full")
+
         # Data
         ax.plot(x, y, color="black")
 
@@ -214,3 +223,14 @@ class DGet(object):
         ax.set_xlabel("Mass")
         ax.set_ylabel("Signal")
         ax.legend()
+
+    def print_results(self) -> None:
+        print(f"Formula          : {self.base.formula}")
+        print(f"Adduct           : {self.adduct}")
+        print(f"M/Z              : {self.formula.mz}")
+        print(f"Monoisotopic M/Z : {self.formula.isotope.mz}")
+        print(f"%D               : {self.deuteration * 100.0:.2f} %")
+        print()
+        print("Deuteration Ratio Spectra")
+        for i, p in enumerate(self.deuteration_probabilites):
+            print(f"D{i:<2}              : {p * 100.0:5.2f} %")

@@ -1,8 +1,6 @@
 from pathlib import Path
-from typing import Tuple
 
 import matplotlib.pyplot as plt
-from molmass import Formula
 from pyodide.ffi import create_proxy
 from pyscript import display, js
 
@@ -94,19 +92,12 @@ def run():
         return
 
     fig, ax = plt.subplots(1, 1, figsize=(5, 3))
+
     dget.plot_predicted_spectra(ax)
     fig.tight_layout()
     display(fig, target="figure", append=False)
 
-    print(f"Formula          : {dget.formula.empirical}")
-    print(f"Adduct           : {dget.adduct}")
-    print(f"M/Z              : {dget.formula.mz}")
-    print(f"Monoisotopic M/Z : {dget.formula.isotope.mz}")
-    print(f"%D               : {dget.deuteration * 100.0:.2f}")
-    print()
-    print("Deuteration Ratio Spectra")
-    for i, p in enumerate(dget.deuteration_probabilites):
-        print(f"D{i:<2}              : {p:.4f}")
+    dget.print_results()
 
 
 async def get_ms_data(event):

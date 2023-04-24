@@ -88,15 +88,7 @@ def main():
     if args.realign:
         dget.align_tof_with_spectra()
 
-    print(f"Formula          : {dget.base.empirical}")
-    print(f"Adduct           : {dget.adduct}")
-    print(f"M/Z              : {dget.formula.mz}")
-    print(f"Monoisotopic M/Z : {dget.formula.isotope.mz}")
-    print(f"%D               : {dget.deuteration * 100.0:.2f}")
-    print()
-    print("Deuteration Ratio Spectra")
-    for i, p in enumerate(dget.deuteration_probabilites):
-        print(f"D{i:<2}              : {p:.4f}")
+    dget.print_results()
 
     if args.plot:
         import matplotlib.pyplot as plt
