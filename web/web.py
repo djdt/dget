@@ -58,30 +58,30 @@ def run():
     # Clear the terminal
     js.document.getElementsByClassName("py-terminal")[0].innerHTML = ""
 
-    inputs = parse_inputs()
-    path = Path("data.csv")
-    if inputs["formula"] == "":
-        print("Error: invalid formula input.")
-        return
-    if inputs["usecols"][0] == inputs["usecols"][1]:
-        print("Error: signal and massmcolumns cannot be the same.")
-        return
-    if not path.exists():
-        print("Error: no file uploaded.")
-        return
-
-    # Find adduct / loss
-    formula = inputs.pop("formula")
-    adduct = inputs.pop("adduct")
-    if adduct == "Auto":
-        auto_adduct = True
-        adduct = "[M]+"
-    else:
-        auto_adduct = False
-
-    realign = inputs.pop("realign")
-
     try:
+        inputs = parse_inputs()
+        path = Path("data.csv")
+        if inputs["formula"] == "":
+            print("Error: invalid formula input.")
+            return
+        if inputs["usecols"][0] == inputs["usecols"][1]:
+            print("Error: signal and massmcolumns cannot be the same.")
+            return
+        if not path.exists():
+            print("Error: no file uploaded.")
+            return
+
+        # Find adduct / loss
+        formula = inputs.pop("formula")
+        adduct = inputs.pop("adduct")
+        if adduct == "Auto":
+            auto_adduct = True
+            adduct = "[M]+"
+        else:
+            auto_adduct = False
+
+        realign = inputs.pop("realign")
+
         dget = DGet(formula, path, adduct=adduct, loadtxt_kws=inputs)
         if auto_adduct:
             adduct, diff = dget.guess_adduct_from_base_peak()
@@ -93,17 +93,17 @@ def run():
             print(f"Re-aligned ToF data by shifting {dget.offset_mz:.2f} m/z")
             print()
 
+        fig, ax = plt.subplots(1, 1, figsize=(5, 3))
+
+        dget.plot_predicted_spectra(ax)
+        fig.tight_layout()
+        display(fig, target="figure", append=False)
+
+        dget.print_results()
+
     except Exception as e:
         print("Error:", e)
         return
-
-    fig, ax = plt.subplots(1, 1, figsize=(5, 3))
-
-    dget.plot_predicted_spectra(ax)
-    fig.tight_layout()
-    display(fig, target="figure", append=False)
-
-    dget.print_results()
 
 
 async def get_ms_data(event):
