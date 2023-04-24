@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 
-from dget import DGet
+from dget import DGet, __version__
 
 
 def parse_args() -> argparse.Namespace:
@@ -53,6 +53,7 @@ def parse_args() -> argparse.Namespace:
         help="Force alignment of MS data with predicted spectra, "
         "please just calibrate your MS.",
     )
+    parser.add_argument("--version", action="version", version=__version__)
 
     args = parser.parse_args()
 

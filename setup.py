@@ -1,11 +1,21 @@
+from pathlib import Path
+
 from setuptools import setup
 
 with open("README.md") as fp:
     long_description = fp.read()
 
+with Path("dget", "__init__.py").open() as fp:
+    version = None
+    for line in fp:
+        if line.startswith("__version__"):
+            version = line.split("=")[1].strip().strip('"')
+    if version is None:
+        raise ValueError("Could not read version from __init__.py")
+
 setup(
     name="DGet",
-    version="0.4",
+    version=version,
     description="Calculates compound deuteration from ToF-MS data.",
     long_description=long_description,
     long_description_content_type="text/markdown",
