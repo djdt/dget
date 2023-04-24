@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, TextIO, Tuple
 
 import numpy as np
 from molmass import ELEMENTS, Formula, Spectrum

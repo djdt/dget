@@ -17,6 +17,7 @@ def parse_inputs() -> dict | None:
         "adduct": js.document.getElementById("adduct").value,
         "delimiter": delimiters[js.document.getElementById("delimiter").value],
         "skiprows": int(js.document.getElementById("skiprows").value or 0),
+        "realign": js.document.getElementById("align").checked,
         "usecols": (masscol, signalcol),
     }
 
@@ -78,6 +79,8 @@ def run():
     else:
         auto_adduct = False
 
+    realign = inputs.pop("realign")
+
     try:
         dget = DGet(formula, path, adduct=adduct, loadtxt_kws=inputs)
         if auto_adduct:
@@ -85,8 +88,11 @@ def run():
             dget.formula = adduct
             print(f"Adduct difference from base peak m/z: {diff:.4f}")
             print()
-        if True:
+        if realign:
             dget.align_tof_with_spectra()
+            print(f"Re-aligned ToF data by shifting {dget.offset_mz:.2f} m/z")
+            print()
+
     except Exception as e:
         print("Error:", e)
         return

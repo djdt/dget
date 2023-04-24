@@ -87,6 +87,8 @@ def main():
     dget.mass_width = args.masswidth
     if args.realign:
         dget.align_tof_with_spectra()
+        print(f"Re-aligned ToF data by shifting {dget.offset_mz:.2f} m/z")
+        print()
 
     dget.print_results()
 
