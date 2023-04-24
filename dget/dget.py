@@ -172,6 +172,12 @@ class DGet(object):
             ax: matplotlib axes
             pad_mz: window around targets to show
         """
+
+        def scale_spectra(x, y, spectra_x, spectra):
+            max = spectra_x[np.argmax(spectra)]
+            start, end = np.searchsorted(x, [max - 0.5, max + 0.5])
+            return spectra * np.amax(y[start:end]) / spectra.max()
+
         targets = self.targets
 
         start, end = np.searchsorted(self.x, [targets[0], targets[-1]])
@@ -182,12 +188,12 @@ class DGet(object):
         ax.plot(x, y, color="black")
 
         # Scaled prediction
-        if prediction.size == 0 or y.size == 0:
+        if prediction.size == 0:
             return
-        prediction *= y.max() / prediction.max()
+
         ax.stem(
             targets,
-            prediction,
+            scale_spectra(x, y, targets, prediction),
             markerfmt=" ",
             basefmt=" ",
             linefmt="red",
@@ -195,11 +201,10 @@ class DGet(object):
         )
 
         # Scaled PSF
-        psf = self.psf * y.max()
         masses = [i.mass for i in self.spectrum.values()]
         ax.stem(
             masses,
-            psf,
+            scale_spectra(x, y, masses, self.psf),
             markerfmt=" ",
             basefmt=" ",
             linefmt="blue",
