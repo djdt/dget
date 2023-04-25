@@ -44,6 +44,7 @@ class DGet(object):
         "[2M-H]-",
         "[M-H2]2-",
         "[M+Cl]-",
+        "[M-H3O]-",
     ]
 
     def __init__(
