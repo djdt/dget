@@ -81,7 +81,7 @@ def main():
     )
     if args.autoadduct:
         adduct, diff = dget.guess_adduct_from_base_peak()
-        dget.formula = adduct
+        dget.adduct = adduct
         print(f"Adduct difference from base peak m/z: {diff:.4f}")
         print()
 

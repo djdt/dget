@@ -51,6 +51,8 @@ def test_adduct_from_formula():
     assert adduct == "[2M-H]-"
     adduct = adduct_from_formula("[CHNa]+", "CH")
     assert adduct == "[M+Na]+"
+    adduct = adduct_from_formula("[C54H13D24N4]+", "C27H6D12N2")
+    assert adduct == "[2M+H]+"
 
     with pytest.raises(ValueError):
         formula_from_adduct("[C2H2]+", "Na")
