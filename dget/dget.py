@@ -18,12 +18,13 @@ class DGet(object):
     for mass and signals. Specify columns using the keyword 'usecols' in `loadtxt_kws`,
     a (zero indexed) tuple of ints for (mass, signal) columns. The deilimter can be
     specified using the 'delimiter' keyword.
+    Mass spectra can also be passed as a tuple of numpy arrays, (masses, signals).
 
     Uses formulas and calculations from `molmass <https://github.com/cgohlke/molmass>`_
 
     Attributes:
         formula: formula of expected deuterated molecule
-        tofdata: path to mass spectra text file
+        tofdata: path to mass spectra text file, or tuple of masses, signals
         adduct: form of adduct ion, see `dget.adduct`
         loadtxt_kws: parameters passed to `numpy.loadtxt`,
             defaults to {'delimiter': ',', 'usecols': (0, 1)}
@@ -44,7 +45,7 @@ class DGet(object):
     def __init__(
         self,
         formula: str | Formula,
-        tofdata: str | Path,
+        tofdata: str | Path | Tuple[np.ndarray, np.ndarray],
         adduct: str = "[M]+",
         mass_width: float = 0.5,
         loadtxt_kws: dict | None = None,
@@ -71,7 +72,10 @@ class DGet(object):
                 f"formula: {self.formula.formula} does not contain deuterium"
             )
 
-        self.x, self.y = self._read_tofdata(tofdata, **_loadtxt_kws)
+        if isinstance(tofdata, (str | Path)):
+            self.x, self.y = self._read_tofdata(tofdata, **_loadtxt_kws)
+        else:
+            self.x, self.y = tofdata[0], tofdata[1]
 
     @property
     def adduct(self) -> str:
