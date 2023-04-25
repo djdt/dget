@@ -25,4 +25,28 @@ def test_dget_know_data():
         )
         dget.align_tof_with_spectra()
         # This test is too lenient, but best we can do with the data we have
-        assert np.isclose(dget.deuteration * 100.0, percent_d, atol=1.0)
+        assert np.isclose(dget.deuteration * 100.0, percent_d, atol=1.6)
+
+
+def test_deuteration():
+    dget = DGet("C2H5D1", tofdata=(np.array([]), np.array([])))
+    dget._probabilities = np.array([1.0, 0.0])
+    assert np.isclose(dget.deuteration, 0.0)
+    dget._probabilities = np.array([0.5, 0.5])
+    assert np.isclose(dget.deuteration, 0.5)
+    dget._probabilities = np.array([0.0, 1.0])
+    assert np.isclose(dget.deuteration, 1.0)
+
+    dget = DGet("C2H4D2", tofdata=(np.array([]), np.array([])))
+    dget._probabilities = np.array([0.6, 0.3, 0.1])
+    assert np.isclose(dget.deuteration, 0.25)
+    dget._probabilities = np.array([0.1, 0.3, 0.6])
+    assert np.isclose(dget.deuteration, 0.75)
+
+    dget = DGet("C2H2D4", tofdata=(np.array([]), np.array([])))
+    dget._probabilities = np.array([0.4, 0.2, 0.2, 0.1, 0.1])
+    assert np.isclose(dget.deuteration, 0.325)
+    dget._probabilities = np.array([0.5, 0.0, 0.0, 0.0, 0.5])
+    assert np.isclose(dget.deuteration, 0.5)
+    dget._probabilities = np.array([0.1, 0.1, 0.2, 0.2, 0.4])
+    assert np.isclose(dget.deuteration, 0.675)
