@@ -1,7 +1,7 @@
 """Adduct calculations for DGet.
 
 This module contains functions for transforming adduct strings
-to and from molmass.Formula classes, and helper functions.
+to and from molmass.Formula classes.
 
 Adduct strings are in the form [M+H]+, where 'M' represents the base formula,
 and must match the regex `ADDUCT_REGEX`: "\\[(\\d*)M(?:([+-])(.+))?\\](\\d*[+-])".
@@ -18,47 +18,12 @@ Valid examples are:
 
 """
 import re
-from typing import Tuple
 
 from molmass import Formula, format_charge
 
+from dget.formula import divide_formulas, formula_in_formula
+
 ADDUCT_REGEX = re.compile("\\[(\\d*)M(?:([+-])(.+))?\\](\\d*[+-])")
-
-
-def divide_formulas(a: Formula, b: Formula) -> Tuple[int, Formula]:
-    """Divide Formula `a` by `b`.
-    Returns the number of times `b` is in `a` and remainder.
-
-    Args:
-        a: numerator Formula
-        b: divisor Formula
-
-    Returns:
-        number of times `b` in `a`
-        Formula of remainder
-    """
-    divs = 0
-    while formula_in_formula(b, a):
-        if b.mass == a.mass:  # same formula
-            return divs + 1, None
-        a -= b
-        divs += 1
-    return divs, a
-
-
-def formula_in_formula(a: Formula, b: Formula) -> bool:
-    """Check if all atoms of `a` are in `b`.
-
-    Returns:
-        True if `a` in `b`
-    """
-    for k, v in a._elements.items():
-        if k not in b._elements:
-            return False
-        for ik, iv in v.items():
-            if b._elements[k].get(ik, 0) < iv:
-                return False
-    return True
 
 
 def formula_from_adduct(base: str | Formula, adduct: str) -> Formula:
