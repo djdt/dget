@@ -116,7 +116,7 @@ class DGet(object):
 
             self._probabilities, self._probability_remainders = deconvolve(
                 areas, self.psf
-            )[: self.deuterium_count + 1]
+            )
             self._probabilities = self._probabilities / self._probabilities.sum()
 
         return self._probabilities  # type: ignore
