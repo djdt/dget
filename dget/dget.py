@@ -1,11 +1,12 @@
 from pathlib import Path
-from typing import List, Tuple
+from typing import Generator, List, Tuple
 
 import numpy as np
-from molmass import ELEMENTS, Formula, Spectrum
+from molmass import Formula, Spectrum
 
 from dget.adduct import adduct_from_formula, formula_from_adduct
 from dget.convolve import deconvolve
+from dget.formula import spectra_mz_spread
 
 
 class DGet(object):
@@ -26,6 +27,9 @@ class DGet(object):
         formula: formula of expected deuterated molecule
         tofdata: path to mass spectra text file, or tuple of masses, signals
         adduct: form of adduct ion, see `dget.adduct`
+        signal_mass_width: range around each m/z to search for maxima or integrate
+        signal_method: detection mode, valid values are 'peak area', 'peak height'
+        spectrum_min_fraction: limit spectra to entries with at least this fraction
         loadtxt_kws: parameters passed to `numpy.loadtxt`,
             defaults to {'delimiter': ',', 'usecols': (0, 1)}
     """
@@ -47,7 +51,9 @@ class DGet(object):
         formula: str | Formula,
         tofdata: str | Path | Tuple[np.ndarray, np.ndarray],
         adduct: str = "[M]+",
-        mass_width: float = 0.5,
+        signal_mass_width: float = 0.5,
+        signal_mode: str = "peak height",
+        spectrum_min_fraction: float = 0.01,
         loadtxt_kws: dict | None = None,
     ):
         if isinstance(formula, str):
@@ -57,7 +63,6 @@ class DGet(object):
         if loadtxt_kws is not None:
             _loadtxt_kws.update(loadtxt_kws)
 
-        self.mass_width = mass_width
         self.offset_mz: float | None = None
 
         self._targets: np.ndarray | None = None
@@ -71,6 +76,12 @@ class DGet(object):
             raise ValueError(
                 f"formula: {self.formula.formula} does not contain deuterium"
             )
+
+        self.mass_width = signal_mass_width
+        if signal_mode not in ["peak area", "peak height"]:
+            raise ValueError("signal_mode must be one of 'peak area', 'peak height'.")
+        self.signal_mode = signal_mode
+        self.spectra_min_fraction = spectrum_min_fraction
 
         if isinstance(tofdata, (str | Path)):
             self.x, self.y = self._read_tofdata(tofdata, **_loadtxt_kws)
@@ -113,13 +124,25 @@ class DGet(object):
             starts = np.searchsorted(self.x, self.targets - self.mass_width / 2.0)
             ends = np.searchsorted(self.x, self.targets + self.mass_width / 2.0)
 
-            areas = np.array(
-                [np.trapz(self.y[s:e], x=self.x[s:e]) for s, e in zip(starts, ends)]
-            )
-            areas = areas / areas.sum()
+            valid = (starts < ends) & (ends < self.x.size - 1)
+            if np.any(~valid):
+                print("warning: some m/z targets fall outside of mass spectrum")
+
+            counts = np.zeros(self.targets.size)
+
+            if self.signal_mode == "peak area":
+                counts[valid] = [
+                    np.trapz(self.y[s:e], x=self.x[s:e])
+                    for s, e in zip(starts[valid], ends[valid])
+                ]
+            else:  # self.signal_mode == "peak height"
+                counts[valid] = np.maximum.reduceat(
+                    self.y, np.stack((starts[valid], ends[valid]), axis=1).flat
+                )[::2]
+            counts = counts / counts.sum()
 
             self._probabilities, self._probability_remainders = deconvolve(
-                areas, self.psf
+                counts, self.psf
             )
             self._probabilities = self._probabilities / self._probabilities.sum()
 
@@ -133,31 +156,19 @@ class DGet(object):
 
     @property
     def spectrum(self) -> Spectrum:
-        """Formula spectrum, see `molmass.Spectrum`.
-
-        A minimum intensity of 1% is used.
-        """
-        return self.formula.spectrum(min_intensity=0.01)
+        return self.formula.spectrum()
 
     @property
     def targets(self) -> np.ndarray:
-        """The m/z of each possible deuteration.
-
-        In order of D=0 to N, where N is the number of deuterium in the original
-        molecular formula.
-        """
         if self._targets is None:
-            diff_HD = ELEMENTS["H"].isotopes[2].mass - ELEMENTS["H"].isotopes[1].mass
-            smin, smax = self.spectrum.range
-            self._targets = np.arange(
-                self.spectrum[smin].mz - (self.deuterium_count * diff_HD),
-                self.spectrum[smax].mz + diff_HD,
-                diff_HD,
-            )
+            self._targets = spectra_mz_spread(list(self.spectra()))
         return self._targets
 
     def __str__(self) -> str:
         return f"DGet({self.formula.formula})"
+
+    def __repr__(self) -> str:
+        return f"DGet({self.formula.formula!r})"
 
     def _read_tofdata(
         self, path: str | Path, **kwargs
@@ -184,6 +195,9 @@ class DGet(object):
         start, onmass, end = np.searchsorted(
             self.x, [mz - self.mass_width, mz, mz + self.mass_width]
         )
+        if start == 0 or end == self.x.size:
+            raise ValueError("unable to align, m/z falls outside of mass spectra")
+
         self.offset_mz = self.x[start + np.argmax(self.y[start:end])] - self.x[onmass]
         if abs(self.offset_mz) > 1.0:  # type: ignore
             print("warning: calculated alignment offset greater than 0.5 Da!")
@@ -268,7 +282,7 @@ class DGet(object):
         )
 
         # Scaled PSF
-        masses = [i.mass for i in self.spectrum.values()]
+        masses = [i.mz for i in self.spectrum.values()]
         ax.stem(
             masses,
             scale_spectra(x, y, masses, self.psf),
@@ -284,13 +298,26 @@ class DGet(object):
 
     def print_results(self) -> None:
         """Print results to stdout."""
+        pd = self.deuteration  # ensure calculated
 
         print(f"Formula          : {self.base.formula}")
         print(f"Adduct           : {self.adduct}")
         print(f"M/Z              : {self.formula.mz}")
         print(f"Monoisotopic M/Z : {self.formula.isotope.mz}")
-        print(f"%D               : {self.deuteration * 100.0:.2f} %")
+        print(f"%D               : {pd * 100.0:.2f} %")
         print()
         print("Deuteration Ratio Spectra")
         for i, p in enumerate(self.deuteration_probabilites):
             print(f"D{i:<2}              : {p * 100.0:5.2f} %")
+
+    def spectra(self, **kwargs) -> Generator[Spectrum, None, None]:
+        """Spectra from non to fully deuterated.
+
+        kwargs are passed to molmass.Formula.spectrum()
+        """
+
+        for i in range(self.deuterium_count, 0, -1):
+            yield (self.formula - Formula("D") * i + Formula("H") * i).spectrum(
+                **kwargs
+            )
+        yield self.formula.spectrum(**kwargs)
