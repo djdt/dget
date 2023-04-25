@@ -1,12 +1,42 @@
+"""Adduct calculations for DGet.
+
+This module contains functions for transforming adduct strings
+to and from molmass.Formula classes, and helper functions.
+
+Adduct strings are in the form [M+H]+, where 'M' represents the base formula,
+and must match the regex `ADDUCT_REGEX`: "\\[(\\d*)M(?:([+-])(.+))?\\](\\d*[+-])".
+"
+    [
+        number of times base molecule in adduct, (M with optional int prefix)
+        optional loss or gain, (+ for gain, - for loss)(Formula of loss of gain)
+    ]
+    charge of adduct, (+ or - with optional int prefix)
+"
+
+Valid examples are:
+[M]+, [M]-, [M+H]+, [M-H]-, [2M+H2]2+, [2M-H2O]-
+
+"""
 import re
 from typing import Tuple
 
 from molmass import Formula, format_charge
 
-adduct_regex = re.compile("\\[(\\d*)M(?:([+-])(.+))?\\](\\d*[+-])")
+ADDUCT_REGEX = re.compile("\\[(\\d*)M(?:([+-])(.+))?\\](\\d*[+-])")
 
 
 def divide_formulas(a: Formula, b: Formula) -> Tuple[int, Formula]:
+    """Divide Formula `a` by `b`.
+    Returns the number of times `b` is in `a` and remainder.
+
+    Args:
+        a: numerator Formula
+        b: divisor Formula
+
+    Returns:
+        number of times `b` in `a`
+        Formula of remainder
+    """
     divs = 0
     while formula_in_formula(b, a):
         if b.mass == a.mass:  # same formula
@@ -17,6 +47,11 @@ def divide_formulas(a: Formula, b: Formula) -> Tuple[int, Formula]:
 
 
 def formula_in_formula(a: Formula, b: Formula) -> bool:
+    """Check if all atoms of `a` are in `b`.
+
+    Returns:
+        True if `a` in `b`
+    """
     for k, v in a._elements.items():
         if k not in b._elements:
             return False
@@ -26,17 +61,26 @@ def formula_in_formula(a: Formula, b: Formula) -> bool:
     return True
 
 
-def formula_from_adduct(formula: str | Formula, adduct: str) -> Formula:
-    if isinstance(formula, str):
-        formula = Formula(formula)
+def formula_from_adduct(base: str | Formula, adduct: str) -> Formula:
+    """Create a Formula an adduct string.
 
-    match = adduct_regex.match(adduct)
-    if match is None:
+    The `base` Formula is represented in the string by 'M'.
+
+    Args:
+        base: Formula of non-adduct molecule
+        adduct: adduct string
+
+    Returns:
+        Formula of the adduct
+    """
+    if isinstance(base, str):
+        base = Formula(base)
+
+    match = ADDUCT_REGEX.match(adduct)
+    if match is None or (match.group(2) is None and match.group(3) is not None):
         raise ValueError("adduct must be in the format [xM<+-><formula>]x<+->")
 
-    formula = int(match.group(1) or 1) * formula
-    if match.group(2) is None and match.group(3) is not None:
-        raise ValueError("adduct must be in the format [xM<+-><formula>]x<+->")
+    formula = int(match.group(1) or 1) * base
 
     if match.group(2) == "-":
         formula -= Formula(match.group(3))
@@ -48,9 +92,17 @@ def formula_from_adduct(formula: str | Formula, adduct: str) -> Formula:
 
 
 def adduct_from_formula(formula: Formula | str, base: Formula | str) -> str:
-    """Get the adduct from the original base formula as a string.
-    Eg [M+H]+, [M+Cl]-, [M-H]-"""
+    """Get the adduct string used to create `formula` from base molecule `base`.
 
+    The `base` Formula is represented in the string by 'M'.
+
+    Args:
+        formula: Formula of the adduct
+        base: Formula of the base molecule
+
+    Returns:
+        adduct string
+    """
     if isinstance(formula, str):
         formula = Formula(formula)
     if isinstance(base, str):

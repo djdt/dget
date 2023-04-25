@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, TextIO, Tuple
+from typing import List, Tuple
 
 import numpy as np
 from molmass import ELEMENTS, Formula, Spectrum
@@ -9,6 +9,26 @@ from dget.convolve import deconvolve
 
 
 class DGet(object):
+    """Deuteration calculation class.
+
+    This class contains functions for calculating deuteration from
+    a molecular formula and mass spectra.
+
+    Mass spectra is expected to be in a delimited text file with at least 2 columns,
+    for mass and signals. Specify columns using the keyword 'usecols' in `loadtxt_kws`,
+    a (zero indexed) tuple of ints for (mass, signal) columns. The deilimter can be
+    specified using the 'delimiter' keyword.
+
+    Uses formulas and calculations from `molmass <https://github.com/cgohlke/molmass>`_
+
+    Attributes:
+        formula: formula of expected deuterated molecule
+        tofdata: path to mass spectra text file
+        adduct: form of adduct ion, see `dget.adduct`
+        loadtxt_kws: parameters passed to `numpy.loadtxt`,
+            defaults to {'delimiter': ',', 'usecols': (0, 1)}
+    """
+
     common_adducts = [
         "[M]+",
         "[M+H]+",
@@ -23,12 +43,15 @@ class DGet(object):
 
     def __init__(
         self,
-        formula: str,
-        tofdata: Path,
+        formula: str | Formula,
+        tofdata: str | Path,
         adduct: str = "[M]+",
         mass_width: float = 0.5,
         loadtxt_kws: dict | None = None,
     ):
+        if isinstance(formula, str):
+            formula = Formula(formula)
+
         _loadtxt_kws = {"delimiter": ",", "usecols": (0, 1)}
         if loadtxt_kws is not None:
             _loadtxt_kws.update(loadtxt_kws)
@@ -40,7 +63,7 @@ class DGet(object):
         self._probabilities: np.ndarray | None = None
         self._probability_remainders: np.ndarray | None = None
 
-        self.base = Formula(formula)  # store original for adduct calcs
+        self.base = formula  # store original for adduct calcs
         self.formula = formula_from_adduct(formula, adduct)
 
         if self.deuterium_count == 0:
@@ -52,10 +75,12 @@ class DGet(object):
 
     @property
     def adduct(self) -> str:
+        """Get the adduct as a string."""
         return adduct_from_formula(self.formula, self.base)
 
     @property
     def deuterium_count(self) -> int:
+        """The number of deuterium atoms in the molecule."""
         comp = self.formula.composition()
         if "2H" not in comp:
             return 0
@@ -63,11 +88,23 @@ class DGet(object):
 
     @property
     def deuteration(self) -> float:
+        """The deuteration of the molecule.
+
+        Deuteration is calculated as the fraction of deuterium in the molecular
+        formula that have been dueterated successfully.
+
+        For Example: 60% C2H5D1, 40% C2H6 would give a deuteration of 0.6.
+        """
         prob = self.deuteration_probabilites
-        return 1.0 - np.sum(prob * np.arange(prob.size)[::-1]) / prob.size
+        return np.sum(prob * np.arange(prob.size)) / self.deuterium_count
 
     @property
     def deuteration_probabilites(self) -> np.ndarray:
+        """The deuteration fraction of each possible deuteration.
+
+        Probabilities are listed in order of D=0 to N, where N is the number of
+        deuterium in the original molecular formula. Probabilites will sum to 1.0.
+        """
         if self._probabilities is None:
             starts = np.searchsorted(self.x, self.targets - self.mass_width / 2.0)
             ends = np.searchsorted(self.x, self.targets + self.mass_width / 2.0)
@@ -86,15 +123,25 @@ class DGet(object):
 
     @property
     def psf(self) -> np.ndarray:  # type: ignore
+        """The point spread function used for (de)convolution."""
         fractions = np.array([i.fraction for i in self.spectrum.values()])
         return fractions / fractions.sum()
 
     @property
     def spectrum(self) -> Spectrum:
+        """Formula spectrum, see `molmass.Spectrum`.
+
+        A minimum intensity of 1% is used.
+        """
         return self.formula.spectrum(min_intensity=0.01)
 
     @property
     def targets(self) -> np.ndarray:
+        """The m/z of each possible deuteration.
+
+        In order of D=0 to N, where N is the number of deuterium in the original
+        molecular formula.
+        """
         if self._targets is None:
             diff_HD = ELEMENTS["H"].isotopes[2].mass - ELEMENTS["H"].isotopes[1].mass
             smin, smax = self.spectrum.range
@@ -108,7 +155,11 @@ class DGet(object):
     def __str__(self) -> str:
         return f"DGet({self.formula.formula})"
 
-    def _read_tofdata(self, path: Path, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
+    def _read_tofdata(
+        self, path: str | Path, **kwargs
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Internal helper to read mass spectra data."""
+
         if len(kwargs["usecols"]) != 2:
             raise ValueError(
                 "exactly two columns (mass, signal) must be specified by 'usecols'"
@@ -121,8 +172,9 @@ class DGet(object):
 
     def align_tof_with_spectra(self) -> None:
         """Shifts ToF data to better align with monoisotopic m/z.
-        Sets the 'offset_mz' attribute.
+
         Please calibrate your MS instead of using this.
+        Sets the `offset_mz` attribute to the offset used to shift.
         """
         mz = self.formula.isotope.mz
         start, onmass, end = np.searchsorted(
@@ -139,6 +191,8 @@ class DGet(object):
         mass_range: Tuple[float, float] | None = None,
     ) -> Tuple[Formula, float]:
         """Finds the adduct closest to the m/z of the largest tof peak.
+
+        This function will work best with highly deuterated samples.
 
         Args:
             adducts: adducts to try, defaults to DGet.common_adducts
@@ -176,7 +230,7 @@ class DGet(object):
         """Plot spectra over mass spectra on `ax`.
 
         Args:
-            ax: matplotlib axes
+            ax: matplotlib axes to plot on
             pad_mz: window around targets to show
         """
 
@@ -225,6 +279,8 @@ class DGet(object):
         ax.legend()
 
     def print_results(self) -> None:
+        """Print results to stdout."""
+
         print(f"Formula          : {self.base.formula}")
         print(f"Adduct           : {self.adduct}")
         print(f"M/Z              : {self.formula.mz}")

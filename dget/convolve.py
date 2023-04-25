@@ -1,3 +1,8 @@
+"""Convolution implementations.
+
+Deconvolution is used by DGet to recover the original deuteration
+pattern from a given mass spectrum.
+"""
 from typing import Tuple
 
 import numpy as np
