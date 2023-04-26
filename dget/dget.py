@@ -91,7 +91,7 @@ class DGet(object):
     @property
     def deuterium_count(self) -> int:
         """The number of deuterium atoms in the adduct."""
-        comp = self.adduct.formula.composition()
+        comp = self.formula.composition()
         if "2H" not in comp:
             return 0
         return comp["2H"].count
@@ -148,6 +148,11 @@ class DGet(object):
         return self._probabilities  # type: ignore
 
     @property
+    def formula(self) -> Formula:
+        """The adduct formula."""
+        return self.adduct.formula
+
+    @property
     def psf(self) -> np.ndarray:  # type: ignore
         """The point spread function used for (de)convolution."""
         fractions = np.array([i.fraction for i in self.spectrum.values()])
@@ -156,7 +161,7 @@ class DGet(object):
     @property
     def spectrum(self) -> Spectrum:
         """Return the adduct spectrum."""
-        return self.adduct.formula.spectrum()
+        return self.formula.spectrum()
 
     @property
     def targets(self) -> np.ndarray:
@@ -192,7 +197,7 @@ class DGet(object):
         Please calibrate your MS instead of using this.
         Sets the `offset_mz` attribute to the offset used to shift.
         """
-        mz = self.adduct.formula.isotope.mz
+        mz = self.formula.isotope.mz
         start, onmass, end = np.searchsorted(
             self.x, [mz - self.mass_width, mz, mz + self.mass_width]
         )
@@ -294,7 +299,7 @@ class DGet(object):
             linefmt="blue",
             label="Formula Spectra",
         )
-        ax.set_title(self.adduct.formula.formula)
+        ax.set_title(self.formula.formula)
         ax.set_xlabel("Mass")
         ax.set_ylabel("Signal")
         ax.legend()
@@ -305,8 +310,8 @@ class DGet(object):
 
         print(f"Formula          : {self.adduct.base.formula}")
         print(f"Adduct           : {self.adduct.adduct}")
-        print(f"M/Z              : {self.adduct.formula.mz}")
-        print(f"Monoisotopic M/Z : {self.adduct.formula.isotope.mz}")
+        print(f"M/Z              : {self.adduct.base.isotope.mz}")
+        print(f"Adduct M/Z       : {self.formula.isotope.mz}")
         print(f"%D               : {pd * 100.0:.2f} %")
         print()
         print("Deuteration Ratio Spectra")
@@ -320,7 +325,7 @@ class DGet(object):
         """
 
         for i in range(self.deuterium_count, 0, -1):
-            yield (self.adduct.formula - Formula("D") * i + Formula("H") * i).spectrum(
+            yield (self.formula - Formula("D") * i + Formula("H") * i).spectrum(
                 **kwargs
             )
-        yield self.adduct.formula.spectrum(**kwargs)
+        yield self.formula.spectrum(**kwargs)
