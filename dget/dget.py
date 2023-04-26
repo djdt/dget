@@ -155,10 +155,12 @@ class DGet(object):
 
     @property
     def spectrum(self) -> Spectrum:
+        """Return the adduct spectrum."""
         return self.adduct.formula.spectrum()
 
     @property
     def targets(self) -> np.ndarray:
+        """The m/z of every possible spectrum."""
         if self._targets is None:
             self._targets = spectra_mz_spread(list(self.spectra()))
         return self._targets
@@ -312,7 +314,7 @@ class DGet(object):
             print(f"D{i:<2}              : {p * 100.0:5.2f} %")
 
     def spectra(self, **kwargs) -> Generator[Spectrum, None, None]:
-        """Spectra from non to fully deuterated.
+        """Spectrum of all compounds from non to fully deuterated.
 
         kwargs are passed to molmass.Formula.spectrum()
         """
