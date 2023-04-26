@@ -1,11 +1,10 @@
 """Adduct calculations for DGet.
 
-This module contains functions for transforming adduct strings
+This module contains classes and functions for transforming adduct strings
 to and from molmass.Formula classes.
 
 Adduct strings are in the form [M+X-X]+, where 'M' represents the base formula,
-Some valid examples are: [M]+, [M+H]+, [M-H]-, [M+Cl]-, [2M+Na]+, [M+H2]2+,
-[M+K-2H]-.
+Some valid examples are: [M]+, [M+H]+, [M-H]-, [M+Cl]-, [2M+Na]+, [M+H2]2+, [M+K-H2]-.
 """
 
 import re
@@ -16,7 +15,7 @@ from dget.formula import divide_formulas, formula_in_formula
 
 
 class Adduct(object):
-    """Class for creating adduct formula.
+    """Class for creating adduct formulas.
 
     Attributes:
         adduct: adduct string
