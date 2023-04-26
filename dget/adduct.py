@@ -23,15 +23,15 @@ from molmass import Composition, Formula, Spectrum, format_charge
 
 from dget.formula import divide_formulas, formula_in_formula
 
-ADDUCT_REGEX = re.compile("\\[(\\d*)M(?:([+-])(.+))?\\](\\d*[+-])")
-
 
 class Adduct(object):
-    regex = re.compile("\\[(\\d*)M(?:([+-])(.+))?\\](\\d+)?([+-])")
+    regex = re.compile("\\[(\\d*)M(.*)\\](\\d+)?([+-])")
+    regex_split = re.compile("([+-])(\\w+)")
 
     def __init__(self, base: Formula, adduct: str):
         match = Adduct.regex.match(adduct)
-        if match is None or (match.group(2) is None and match.group(3) is not None):
+
+        if match is None:
             raise ValueError("adduct must be in the format [xM<+-><formula>]x<+->")
 
         self.adduct = adduct
@@ -40,36 +40,19 @@ class Adduct(object):
 
         self.formula = base * self.num_base
 
-        # self.loss: Formula | None = None
-        # self.gain: Formula | None = None
-        if match.group(2) == "-":
-            # self.loss = Formula(match.group(3))
-            # self.formula -= self.loss
-            self.formula -= Formula(match.group(3))
-        elif match.group(2) == "+":
-            # self.gain = Formula(match.group(3))
-            # self.formula += self.loss
-            self.formula += Formula(match.group(3))
+        for adduct_type, formula in Adduct.regex_split.findall(match.group(2)):
+            if adduct_type == "-":
+                self.formula -= Formula(formula)
+            else:
+                self.formula += Formula(formula)
 
-        # self.charge = (1 if match.group(5) == "+" else -1) * int(match.group(4) or 1)
-        self.formula._charge = (1 if match.group(5) == "+" else -1) * int(
-            match.group(4) or 1
+        self.formula._charge = (1 if match.group(4) == "+" else -1) * int(
+            match.group(3) or 1
         )
 
     @property
     def composition(self) -> Composition:
         return self.formula.compositionAdduct
-
-    # @property
-    # def formula(self) -> Formula:
-    #     if self._formula is None:
-    #         self._formula = self.base * self.num_base
-    #         if self.loss is not None:
-    #             self._formula -= self.loss
-    #         if self.gain is not None:
-    #             self._formula += self.gain
-    #         self._formula._charge = self.charge
-    #     return self._formula
 
     @property
     def spectrum(self) -> Spectrum:
@@ -97,7 +80,7 @@ def formula_from_adduct(base: str | Formula, adduct: str) -> Formula:
     if isinstance(base, str):
         base = Formula(base)
 
-    match = ADDUCT_REGEX.match(adduct)
+    match = re.match("\\[(\\d*)M(?:([+-])(.+))?\\](\\d*[+-])", adduct)
     if match is None or (match.group(2) is None and match.group(3) is not None):
         raise ValueError("adduct must be in the format [xM<+-><formula>]x<+->")
 
