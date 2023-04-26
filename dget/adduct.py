@@ -3,20 +3,11 @@
 This module contains functions for transforming adduct strings
 to and from molmass.Formula classes.
 
-Adduct strings are in the form [M+H]+, where 'M' represents the base formula,
-and must match the regex `ADDUCT_REGEX`: "\\[(\\d*)M(?:([+-])(.+))?\\](\\d*[+-])".
-"
-    [
-        number of times base molecule in adduct, (M with optional int prefix)
-        optional loss or gain, (+ for gain, - for loss)(Formula of loss of gain)
-    ]
-    charge of adduct, (+ or - with optional int prefix)
-"
-
-Valid examples are:
-[M]+, [M]-, [M+H]+, [M-H]-, [2M+H2]2+, [2M-H2O]-
-
+Adduct strings are in the form [M+X-X]+, where 'M' represents the base formula,
+Some valid examples are: [M]+, [M+H]+, [M-H]-, [M+Cl]-, [2M+Na]+, [M+H2]2+,
+[M+K-2H]-.
 """
+
 import re
 
 from molmass import Composition, Formula, Spectrum, format_charge
@@ -25,10 +16,25 @@ from dget.formula import divide_formulas, formula_in_formula
 
 
 class Adduct(object):
+    """Class for creating adduct formula.
+
+    Attributes:
+        adduct: adduct string
+        base: formula of the base molecule, represented by M in adduct
+        num_base: number of base molecules in adduct
+        formula: formula of the adduct
+    """
+
     regex = re.compile("\\[(\\d*)M(.*)\\](\\d+)?([+-])")
     regex_split = re.compile("([+-])(\\w+)")
 
     def __init__(self, base: Formula, adduct: str):
+        """Initialiation function.
+
+        Args:
+            base: formula of the base molecule, represented by M in adduct
+            adduct: adduct string
+        """
         match = Adduct.regex.match(adduct)
 
         if match is None:
@@ -52,10 +58,12 @@ class Adduct(object):
 
     @property
     def composition(self) -> Composition:
-        return self.formula.compositionAdduct
+        """Return the adduct composition."""
+        return self.formula.composition()
 
     @property
     def spectrum(self) -> Spectrum:
+        """Return the adduct spectrum."""
         return self.formula.spectrum()
 
     def __str__(self) -> str:
