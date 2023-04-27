@@ -26,19 +26,19 @@
                 <input type="text" id="formula" name="formula">
                 <br><br>
                 <label for="adduct"> Adduct: </label>
-                <select name="adduct" id="adduct">
-                    <option id="auto" value="Auto">Auto</option>
-                    <option id="mp" value="[M]+">M+</option>
-                    <option id="hp" value="[M+H]+">[M+H]+</option>
-                    <option id="nap" value="[M+Na]+">[M+Na]+</option>
-                    <option id="2hp" value="[M+H2]2+">[M+2H]2+</option>
-                    <option id="2mhp" value="[2M+H]+">[2M+H]+</option>
-                    <option id="mn" value="[M]-">M-</option>
-                    <option id="hn" value="[M-H]-">[M-H]-</option>
-                    <option id="2mhn" value="[2M-H]-">[2M-H]-</option>
-                    <option id="hn" value="[M-H2]2-">[M-2H]2-</option>
-                    <option id="cln" value="[M+Cl]-">[M+Cl]-</option>
-                </select>
+                <input name="adduct" id="adduct" list="adductlist" value="[M+H]+">
+                <datalist id="adductlist">
+                    <option value="Auto">
+                    <option value="[M]+">
+                    <option value="[M+H]+">
+                    <option value="[M+Na]+">
+                    <option value="[M+2H]2+">
+                    <option value="[M]-">
+                    <option value="[M-H]-">
+                    <option value="[2M-H]-">
+                    <option value="[M-2H]2-">
+                    <option value="[M+Cl]-">
+                </datalist>
                 <br><br>
                 <label for="file"> Upload MS Data: </label>
                 <input type="file" id="file", name="file">
@@ -81,6 +81,7 @@
 
     <ul class="footer">
         <li><a href="https://github.com/djdt/dget">GitHub</a></li>
+        <li><a href="https://dget.readthedocs.io">Reference</a></li>
         <li><a href="help.html">Help</a></li>
         <li><a href="index.html">Home</a></li>
     </ul>
