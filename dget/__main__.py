@@ -38,8 +38,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--plot",
-        action="store_true",
-        help="Plot the convolved match against the MS data.",
+        nargs="?",
+        const="targets",
+        help="Plot the convolved match against the MS data, "
+        "use '--plot full' to show the entire mass range..",
     )
     parser.add_argument(
         "--masswidth",
@@ -97,7 +99,7 @@ def main():
         import matplotlib.pyplot as plt
 
         fig, axes = plt.subplots(1, 1)
-        dget.plot_predicted_spectra(axes)
+        dget.plot_predicted_spectra(axes, mass_range=args.plot)
         plt.show()
 
 

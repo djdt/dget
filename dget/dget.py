@@ -249,26 +249,41 @@ class DGet(object):
         return formulas[best], diffs[best]
 
     def plot_predicted_spectra(
-        self, ax: "matplotlib.axes.Axes", pad_mz: float = 2.0  # noqa: F821
+        self,
+        ax: "matplotlib.axes.Axes",
+        mass_range: Tuple[float, float] | str = "targets",  # noqa: F821
     ) -> None:
         """Plot spectra over mass spectra on `ax`.
 
+        `mass_range` can be passed as a tuple of floats (start m/z, end m/z),
+        'full' to plot the entire mass range or 'targets' to plot the region around
+        the predicted spectra.
+
         Args:
             ax: matplotlib axes to plot on
-            pad_mz: window around targets to show
+            mass_range: range to plot
         """
 
         def scale_spectra(x, y, spectra_x, spectra):
             max = spectra_x[np.argmax(spectra)]
-            start, end = np.searchsorted(x, [max - 0.5, max + 0.5])
+            start, end = np.searchsorted(
+                x, [max - self.mass_width, max + self.mass_width]
+            )
             if start == end:
                 return spectra
             return spectra * np.amax(y[start:end]) / spectra.max()
 
         targets = self.targets
-        start, end = np.searchsorted(
-            self.x, [targets[0] - pad_mz, targets[-1] + pad_mz]
-        )
+
+        if isinstance(mass_range, str):
+            if mass_range == "full":
+                mass_range = self.x.min(), self.x.max()
+            elif mass_range == "targets":
+                mass_range = targets.min() - 5.0, targets.max() + 5.0
+            else:
+                raise ValueError("'mass_range' must be one of 'full', 'targets'.")
+
+        start, end = np.searchsorted(self.x, mass_range)
         x, y = self.x[start:end], self.y[start:end]
 
         prediction = np.convolve(self.deuteration_probabilites, self.psf, mode="full")
