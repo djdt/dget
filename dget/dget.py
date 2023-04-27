@@ -356,8 +356,8 @@ D8               : 63.56 %
 
         print(f"Formula          : {self.adduct.base.formula}")
         print(f"Adduct           : {self.adduct.adduct}")
-        print(f"M/Z              : {self.adduct.base.isotope.mz}")
-        print(f"Adduct M/Z       : {self.formula.isotope.mz}")
+        print(f"M/Z              : {self.adduct.base.isotope.mz:.4f}")
+        print(f"Adduct M/Z       : {self.formula.isotope.mz:.4f}")
         print(f"%Deuteration     : {pd * 100.0:.2f} %")
         print()
         print("Deuteration Ratio Spectra")

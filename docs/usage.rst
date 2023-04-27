@@ -16,8 +16,8 @@ This will print the deuteration of the base molecule ``%Deuteration`` and the pr
 
     Formula          : C12H[2H]8N
     Adduct           : [M-H]-
-    M/Z              : 175.12371326162
-    Adduct M/Z       : 174.11643680929907
+    M/Z              : 175.1237
+    Adduct M/Z       : 174.1164
     %Deuteration     : 93.66 %
 
     Deuteration Ratio Spectra
