@@ -4,7 +4,7 @@ from pathlib import Path
 from dget import DGet, __version__
 
 
-def parse_args() -> argparse.Namespace:
+def generate_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser("dget")
     parser.add_argument(
         "formula", help="Molecular formula of the compound, see molmass."
@@ -57,6 +57,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--version", action="version", version=__version__)
 
+    return parser
+
+
+def main():
+    parser = generate_parser()
     args = parser.parse_args()
 
     if args.autoadduct:
@@ -65,11 +70,6 @@ def parse_args() -> argparse.Namespace:
     if "D" not in args.formula:
         parser.error("--formula, must contain at least one D atom.")
 
-    return args
-
-
-def main():
-    args = parse_args()
     loadtxt_kws = {
         "delimiter": args.delimiter,
         "skiprows": args.skiprows,
