@@ -1,60 +1,55 @@
 import pytest
 from molmass import Formula
 
-from dget.adduct import adduct_from_formula, formula_from_adduct
+from dget.adduct import Adduct
 
 
-def test_formula_from_adduct():
-    formula = "C6H6"
+def test_adduct_class():
+    adduct = Adduct(Formula("C12HD8N"), "[M-H]-")
+    assert adduct.base.formula == "C12H[2H]8N"
+    assert adduct.formula.formula == "[C12[2H]8N]-"
+    assert adduct.num_base == 1
 
-    adduct = formula_from_adduct(formula, "[M]+")
-    assert adduct.formula == "[C6H6]+"
-    adduct = formula_from_adduct(formula, "[M]-")
-    assert adduct.formula == "[C6H6]-"
-    adduct = formula_from_adduct(formula, "[M+H]+")
-    assert adduct.formula == "[C6H7]+"
-    adduct = formula_from_adduct(formula, "[M-H]-")
-    assert adduct.formula == "[C6H5]-"
-    adduct = formula_from_adduct(formula, "[2M+H]+")
-    assert adduct.formula == "[C12H13]+"
-    adduct = formula_from_adduct(formula, "[M+H2]2+")
-    assert adduct.formula == "[C6H8]2+"
-    adduct = formula_from_adduct(formula, "[2M-H]-")
-    assert adduct.formula == "[C12H11]-"
+    adduct = Adduct(Formula("C49H75N12O12"), "[M+2H]2+")
+    assert adduct.base.formula == "C49H75N12O12"
+    assert adduct.formula.formula == "[C49H77N12O12]2+"
+    assert adduct.num_base == 1
 
-    with pytest.raises(ValueError):
-        formula_from_adduct(formula, "M+")
-    with pytest.raises(ValueError):
-        formula_from_adduct(formula, "[MNa]+")
-    with pytest.raises(ValueError):
-        formula_from_adduct(formula, "[M+Na]")
-    with pytest.raises(ValueError):
-        formula_from_adduct(formula, "[M-Na]+")
+    adduct = Adduct(Formula("C9H8BrNO4"), "[2M+2H]2+")
+    assert adduct.base.formula == "C9H8BrNO4"
+    assert adduct.formula.formula == "[C18H18Br2N2O8]2+"
+    assert adduct.num_base == 2
 
 
-def test_adduct_from_formula():
-    formula = "C6H6"
-
-    adduct = adduct_from_formula("[C6H6]+", formula)
-    assert adduct == "[M]+"
-    adduct = adduct_from_formula("[C6H6]-", formula)
-    assert adduct == "[M]-"
-    adduct = adduct_from_formula("[C6H7]+", formula)
-    assert adduct == "[M+H]+"
-    adduct = adduct_from_formula("[C6H5]-", formula)
-    assert adduct == "[M-H]-"
-    adduct = adduct_from_formula("[C12H13]+", formula)
-    assert adduct == "[2M+H]+"
-    adduct = adduct_from_formula("[C6H8]2+", formula)
-    assert adduct == "[M+H2]2+"
-    adduct = adduct_from_formula("[C12H11]-", formula)
-    assert adduct == "[2M-H]-"
-    adduct = adduct_from_formula("[CHNa]+", "CH")
-    assert adduct == "[M+Na]+"
-    adduct = adduct_from_formula("[C54H13D24N4]+", "C27H6D12N2")
-    assert adduct == "[2M+H]+"
+def test_adducts():
+    formula = Formula("C6H6")
+    adduct = Adduct(formula, "[M]+")
+    assert adduct.formula.formula == "[C6H6]+"
+    adduct = Adduct(formula, "[M]-")
+    assert adduct.formula.formula == "[C6H6]-"
+    adduct = Adduct(formula, "[M+H]+")
+    assert adduct.formula.formula == "[C6H7]+"
+    adduct = Adduct(formula, "[M-H]-")
+    assert adduct.formula.formula == "[C6H5]-"
+    adduct = Adduct(formula, "[2M+H]+")
+    assert adduct.formula.formula == "[C12H13]+"
+    adduct = Adduct(formula, "[M+H2]2+")
+    assert adduct.formula.formula == "[C6H8]2+"
+    adduct = Adduct(formula, "[M+2H]2+")
+    assert adduct.formula.formula == "[C6H8]2+"
+    adduct = Adduct(formula, "[M+H+H]2+")
+    assert adduct.formula.formula == "[C6H8]2+"
+    adduct = Adduct(formula, "[2M-H]-")
+    assert adduct.formula.formula == "[C12H11]-"
+    adduct = Adduct(formula, "[M+K-H2]-")
+    assert adduct.formula.formula == "[C6H4K]-"
 
     with pytest.raises(ValueError):
-        formula_from_adduct("[C2H2]+", "Na")
+        Adduct(formula, "M+")
     with pytest.raises(ValueError):
-        formula_from_adduct("[C2H2]+", "[C2H2]+")
+        a = Adduct(formula, "[MNa]+")
+        print(a.formula)
+    with pytest.raises(ValueError):
+        Adduct(formula, "[M+Na]")
+    with pytest.raises(ValueError):
+        Adduct(formula, "[M-Na]+")
