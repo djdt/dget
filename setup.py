@@ -24,6 +24,7 @@ setup(
     author="djdt",
     url="https://github.com/djdt/dget",
     project_urls={
+        "Documentation": "https://dget.readthedocs.io",
         "Source": "https://github.com/djdt/dget",
         "Web App": "https://djdt.github.io/dget",
     },
