@@ -20,3 +20,4 @@ Requirements
 
 * `numpy >= 1.22 <https://numpy.org>`_
 * `molmass <https://github.com/cgohlke/molmass>`_
+* `matplotlib <https://matplotlib.org>`_ (optional, for plotting)

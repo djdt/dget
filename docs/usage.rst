@@ -1,6 +1,13 @@
 Usage
 =====
 
+DGet is a command line tool for calculating molecule deuteration. To see a full list of CLI options, run the help::
+
+    $ dget --help
+
+Basic Usage
+-----------
+
 To use DGet pass a molecular formula, mass spectra text file and optionally the adduct formed::
 
     $ dget C12HD8N <path-to-ms-file.csv> --adduct "[M-H]-"
@@ -36,6 +43,7 @@ These spectra are scaled to fit the mass data so absolute heights will not be in
 
 .. image:: img/c12hd8n.png
 
+Plotting depends on `matplotlib <https://matplotlib.org>`_.
 
 Web App
 -------
@@ -43,11 +51,3 @@ Web App
 A web application of DGet is avaliable at `<https://djdt.github.io/dget>`_.
 
 Details on its usage can be found on the `Help <https://djdt.github.io/dget/help>`_ page.
-
-CLI 
----------
-
-.. argparse::
-    :module: dget.__main__
-    :func: generate_parser
-    :prog: dget
