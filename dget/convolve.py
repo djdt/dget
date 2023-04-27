@@ -18,6 +18,10 @@ def deconvolve(x: np.ndarray, psf: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         psf: point spread function
         mode: if same, return same size as `x` {'valid', 'same'}
 
+    Returns:
+        recovered data
+        remainder
+
     Notes:
         Based on https://rosettacode.org/wiki/Deconvolution/1D
     """
