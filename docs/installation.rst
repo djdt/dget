@@ -3,16 +3,16 @@ Installation
 
 DGet is available on PyPI and can be installed via ``pip``::
 
-    pip install dget
+    $ pip install dget
 
 To install DGet from source first clone the repository::
 
-    git clone https://github.com/djdt/dget
+    $ git clone https://github.com/djdt/dget
 
 Then install using ``pip``::
 
-    cd dget
-    pip install .
+    $ cd dget
+    $ pip install .
 
 
 Requirements
