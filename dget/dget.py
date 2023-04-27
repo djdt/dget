@@ -24,7 +24,7 @@ class DGet(object):
     Mass spectra can also be passed as a tuple of numpy arrays, (masses, signals).
 
     Attributes:
-        formula: formula of expected deuterated molecule
+        deuterated_formula: formula of fully deuterated molecule
         tofdata: path to mass spectra text file, or tuple of masses, signals
         adduct: form of adduct ion, see `dget.adduct`
         signal_mass_width: range around each m/z to search for maxima or integrate
@@ -49,7 +49,7 @@ class DGet(object):
 
     def __init__(
         self,
-        formula: str | Formula,
+        deuterated_formula: str | Formula,
         tofdata: str | Path | Tuple[np.ndarray, np.ndarray],
         adduct: str = "[M]+",
         signal_mass_width: float = 0.5,
@@ -57,8 +57,8 @@ class DGet(object):
         spectrum_min_fraction: float = 0.01,
         loadtxt_kws: dict | None = None,
     ):
-        if isinstance(formula, str):
-            formula = Formula(formula)
+        if isinstance(deuterated_formula, str):
+            deuterated_formula = Formula(deuterated_formula)
 
         _loadtxt_kws = {"delimiter": ",", "usecols": (0, 1)}
         if loadtxt_kws is not None:
@@ -70,7 +70,7 @@ class DGet(object):
         self._probabilities: np.ndarray | None = None
         self._probability_remainders: np.ndarray | None = None
 
-        self.adduct = Adduct(formula, adduct)
+        self.adduct = Adduct(deuterated_formula, adduct)
 
         if self.deuterium_count == 0:
             raise ValueError(
@@ -187,10 +187,26 @@ class DGet(object):
         """Internal helper to read mass spectra data.
 
         kwargs are forwarded to ``numpy.loadtxt``.
+Formula          : C12H[2H]8N
+Adduct           : [M-H]-
+M/Z              : 175.12371326162
+Adduct M/Z       : 174.11643680929907
+%D               : 93.66 %
+
+Deuteration Ratio Spectra
+D0               :  0.15 %
+D1               :  0.18 %
+D2               :  0.20 %
+D3               :  0.26 %
+D4               :  0.39 %
+D5               :  1.41 %
+D6               :  6.05 %
+D7               : 27.79 %
+D8               : 63.56 %
 
         Args:
             path: path to file
-        
+
         Returns:
             masses
             signals
@@ -316,7 +332,7 @@ class DGet(object):
             markerfmt=" ",
             basefmt=" ",
             linefmt="red",
-            label="Predicted Specta",
+            label="Deconvolved Spectra",
         )
 
         # Scaled PSF
@@ -327,9 +343,9 @@ class DGet(object):
             markerfmt=" ",
             basefmt=" ",
             linefmt="blue",
-            label="Formula Spectra",
+            label=f"{self.adduct.formula.formula} Spectra",
         )
-        ax.set_title(self.formula.formula)
+        ax.set_title(f"{self.adduct.base.formula} {self.adduct.adduct}")
         ax.set_xlabel("Mass")
         ax.set_ylabel("Signal")
         ax.legend()
@@ -342,7 +358,7 @@ class DGet(object):
         print(f"Adduct           : {self.adduct.adduct}")
         print(f"M/Z              : {self.adduct.base.isotope.mz}")
         print(f"Adduct M/Z       : {self.formula.isotope.mz}")
-        print(f"%D               : {pd * 100.0:.2f} %")
+        print(f"%Deuteration     : {pd * 100.0:.2f} %")
         print()
         print("Deuteration Ratio Spectra")
         for i, p in enumerate(self.deuteration_probabilites):
