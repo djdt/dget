@@ -7,19 +7,11 @@ Welcome to DGet's documentation!
 ================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: API
+    :maxdepth: 2
 
-   dget
-
-
-CLI usage
-=========
-
-.. argparse::
-   :module: dget.__main__
-   :func: generate_parser
-   :prog: dget
+    installation
+    usage
+    reference/index
 
 
 Indices and tables

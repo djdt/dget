@@ -1,3 +1,5 @@
+"""Class for deuteration calculations."""
+
 from pathlib import Path
 from typing import Generator, List, Tuple
 
@@ -15,13 +17,11 @@ class DGet(object):
     This class contains functions for calculating deuteration from
     a molecular formula and mass spectra.
 
-    Mass spectra is expected to be in a delimited text file with at least 2 columns,
-    for mass and signals. Specify columns using the keyword 'usecols' in `loadtxt_kws`,
-    a (zero indexed) tuple of ints for (mass, signal) columns. The deilimter can be
-    specified using the 'delimiter' keyword.
+    Mass spectra files are expected to be a delimited text file with at least 2 columns,
+    one for mass and one for signals. Specify columns using the keyword 'usecols' in
+    `loadtxt_kws`, a (zero indexed) tuple of ints for (mass, signal) columns.
+    The deilimter can be specified using the 'delimiter' keyword.
     Mass spectra can also be passed as a tuple of numpy arrays, (masses, signals).
-
-    Uses formulas and calculations from `molmass <https://github.com/cgohlke/molmass>`_
 
     Attributes:
         formula: formula of expected deuterated molecule
@@ -98,7 +98,7 @@ class DGet(object):
 
     @property
     def deuteration(self) -> float:
-        """The deuteration of the base molecule.
+        """The deuteration of the *base molecule*.
 
         Deuteration is calculated as the fraction of deuterium in the molecular
         formula that have been deuterated successfully.
@@ -154,18 +154,23 @@ class DGet(object):
 
     @property
     def psf(self) -> np.ndarray:  # type: ignore
-        """The point spread function used for (de)convolution."""
+        """The point spread function used for (de)convolution.
+
+        This is the normalised spectrum of the adduct."""
         fractions = np.array([i.fraction for i in self.spectrum.values()])
         return fractions / fractions.sum()
 
     @property
     def spectrum(self) -> Spectrum:
-        """Return the adduct spectrum."""
+        """The adduct spectrum."""
         return self.formula.spectrum()
 
     @property
     def targets(self) -> np.ndarray:
-        """The m/z of every possible spectrum."""
+        """The m/z of every possible spectrum.
+
+        A new spectrum is created by combining the spectra of every possible
+        deuteration state."""
         if self._targets is None:
             self._targets = spectra_mz_spread(list(self.spectra()))
         return self._targets
@@ -179,7 +184,17 @@ class DGet(object):
     def _read_tofdata(
         self, path: str | Path, **kwargs
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Internal helper to read mass spectra data."""
+        """Internal helper to read mass spectra data.
+
+        kwargs are forwarded to ``numpy.loadtxt``.
+
+        Args:
+            path: path to file
+        
+        Returns:
+            masses
+            signals
+        """
 
         if len(kwargs["usecols"]) != 2:
             raise ValueError(
@@ -195,7 +210,7 @@ class DGet(object):
         """Shifts ToF data to better align with monoisotopic m/z.
 
         Please calibrate your MS instead of using this.
-        Sets the `offset_mz` attribute to the offset used to shift.
+        Sets the ``DGet.offset_mz`` attribute as the shift use dto align.
         """
         mz = self.formula.isotope.mz
         start, onmass, end = np.searchsorted(

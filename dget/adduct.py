@@ -1,11 +1,4 @@
-"""Adduct calculations for DGet.
-
-This module contains classes and functions for transforming adduct strings
-to and from molmass.Formula classes.
-
-Adduct strings are in the form [nM+X-Y]n+, where 'M' represents the base formula,
-Some valid examples are: [M]+, [M-H]-, [M+Cl]-, [2M+Na]+, [M+H2]2+, [M+2H]2+, [M+K-H2]-.
-"""
+"""Class for adduct calculations."""
 
 import re
 
@@ -13,7 +6,18 @@ from molmass import Composition, Formula, Spectrum
 
 
 class Adduct(object):
-    """Class for creating adduct formulas.
+    """Class used to create a ``molmass.Formula`` from a base ``molmass.Formula``
+    and an adduct string. This string should be in the format *[nM+nX-nY]n+* where
+    *M* is the base molecule and *X, Y* are gains / losses.
+    Some valid examples are:
+
+    * [M]+
+    * [M-H]-
+    * [M+Na]+
+    * [2M-H]-
+    * [M+2H]+
+    * [M+K-2H]-
+
 
     Attributes:
         adduct: adduct string in the form [nM+nX-nY]n+
