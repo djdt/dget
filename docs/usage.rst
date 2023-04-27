@@ -41,7 +41,7 @@ To visualise the deuteration and mass spectrum pass ``--plot``::
 This will show the deconvloved deuteration spectra in red and the predicted adduct spectra in blue.
 These spectra are scaled to fit the mass data so absolute heights will not be indicative of good fit.
 
-.. image:: https://djdt.github.io/img/dget_c12hd8n.png
+.. image:: img/c12hd8n.png
 
 Plotting depends on `matplotlib <https://matplotlib.org>`_.
 
