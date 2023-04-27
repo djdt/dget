@@ -85,7 +85,7 @@ def run():
         dget = DGet(formula, path, adduct=adduct, loadtxt_kws=inputs)
         if auto_adduct:
             adduct, diff = dget.guess_adduct_from_base_peak()
-            dget.formula = adduct
+            dget.adduct = adduct
             print(f"Adduct difference from base peak m/z: {diff:.4f}")
             print()
         if realign:
