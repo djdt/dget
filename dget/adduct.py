@@ -16,7 +16,7 @@ class Adduct(object):
     """Class for creating adduct formulas.
 
     Attributes:
-        adduct: adduct string
+        adduct: adduct string in the form [nM+nX-nY]n+
         base: formula of the base molecule, represented by M in adduct
         num_base: number of base molecules in adduct
         formula: formula of the adduct
@@ -30,7 +30,7 @@ class Adduct(object):
 
         Args:
             base: formula of the base molecule, represented by M in adduct
-            adduct: adduct string
+            adduct: adduct string in the form [nM+nX-nY]n+
         """
         match = Adduct.regex.match(adduct)
 
@@ -59,12 +59,12 @@ class Adduct(object):
 
     @property
     def composition(self) -> Composition:
-        """Return the adduct composition."""
+        """The composition of the adduct."""
         return self.formula.composition()
 
     @property
     def spectrum(self) -> Spectrum:
-        """Return the adduct spectrum."""
+        """The spectrum of the adduct."""
         return self.formula.spectrum()
 
     def __str__(self) -> str:
