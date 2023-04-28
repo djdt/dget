@@ -8,6 +8,10 @@
 </head>
     <style>
     img {background: white; display: block; margin-left: auto; margin-right: auto}
+    .combobox {position: relative; width: 160px; display: inline-block}
+    .combobox select {width: 100%; display: inline}
+    .combobox > * {box-sizing: border-box}
+    .combobox input {position: absolute; width: calc(100% - 20px)}
     </style>
 <body>
     <py-config>
@@ -26,19 +30,22 @@
                 <input type="text" id="formula" name="formula">
                 <br><br>
                 <label for="adduct"> Adduct: </label>
-                <input name="adduct" id="adduct" list="adductlist" value="[M+H]+">
-                <datalist id="adductlist">
-                    <option value="Auto">
-                    <option value="[M]+">
-                    <option value="[M+H]+">
-                    <option value="[M+Na]+">
-                    <option value="[M+2H]2+">
-                    <option value="[M]-">
-                    <option value="[M-H]-">
-                    <option value="[2M-H]-">
-                    <option value="[M-2H]2-">
-                    <option value="[M+Cl]-">
-                </datalist>
+                <div class="combobox">
+                <input name="adduct" id="adduct" value="[M+H]+">
+                <select onchange="this.previousElementSibling.value=this.value">
+                    <option value=""></option>
+                    <option value="Auto">Auto</option>
+                    <option value="[M]+">[M]+</option>
+                    <option value="[M+H]+">[M+H]+</option>
+                    <option value="[M+Na]+">[M+Na]+</option>
+                    <option value="[M+2H]2+">[M+2H]2+</option>
+                    <option value="[M]-">[M]-</option>
+                    <option value="[M-H]-">[M-H]-</option>
+                    <option value="[2M-H]-">[2M-H]-</option>
+                    <option value="[M-2H]2-">[M-2H]2-</option>
+                    <option value="[M+Cl]-">[M+Cl]-</option>
+                </select>
+                </div>
                 <br><br>
                 <label for="file"> Upload MS Data: </label>
                 <input type="file" id="file", name="file">
