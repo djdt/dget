@@ -186,24 +186,6 @@ class DGet(object):
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Internal helper to read mass spectra data.
 
-        kwargs are forwarded to ``numpy.loadtxt``.
-Formula          : C12H[2H]8N
-Adduct           : [M-H]-
-M/Z              : 175.12371326162
-Adduct M/Z       : 174.11643680929907
-%D               : 93.66 %
-
-Deuteration Ratio Spectra
-D0               :  0.15 %
-D1               :  0.18 %
-D2               :  0.20 %
-D3               :  0.26 %
-D4               :  0.39 %
-D5               :  1.41 %
-D6               :  6.05 %
-D7               : 27.79 %
-D8               : 63.56 %
-
         Args:
             path: path to file
 
