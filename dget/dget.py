@@ -328,7 +328,7 @@ class DGet(object):
             label="Adduct Spectra",
         )
         ax.set_title(f"{self.adduct.base.formula} {self.adduct.adduct}")
-        ax.set_xlabel("Mass")
+        ax.set_xlabel("M/Z")
         ax.set_ylabel("Signal")
         ax.legend(loc="best", bbox_to_anchor=(0.0, 0.6, 1.0, 0.4))
 
