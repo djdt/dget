@@ -14,7 +14,7 @@
         <div class="leftcolumn">
             <div class="card", id="blurb">
                 <h3>About</h3>
-                DGet calculates sample deuteration from high-res mass spectrometer data. To use the web application simply use the inputs to enter a formula and upload a data file.
+                DGet calculates sample deuteration from high-res mass spectrometer data. To use the web application, enter a formula and upload a mass spectra text file.
             </div>
         </div>
         <div class="rightcolumn">
@@ -22,17 +22,21 @@
                 <h3>Usage</h3>
                 <p><b>Formula</b> - molecular formula of the fully deuterated sample, see <a href="https://github.com/cgohlke/molass">molmass</a> for more details.</p>
                 <p><b>Adduct</b> - molecular species, use 'Auto' to guess the adduct from the base peak of the mass spectra.</p>
-                <p><b>Re-align</b> - shifts ToF data to better align with the formula's predicted mass. Please calibrate your instruments instead of using this.</p>
-                <p><b>MS Data File</b> - delimited text file with a column of masses (Da) and column of signal/intensity values.</p>
-                <p><b>File delimiter</b> - delimiter used in the file, DGet will try to guess on file upload.</p>
-                <p><b>Skip rows</b> - number of rows before data, DGet will attempt to guess on file upload.</p>
-                <p><b>Mass/signal column</b> - column in file containing the mass/signal data.</p>
+                <p><b>Upload MS data</b> - DGet expects a delimited text file with at least a column of masses (Da) and column of signal/intensity values.</p>
+                <p><b>MS data options</b> - the following options control how data is read from the uploaded file. DGet will attempt to guess options on file upload.</p>
+                <ul>
+                    <li><b>Delimiter</b> - text delimiter used in the data file.</li>
+                    <li><b>Skip rows</b> - number of rows in file before data.</li>
+                    <li><b>Mass/Signal column</b> - column in file containing the mass/signal data.</li>
+                </ul>
+                <p><b>Re-align MS data</b> - shifts MS data to better align with the formula's predicted mass. Please calibrate your instruments instead of using this.</p>
             </div>
         </div>
     </div>
 
     <ul class="footer">
         <li><a href="https://github.com/djdt/dget">GitHub</a></li>
+        <li><a href="https://dget.readthedocs.io">Reference</a></li>
         <li><a href="help.html">Help</a></li>
         <li><a href="index.html">Home</a></li>
     </ul>
