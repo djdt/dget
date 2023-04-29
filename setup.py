@@ -2,7 +2,7 @@ from pathlib import Path
 
 from setuptools import setup
 
-with open("README.md") as fp:
+with open("README.rst") as fp:
     long_description = fp.read()
 
 with Path("dget", "__init__.py").open() as fp:
