@@ -1,11 +1,4 @@
-"""Adduct calculations for DGet.
-
-This module contains classes and functions for transforming adduct strings
-to and from molmass.Formula classes.
-
-Adduct strings are in the form [nM+X-Y]n+, where 'M' represents the base formula,
-Some valid examples are: [M]+, [M-H]-, [M+Cl]-, [2M+Na]+, [M+H2]2+, [M+2H]2+, [M+K-H2]-.
-"""
+"""Class for adduct calculations."""
 
 import re
 
@@ -13,10 +6,21 @@ from molmass import Composition, Formula, Spectrum
 
 
 class Adduct(object):
-    """Class for creating adduct formulas.
+    """Class used to create a ``molmass.Formula`` from a base ``molmass.Formula``
+    and an adduct string. This string should be in the format *[nM+nX-nY]n+* where
+    *M* is the base molecule and *X, Y* are gains / losses.
+    Some valid examples are:
+
+    * [M]+
+    * [M-H]-
+    * [M+Na]+
+    * [2M-H]-
+    * [M+2H]+
+    * [M+K-2H]-
+
 
     Attributes:
-        adduct: adduct string
+        adduct: adduct string in the form [nM+nX-nY]n+
         base: formula of the base molecule, represented by M in adduct
         num_base: number of base molecules in adduct
         formula: formula of the adduct
@@ -30,7 +34,7 @@ class Adduct(object):
 
         Args:
             base: formula of the base molecule, represented by M in adduct
-            adduct: adduct string
+            adduct: adduct string in the form [nM+nX-nY]n+
         """
         match = Adduct.regex.match(adduct)
 
@@ -59,12 +63,12 @@ class Adduct(object):
 
     @property
     def composition(self) -> Composition:
-        """Return the adduct composition."""
+        """The composition of the adduct."""
         return self.formula.composition()
 
     @property
     def spectrum(self) -> Spectrum:
-        """Return the adduct spectrum."""
+        """The spectrum of the adduct."""
         return self.formula.spectrum()
 
     def __str__(self) -> str:

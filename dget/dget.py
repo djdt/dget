@@ -1,3 +1,5 @@
+"""Class for deuteration calculations."""
+
 from pathlib import Path
 from typing import Generator, List, Tuple
 
@@ -7,6 +9,7 @@ from molmass import Formula, Spectrum
 from dget.adduct import Adduct
 from dget.convolve import deconvolve
 from dget.formula import spectra_mz_spread
+from dget.plot import scale_to_match, stacked_stem
 
 
 class DGet(object):
@@ -15,16 +18,14 @@ class DGet(object):
     This class contains functions for calculating deuteration from
     a molecular formula and mass spectra.
 
-    Mass spectra is expected to be in a delimited text file with at least 2 columns,
-    for mass and signals. Specify columns using the keyword 'usecols' in `loadtxt_kws`,
-    a (zero indexed) tuple of ints for (mass, signal) columns. The deilimter can be
-    specified using the 'delimiter' keyword.
+    Mass spectra files are expected to be a delimited text file with at least 2 columns,
+    one for mass and one for signals. Specify columns using the keyword 'usecols' in
+    `loadtxt_kws`, a (zero indexed) tuple of ints for (mass, signal) columns.
+    The deilimter can be specified using the 'delimiter' keyword.
     Mass spectra can also be passed as a tuple of numpy arrays, (masses, signals).
 
-    Uses formulas and calculations from `molmass <https://github.com/cgohlke/molmass>`_
-
     Attributes:
-        formula: formula of expected deuterated molecule
+        deuterated_formula: formula of fully deuterated molecule
         tofdata: path to mass spectra text file, or tuple of masses, signals
         adduct: form of adduct ion, see `dget.adduct`
         signal_mass_width: range around each m/z to search for maxima or integrate
@@ -49,7 +50,7 @@ class DGet(object):
 
     def __init__(
         self,
-        formula: str | Formula,
+        deuterated_formula: str | Formula,
         tofdata: str | Path | Tuple[np.ndarray, np.ndarray],
         adduct: str = "[M]+",
         signal_mass_width: float = 0.5,
@@ -57,8 +58,8 @@ class DGet(object):
         spectrum_min_fraction: float = 0.01,
         loadtxt_kws: dict | None = None,
     ):
-        if isinstance(formula, str):
-            formula = Formula(formula)
+        if isinstance(deuterated_formula, str):
+            deuterated_formula = Formula(deuterated_formula)
 
         _loadtxt_kws = {"delimiter": ",", "usecols": (0, 1)}
         if loadtxt_kws is not None:
@@ -70,7 +71,7 @@ class DGet(object):
         self._probabilities: np.ndarray | None = None
         self._probability_remainders: np.ndarray | None = None
 
-        self.adduct = Adduct(formula, adduct)
+        self.adduct = Adduct(deuterated_formula, adduct)
 
         if self.deuterium_count == 0:
             raise ValueError(
@@ -98,7 +99,7 @@ class DGet(object):
 
     @property
     def deuteration(self) -> float:
-        """The deuteration of the base molecule.
+        """The deuteration of the *base molecule*.
 
         Deuteration is calculated as the fraction of deuterium in the molecular
         formula that have been deuterated successfully.
@@ -143,6 +144,8 @@ class DGet(object):
             self._probabilities, self._probability_remainders = deconvolve(
                 counts, self.psf
             )
+            # Remove negative proabilities and normalise
+            self._probabilities[self._probabilities < 0.0] = 0.0
             self._probabilities = self._probabilities / self._probabilities.sum()
 
         return self._probabilities  # type: ignore
@@ -154,18 +157,23 @@ class DGet(object):
 
     @property
     def psf(self) -> np.ndarray:  # type: ignore
-        """The point spread function used for (de)convolution."""
+        """The point spread function used for (de)convolution.
+
+        This is the normalised spectrum of the adduct."""
         fractions = np.array([i.fraction for i in self.spectrum.values()])
         return fractions / fractions.sum()
 
     @property
     def spectrum(self) -> Spectrum:
-        """Return the adduct spectrum."""
+        """The adduct spectrum."""
         return self.formula.spectrum()
 
     @property
     def targets(self) -> np.ndarray:
-        """The m/z of every possible spectrum."""
+        """The m/z of every possible spectrum.
+
+        A new spectrum is created by combining the spectra of every possible
+        deuteration state."""
         if self._targets is None:
             self._targets = spectra_mz_spread(list(self.spectra()))
         return self._targets
@@ -179,7 +187,15 @@ class DGet(object):
     def _read_tofdata(
         self, path: str | Path, **kwargs
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Internal helper to read mass spectra data."""
+        """Internal helper to read mass spectra data.
+
+        Args:
+            path: path to file
+
+        Returns:
+            masses
+            signals
+        """
 
         if len(kwargs["usecols"]) != 2:
             raise ValueError(
@@ -195,7 +211,7 @@ class DGet(object):
         """Shifts ToF data to better align with monoisotopic m/z.
 
         Please calibrate your MS instead of using this.
-        Sets the `offset_mz` attribute to the offset used to shift.
+        Sets the ``DGet.offset_mz`` attribute as the shift use dto align.
         """
         mz = self.formula.isotope.mz
         start, onmass, end = np.searchsorted(
@@ -252,6 +268,7 @@ class DGet(object):
         self,
         ax: "matplotlib.axes.Axes",
         mass_range: Tuple[float, float] | str = "targets",  # noqa: F821
+        color_probabilites: bool = False,
     ) -> None:
         """Plot spectra over mass spectra on `ax`.
 
@@ -262,17 +279,8 @@ class DGet(object):
         Args:
             ax: matplotlib axes to plot on
             mass_range: range to plot
+            color_probabilites: use a colour for each probability
         """
-
-        def scale_spectra(x, y, spectra_x, spectra):
-            max = spectra_x[np.argmax(spectra)]
-            start, end = np.searchsorted(
-                x, [max - self.mass_width, max + self.mass_width]
-            )
-            if start == end:
-                return spectra
-            return spectra * np.amax(y[start:end]) / spectra.max()
-
         targets = self.targets
 
         if isinstance(mass_range, str):
@@ -286,38 +294,52 @@ class DGet(object):
         start, end = np.searchsorted(self.x, mass_range)
         x, y = self.x[start:end], self.y[start:end]
 
-        prediction = np.convolve(self.deuteration_probabilites, self.psf, mode="full")
-
         # Data
         ax.plot(x, y, color="black")
 
-        # Scaled prediction
-        if prediction.size == 0:
+        if self.deuteration_probabilites.size == 0:
             return
 
-        ax.stem(
-            targets,
-            scale_spectra(x, y, targets, prediction),
-            markerfmt=" ",
-            basefmt=" ",
-            linefmt="red",
-            label="Predicted Specta",
-        )
+        if color_probabilites:
+            ys = np.zeros(
+                (
+                    self.deuteration_probabilites.size,
+                    self.deuteration_probabilites.size,
+                )
+            )
+            np.fill_diagonal(ys.T, self.deuteration_probabilites)
+            ys = np.apply_along_axis(np.convolve, 0, ys, self.psf, mode="full")
+            ys = scale_to_match(x, y, targets, ys, width=self.mass_width)
+
+            kws = [{"colors": f"C{i}"} for i in range(ys.shape[1])]
+
+            stacked_stem(ax, targets, ys, stack_kws=kws)
+        else:
+            # Scaled prediction
+            ys = np.convolve(self.deuteration_probabilites, self.psf, mode="full")
+            ax.stem(
+                targets,
+                scale_to_match(x, y, targets, ys, width=self.mass_width),
+                markerfmt=" ",
+                basefmt=" ",
+                linefmt="C1-",
+                label="Deconvolved Spectra",
+            )
 
         # Scaled PSF
-        masses = [i.mz for i in self.spectrum.values()]
+        masses = np.array([i.mz for i in self.spectrum.values()])
         ax.stem(
             masses,
-            scale_spectra(x, y, masses, self.psf),
+            scale_to_match(x, y, masses, self.psf, width=self.mass_width),
             markerfmt=" ",
             basefmt=" ",
-            linefmt="blue",
-            label="Formula Spectra",
+            linefmt="--",
+            label="Adduct Spectra",
         )
-        ax.set_title(self.formula.formula)
-        ax.set_xlabel("Mass")
+        ax.set_title(f"{self.adduct.base.formula} {self.adduct.adduct}")
+        ax.set_xlabel("M/Z")
         ax.set_ylabel("Signal")
-        ax.legend()
+        ax.legend(loc="best", bbox_to_anchor=(0.0, 0.6, 1.0, 0.4))
 
     def print_results(self) -> None:
         """Print results to stdout."""
@@ -325,9 +347,9 @@ class DGet(object):
 
         print(f"Formula          : {self.adduct.base.formula}")
         print(f"Adduct           : {self.adduct.adduct}")
-        print(f"M/Z              : {self.adduct.base.isotope.mz}")
-        print(f"Adduct M/Z       : {self.formula.isotope.mz}")
-        print(f"%D               : {pd * 100.0:.2f} %")
+        print(f"M/Z              : {self.adduct.base.isotope.mz:.4f}")
+        print(f"Adduct M/Z       : {self.formula.isotope.mz:.4f}")
+        print(f"%Deuteration     : {pd * 100.0:.2f} %")
         print()
         print("Deuteration Ratio Spectra")
         for i, p in enumerate(self.deuteration_probabilites):

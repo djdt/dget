@@ -2,7 +2,7 @@ from pathlib import Path
 
 from setuptools import setup
 
-with open("README.md") as fp:
+with open("README.rst") as fp:
     long_description = fp.read()
 
 with Path("dget", "__init__.py").open() as fp:
@@ -18,12 +18,13 @@ setup(
     version=version,
     description="Calculates compound deuteration from ToF-MS data.",
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    long_description_content_type="text/x-rst",
     packages=["dget"],
     license="GPL3",
     author="djdt",
     url="https://github.com/djdt/dget",
     project_urls={
+        "Documentation": "https://dget.readthedocs.io",
         "Source": "https://github.com/djdt/dget",
         "Web App": "https://djdt.github.io/dget",
     },

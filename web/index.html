@@ -8,6 +8,10 @@
 </head>
     <style>
     img {background: white; display: block; margin-left: auto; margin-right: auto}
+    .combobox {position: relative; width: 160px; display: inline-block}
+    .combobox select {width: 100%; display: inline}
+    .combobox > * {box-sizing: border-box}
+    .combobox input {position: absolute; width: calc(100% - 20px)}
     </style>
 <body>
     <py-config>
@@ -26,42 +30,48 @@
                 <input type="text" id="formula" name="formula">
                 <br><br>
                 <label for="adduct"> Adduct: </label>
-                <select name="adduct" id="adduct">
-                    <option id="auto" value="Auto">Auto</option>
-                    <option id="mp" value="[M]+">M+</option>
-                    <option id="hp" value="[M+H]+">[M+H]+</option>
-                    <option id="nap" value="[M+Na]+">[M+Na]+</option>
-                    <option id="2hp" value="[M+H2]2+">[M+2H]2+</option>
-                    <option id="2mhp" value="[2M+H]+">[2M+H]+</option>
-                    <option id="mn" value="[M]-">M-</option>
-                    <option id="hn" value="[M-H]-">[M-H]-</option>
-                    <option id="2mhn" value="[2M-H]-">[2M-H]-</option>
-                    <option id="hn" value="[M-H2]2-">[M-2H]2-</option>
-                    <option id="cln" value="[M+Cl]-">[M+Cl]-</option>
-                </select>
+                <div class="combobox">
+                    <input name="adduct" id="adduct" value="[M+H]+">
+                    <select onchange="this.previousElementSibling.value=this.value">
+                        <option value=""></option>
+                        <option value="Auto">Auto</option>
+                        <option value="[M]+">[M]+</option>
+                        <option value="[M+H]+">[M+H]+</option>
+                        <option value="[M+Na]+">[M+Na]+</option>
+                        <option value="[M+2H]2+">[M+2H]2+</option>
+                        <option value="[M]-">[M]-</option>
+                        <option value="[M-H]-">[M-H]-</option>
+                        <option value="[2M-H]-">[2M-H]-</option>
+                        <option value="[M-2H]2-">[M-2H]2-</option>
+                        <option value="[M+Cl]-">[M+Cl]-</option>
+                    </select>
+                </div>
                 <br><br>
-                <label for="file"> Upload MS Data: </label>
+                <label for="file"> Upload MS data: </label>
                 <input type="file" id="file", name="file">
                 <br><br>
-                <label for="align"> Re-align ToF data: </label>
+                <fieldset>
+                    <legend>MS data options:</legend>
+                    <label for="delimiter"> Delimiter: </label>
+                    <select name="delimiter" id="delimiter">
+                        <option id="comma", value="comma">Comma</option>
+                        <option id="semicolon", value="semicolon">Semicolon</option>
+                        <option value="tab">Tab</option>
+                        <option value="space">Space</option>
+                    </select>
+                    <br>
+                    <label for="skiprows"> Skip rows: </label>
+                    <input type="number", id="skiprows", name="skiprows", min="0", value="0">
+                    <br>
+                    <label for="masscol"> Mass column: </label>
+                    <input type="number", id="masscol", name="masscol", min="1", value="1">
+                    <br>
+                    <label for="signalcol"> Signal column: </label>
+                    <input type="number", id="signalcol", name="signalcol", min="1", value="2">
+                </fieldset>
+                <br>
+                <label for="align"> Re-align MS data: </label>
                 <input type="checkbox" id="align">
-                <br><br>
-                <label for="delimiter"> File delimiter: </label>
-                <select name="delimiter" id="delimiter">
-                    <option id="comma", value="comma">Comma</option>
-                    <option id="semicolon", value="semicolon">Semicolon</option>
-                    <option value="tab">Tab</option>
-                    <option value="space">Space</option>
-                </select>
-                <br><br>
-                <label for="skiprows"> Skip rows: </label>
-                <input type="number", id="skiprows", name="skiprows", min="0", value="0">
-                <br>
-                <label for="masscol"> Mass column: </label>
-                <input type="number", id="masscol", name="masscol", min="1", value="1">
-                <br>
-                <label for="signalcol"> Signal column: </label>
-                <input type="number", id="signalcol", name="signalcol", min="1", value="2">
                 <br><br>
                 <button py-click="run()", id="submit">Get D</button>
             </div>
@@ -81,6 +91,7 @@
 
     <ul class="footer">
         <li><a href="https://github.com/djdt/dget">GitHub</a></li>
+        <li><a href="https://dget.readthedocs.io">Reference</a></li>
         <li><a href="help.html">Help</a></li>
         <li><a href="index.html">Home</a></li>
     </ul>

@@ -7,15 +7,15 @@ body {background-color: #f1edee; max-width: 1600px; margin: auto}
 .clearfix::after {background: lightgrey; content: ""; clear: both; display: table}
 .py-terminal {min-height: 200px}
 
-ul {list-style-type: none; margin: 0; padding: 0; overflow: hidden}
-li {float: right}
-li a {color: black; display: block; text-align: center; text-decoration: none; padding: 10px}
+.footer {list-style-type: none; margin: 0; padding: 0; overflow: hidden}
+.footer li {float: right}
+.footer li a {color: black; display: block; text-align: center; text-decoration: none; padding: 10px}
 label {display: inline-block; text-align: left; width: 25%}
 input, select {display: inline-block; align: right}
 button {display: inline-block; align: right}
 h3 {background-color: #8aa29e; padding: 5px}
 
-@media screen and (max-width: 800px) {
+@media screen and (max-width: 900px) {
   .leftcolumn, .rightcolumn {   
     width: 100%;
     padding: 0;
