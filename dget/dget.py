@@ -9,6 +9,7 @@ from molmass import Formula, Spectrum
 from dget.adduct import Adduct
 from dget.convolve import deconvolve
 from dget.formula import spectra_mz_spread
+from dget.plot import scale_to_match, stacked_stem
 
 
 class DGet(object):
@@ -265,6 +266,7 @@ class DGet(object):
         self,
         ax: "matplotlib.axes.Axes",
         mass_range: Tuple[float, float] | str = "targets",  # noqa: F821
+        color_probabilites: bool = False,
     ) -> None:
         """Plot spectra over mass spectra on `ax`.
 
@@ -275,17 +277,8 @@ class DGet(object):
         Args:
             ax: matplotlib axes to plot on
             mass_range: range to plot
+            color_probabilites: use a colour for each probability
         """
-
-        def scale_spectra(x, y, spectra_x, spectra):
-            max = spectra_x[np.argmax(spectra)]
-            start, end = np.searchsorted(
-                x, [max - self.mass_width, max + self.mass_width]
-            )
-            if start == end:
-                return spectra
-            return spectra * np.amax(y[start:end]) / spectra.max()
-
         targets = self.targets
 
         if isinstance(mass_range, str):
@@ -299,32 +292,46 @@ class DGet(object):
         start, end = np.searchsorted(self.x, mass_range)
         x, y = self.x[start:end], self.y[start:end]
 
-        prediction = np.convolve(self.deuteration_probabilites, self.psf, mode="full")
-
         # Data
         ax.plot(x, y, color="black")
 
-        # Scaled prediction
-        if prediction.size == 0:
+        if self.deuteration_probabilites.size == 0:
             return
 
-        ax.stem(
-            targets,
-            scale_spectra(x, y, targets, prediction),
-            markerfmt=" ",
-            basefmt=" ",
-            linefmt="red",
-            label="Deconvolved Spectra",
-        )
+        if color_probabilites:
+            ys = np.zeros(
+                (
+                    self.deuteration_probabilites.size,
+                    self.deuteration_probabilites.size,
+                )
+            )
+            np.fill_diagonal(ys.T, self.deuteration_probabilites)
+            ys = np.apply_along_axis(np.convolve, 0, ys, self.psf, mode="full")
+            ys = scale_to_match(x, y, targets, ys, width=self.mass_width)
+
+            kws = [{"colors": f"C{i}"} for i in range(ys.shape[1])]
+
+            stacked_stem(ax, targets, ys, stack_kws=kws)
+        else:
+            # Scaled prediction
+            ys = np.convolve(self.deuteration_probabilites, self.psf, mode="full")
+            ax.stem(
+                targets,
+                scale_to_match(x, y, targets, ys, width=self.mass_width),
+                markerfmt=" ",
+                basefmt=" ",
+                linefmt="C1-",
+                label="Deconvolved Spectra",
+            )
 
         # Scaled PSF
-        masses = [i.mz for i in self.spectrum.values()]
+        masses = np.array([i.mz for i in self.spectrum.values()])
         ax.stem(
             masses,
-            scale_spectra(x, y, masses, self.psf),
+            scale_to_match(x, y, masses, self.psf, width=self.mass_width),
             markerfmt=" ",
             basefmt=" ",
-            linefmt="blue",
+            linefmt="--",
             label="Adduct Spectra",
         )
         ax.set_title(f"{self.adduct.base.formula} {self.adduct.adduct}")
