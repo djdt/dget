@@ -44,6 +44,13 @@ def generate_parser() -> argparse.ArgumentParser:
         "use '--plot full' to show the entire mass range..",
     )
     parser.add_argument(
+        "--minimumd",
+        type=int,
+        default=0,
+        help="Only calculate probabilities for isotopes with at least "
+        "this number of deuterium.",
+    )
+    parser.add_argument(
         "--masswidth",
         type=float,
         default=0.5,
@@ -79,6 +86,7 @@ def main():
         args.formula,
         args.tofdata,
         adduct=args.adduct,
+        minimum_deuterium=args.minimumd,
         loadtxt_kws=loadtxt_kws,
     )
     if args.autoadduct:
@@ -89,9 +97,13 @@ def main():
 
     dget.mass_width = args.masswidth
     if args.realign:
-        dget.align_tof_with_spectra()
-        print(f"Re-aligned ToF data by shifting {dget.offset_mz:.2f} m/z")
+        offset = dget.align_tof_with_spectra()
+        print(f"Re-aligned ToF data by shifting {offset:.2f} m/z")
         print()
+
+    baseline = dget.subtract_baseline((dget.targets[0], dget.targets[-1]))
+    print(f"Subtracting baseline of {baseline:.2f}")
+    print()
 
     dget.print_results()
 

@@ -28,6 +28,7 @@ class DGet(object):
         deuterated_formula: formula of fully deuterated molecule
         tofdata: path to mass spectra text file, or tuple of masses, signals
         adduct: form of adduct ion, see `dget.adduct`
+        minimum_deuterium: only calculate for isotopes with at least this many D
         signal_mass_width: range around each m/z to search for maxima or integrate
         signal_method: detection mode, valid values are 'peak area', 'peak height'
         spectrum_min_fraction: limit spectra to entries with at least this fraction
@@ -53,6 +54,7 @@ class DGet(object):
         deuterated_formula: str | Formula,
         tofdata: str | Path | Tuple[np.ndarray, np.ndarray],
         adduct: str = "[M]+",
+        minimum_deuterium: int = 0,
         signal_mass_width: float = 0.5,
         signal_mode: str = "peak height",
         spectrum_min_fraction: float = 0.01,
@@ -65,8 +67,6 @@ class DGet(object):
         if loadtxt_kws is not None:
             _loadtxt_kws.update(loadtxt_kws)
 
-        self.offset_mz: float | None = None
-
         self._targets: np.ndarray | None = None
         self._probabilities: np.ndarray | None = None
         self._probability_remainders: np.ndarray | None = None
@@ -78,6 +78,7 @@ class DGet(object):
                 f"formula: {self.adduct.base.formula} does not contain deuterium"
             )
 
+        self.minimum_deuterium = minimum_deuterium
         self.mass_width = signal_mass_width
         if signal_mode not in ["peak area", "peak height"]:
             raise ValueError("signal_mode must be one of 'peak area', 'peak height'.")
@@ -107,8 +108,9 @@ class DGet(object):
         For example: 60% C2H5D1, 40% C2H6 would give a deuteration of 0.6.
         """
         prob = self.deuteration_probabilites
+        min_d = self.minimum_deuterium
         return (
-            np.sum(prob * np.arange(prob.size))
+            np.sum(prob * np.arange(min_d, min_d + prob.size))
             / self.deuterium_count
             / self.adduct.num_base
         )
@@ -175,7 +177,8 @@ class DGet(object):
         A new spectrum is created by combining the spectra of every possible
         deuteration state."""
         if self._targets is None:
-            self._targets = spectra_mz_spread(list(self.spectra()))
+            spectra = list(self.spectra())
+            self._targets = spectra_mz_spread(spectra)
         return self._targets
 
     def __str__(self) -> str:
@@ -207,28 +210,66 @@ class DGet(object):
                 print(f"warning: removing loadtxt keyword '{kw}'")
         return np.loadtxt(path, unpack=True, dtype=np.float32, **kwargs)  # type: ignore
 
-    def align_tof_with_spectra(self) -> float:
+    def align_tof_with_spectra(self, alignment_mz: float | None = None) -> float:
         """Shifts ToF data to better align with monoisotopic m/z.
 
         Please calibrate your MS instead of using this.
 
+        Args:
+            alignment_mz: m/zz used for alignment, defaults to monoisotopic m/z
+
         Returns:
             offset used for alignment
         """
-        mz = self.formula.isotope.mz
-        start, onmass, end = np.searchsorted(
-            self.x, [mz - self.mass_width, mz, mz + self.mass_width]
+        if alignment_mz is None:
+            alignment_mz = self.formula.isotope.mz
+
+        idx = np.searchsorted(
+            self.x,
+            [
+                alignment_mz - self.mass_width,
+                alignment_mz,
+                alignment_mz + self.mass_width,
+            ],
         )
-        if start == 0 or end == self.x.size:
-            raise ValueError("unable to align, m/z falls outside of mass spectra")
+        start, onmass, end = np.clip(idx, 0, self.x.size)
+        if start == end:
+            raise ValueError("unable to align, m/z falls outside spectra")
 
         offset = self.x[start + np.argmax(self.y[start:end])] - self.x[onmass]
-        if abs(offset) > 1.0:  # type: ignore
+        if abs(offset) > 0.5:  # type: ignore
             print("warning: calculated alignment offset greater than 0.5 Da!")
         self.x -= offset
         return offset
 
-    def sbutract_baseline(self, region: Tuple[float, float] | None = None) -> None:
+    def subtract_baseline(
+        self, mass_range: Tuple[float, float] | None = None, percentile: float = 25.0
+    ) -> float:
+        """Subtracts baseline of region.
+
+        Clalulates the ``percentile`` percentile of the designated mass region and
+        subtracts it from the mass spec signals.
+
+        Args:
+            mass_range: region to find baseline
+            percentile: percentile to use
+
+        Returns:
+            offset used for alignment
+        """
+        if mass_range is not None:
+            idx = np.searchsorted(self.x, mass_range)
+            start, end = np.clip(idx, 0, self.x.size)
+        else:
+            start, end = 0, self.x.size
+        if start == end:
+            raise ValueError(
+                "unable to subtract baseline, entire m/z range falls outside spectra"
+            )
+
+        baseline = np.percentile(self.y[start:end], percentile)
+        self.y -= baseline
+        return baseline
 
     def guess_adduct_from_base_peak(
         self,
@@ -260,11 +301,16 @@ class DGet(object):
         masses = np.array([f.formula.isotope.mz for f in formulas])
 
         if mass_range is not None:
-            start, stop = np.searchsorted(self.x, mass_range)
+            idx = np.searchsorted(self.x, mass_range)
+            start, end = np.clip(idx, 0, self.x.size)
         else:
-            start, stop = 0, self.x.size
+            start, end = 0, self.x.size
+        if start == end:
+            raise ValueError(
+                "unable to get adduct, entire m/z range falls outside spectra"
+            )
 
-        base = self.x[start:stop][np.argmax(self.y[start:stop])]
+        base = self.x[start:end][np.argmax(self.y[start:end])]
         diffs = base - masses
         best = np.argmin(np.abs(diffs))
         return formulas[best], diffs[best]
@@ -358,7 +404,8 @@ class DGet(object):
         print()
         print("Deuteration Ratio Spectra")
         for i, p in enumerate(self.deuteration_probabilites):
-            print(f"D{i:<2}              : {p * 100.0:5.2f} %")
+            d = i + self.minimum_deuterium
+            print(f"D{d:<2}              : {p * 100.0:5.2f} %")
 
     def spectra(self, **kwargs) -> Generator[Spectrum, None, None]:
         """Spectrum of all compounds from non to fully deuterated.
@@ -366,7 +413,7 @@ class DGet(object):
         kwargs are passed to molmass.Formula.spectrum()
         """
 
-        for i in range(self.deuterium_count, 0, -1):
+        for i in range(self.deuterium_count - self.minimum_deuterium, 0, -1):
             yield (self.formula - Formula("D") * i + Formula("H") * i).spectrum(
                 **kwargs
             )
