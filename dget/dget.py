@@ -144,6 +144,8 @@ class DGet(object):
             self._probabilities, self._probability_remainders = deconvolve(
                 counts, self.psf
             )
+            # Remove negative proabilities and normalise
+            self._probabilities[self._probabilities < 0.0] = 0.0
             self._probabilities = self._probabilities / self._probabilities.sum()
 
         return self._probabilities  # type: ignore
