@@ -207,11 +207,13 @@ class DGet(object):
                 print(f"warning: removing loadtxt keyword '{kw}'")
         return np.loadtxt(path, unpack=True, dtype=np.float32, **kwargs)  # type: ignore
 
-    def align_tof_with_spectra(self) -> None:
+    def align_tof_with_spectra(self) -> float:
         """Shifts ToF data to better align with monoisotopic m/z.
 
         Please calibrate your MS instead of using this.
-        Sets the ``DGet.offset_mz`` attribute as the shift use dto align.
+
+        Returns:
+            offset used for alignment
         """
         mz = self.formula.isotope.mz
         start, onmass, end = np.searchsorted(
@@ -220,10 +222,13 @@ class DGet(object):
         if start == 0 or end == self.x.size:
             raise ValueError("unable to align, m/z falls outside of mass spectra")
 
-        self.offset_mz = self.x[start + np.argmax(self.y[start:end])] - self.x[onmass]
-        if abs(self.offset_mz) > 1.0:  # type: ignore
+        offset = self.x[start + np.argmax(self.y[start:end])] - self.x[onmass]
+        if abs(offset) > 1.0:  # type: ignore
             print("warning: calculated alignment offset greater than 0.5 Da!")
-        self.x -= self.offset_mz
+        self.x -= offset
+        return offset
+
+    def sbutract_baseline(self, region: Tuple[float, float] | None = None) -> None:
 
     def guess_adduct_from_base_peak(
         self,
