@@ -28,7 +28,7 @@ class DGet(object):
         deuterated_formula: formula of fully deuterated molecule
         tofdata: path to mass spectra text file, or tuple of masses, signals
         adduct: form of adduct ion, see `dget.adduct`
-        minimum_deuterium: only calculate for isotopes with at least this many D
+        number_states: number of deuterated states to calculate
         signal_mass_width: range around each m/z to search for maxima or integrate
         signal_method: detection mode, valid values are 'peak area', 'peak height'
         spectrum_min_fraction: limit spectra to entries with at least this fraction
@@ -54,7 +54,7 @@ class DGet(object):
         deuterated_formula: str | Formula,
         tofdata: str | Path | Tuple[np.ndarray, np.ndarray],
         adduct: str = "[M]+",
-        minimum_deuterium: int = 0,
+        number_states: int | None = None,
         signal_mass_width: float = 0.5,
         signal_mode: str = "peak height",
         spectrum_min_fraction: float = 0.01,
@@ -78,7 +78,7 @@ class DGet(object):
                 f"formula: {self.adduct.base.formula} does not contain deuterium"
             )
 
-        self.minimum_deuterium = minimum_deuterium
+        self.number_states = number_states
         self.mass_width = signal_mass_width
         if signal_mode not in ["peak area", "peak height"]:
             raise ValueError("signal_mode must be one of 'peak area', 'peak height'.")
@@ -104,16 +104,15 @@ class DGet(object):
 
         Deuteration is calculated as the fraction of deuterium in the molecular
         formula that have been deuterated successfully.
-
         For example: 60% C2H5D1, 40% C2H6 would give a deuteration of 0.6.
+
+        Deuteration is only calculated for the ``number_states`` highest deuteration
+        states.
         """
-        prob = self.deuteration_probabilites
-        min_d = self.minimum_deuterium
-        return (
-            np.sum(prob * np.arange(min_d, min_d + prob.size))
-            / self.deuterium_count
-            / self.adduct.num_base
-        )
+        states = self.deuteration_states
+        prob = self.deuteration_probabilites[states]
+        prob = prob / prob.sum()  # re-normalise
+        return np.sum(prob * states) / self.deuterium_count / self.adduct.num_base
 
     @property
     def deuteration_probabilites(self) -> np.ndarray:
@@ -151,6 +150,15 @@ class DGet(object):
             self._probabilities = self._probabilities / self._probabilities.sum()
 
         return self._probabilities  # type: ignore
+
+    @property
+    def deuteration_states(self) -> np.ndarray:
+        if self.number_states is None:
+            prob = self.deuteration_probabilites
+            nstates = np.argwhere((prob[:-1] > 0.005) & (prob[1:] > 0.005))[0][-1]
+        else:
+            nstates = self.number_states
+        return np.arange(self.deuterium_count - nstates, self.deuterium_count + 1)
 
     @property
     def formula(self) -> Formula:
@@ -395,6 +403,9 @@ class DGet(object):
     def print_results(self) -> None:
         """Print results to stdout."""
         pd = self.deuteration  # ensure calculated
+        states = self.deuteration_states
+        prob = self.deuteration_probabilites[states]
+        prob = prob / prob.sum()
 
         print(f"Formula          : {self.adduct.base.formula}")
         print(f"Adduct           : {self.adduct.adduct}")
@@ -403,9 +414,8 @@ class DGet(object):
         print(f"%Deuteration     : {pd * 100.0:.2f} %")
         print()
         print("Deuteration Ratio Spectra")
-        for i, p in enumerate(self.deuteration_probabilites):
-            d = i + self.minimum_deuterium
-            print(f"D{d:<2}              : {p * 100.0:5.2f} %")
+        for s, p in zip(states, prob):
+            print(f"D{s:<2}              : {p * 100.0:5.2f} %")
 
     def spectra(self, **kwargs) -> Generator[Spectrum, None, None]:
         """Spectrum of all compounds from non to fully deuterated.
@@ -413,7 +423,7 @@ class DGet(object):
         kwargs are passed to molmass.Formula.spectrum()
         """
 
-        for i in range(self.deuterium_count - self.minimum_deuterium, 0, -1):
+        for i in range(self.deuterium_count, 0, -1):
             yield (self.formula - Formula("D") * i + Formula("H") * i).spectrum(
                 **kwargs
             )

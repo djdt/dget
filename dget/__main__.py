@@ -44,11 +44,9 @@ def generate_parser() -> argparse.ArgumentParser:
         "use '--plot full' to show the entire mass range..",
     )
     parser.add_argument(
-        "--minimumd",
+        "--nstates",
         type=int,
-        default=0,
-        help="Only calculate probabilities for isotopes with at least "
-        "this number of deuterium.",
+        help="Maximum number of states to calculate, defaults to first 2 < 0.5%",
     )
     parser.add_argument(
         "--masswidth",
@@ -86,7 +84,7 @@ def main():
         args.formula,
         args.tofdata,
         adduct=args.adduct,
-        minimum_deuterium=args.minimumd,
+        number_states=args.nstates,
         loadtxt_kws=loadtxt_kws,
     )
     if args.autoadduct:
