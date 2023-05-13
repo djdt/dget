@@ -18,6 +18,7 @@ def parse_inputs() -> dict | None:
         "delimiter": delimiters[js.document.getElementById("delimiter").value],
         "skiprows": int(js.document.getElementById("skiprows").value or 0),
         "realign": js.document.getElementById("align").checked,
+        "subtract_baseline": js.document.getElementById("baseline").checked,
         "usecols": (masscol, signalcol),
     }
 
@@ -81,6 +82,7 @@ def run():
             auto_adduct = False
 
         realign = inputs.pop("realign")
+        subtract_baseline = inputs.pop("subtract_baseline")
 
         dget = DGet(formula, path, adduct=adduct, loadtxt_kws=inputs)
         if auto_adduct:
@@ -89,8 +91,12 @@ def run():
             print(f"Adduct difference from base peak m/z: {diff:.4f}")
             print()
         if realign:
-            dget.align_tof_with_spectra()
-            print(f"Re-aligned ToF data by shifting {dget.offset_mz:.2f} m/z")
+            offset = dget.align_tof_with_spectra()
+            print(f"Re-aligned ToF data by shifting {offset:.2f} m/z")
+            print()
+        if subtract_baseline:
+            baseline = dget.subtract_baseline((dget.targets[0], dget.targets[-1]))
+            print(f"Subtracting baseline of {baseline:.2f}")
             print()
 
         fig, ax = plt.subplots(1, 1, figsize=(5, 3))
