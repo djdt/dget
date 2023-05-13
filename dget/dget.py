@@ -236,10 +236,10 @@ class DGet(object):
         if start == end:
             raise ValueError("unable to align, m/z falls outside spectra")
 
-        offset = self.x[start + np.argmax(self.y[start:end])] - self.x[onmass]
+        offset = self.x[onmass] - self.x[start + np.argmax(self.y[start:end])]
         if abs(offset) > 0.5:  # type: ignore
             print("warning: calculated alignment offset greater than 0.5 Da!")
-        self.x -= offset
+        self.x += offset
         return offset
 
     def subtract_baseline(
@@ -311,7 +311,7 @@ class DGet(object):
             )
 
         base = self.x[start:end][np.argmax(self.y[start:end])]
-        diffs = base - masses
+        diffs = masses - base
         best = np.argmin(np.abs(diffs))
         return formulas[best], diffs[best]
 
