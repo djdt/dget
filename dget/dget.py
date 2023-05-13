@@ -153,11 +153,20 @@ class DGet(object):
 
     @property
     def deuteration_states(self) -> np.ndarray:
+        """Indexes of the valid deuteration states.
+
+        Valid states are those Dx-Dn, where n is the number of deuterium atoms
+        in the base molecule as x is either:
+            ``n - self.number_states``
+            ``n - the 2nd last D with a probability < 0.5%``
+        """
         if self.number_states is None:
             prob = self.deuteration_probabilites
-            nstates = np.argwhere((prob[:-1] > 0.005) & (prob[1:] > 0.005))[0][-1]
+            idx = np.flatnonzero((prob[:-1] < 0.005) & (prob[1] < 0.005)) - 1
+            nstates = idx[-1] if idx.size > 0 else self.deuterium_count
         else:
             nstates = self.number_states
+        print(self.deuterium_count - nstates)
         return np.arange(self.deuterium_count - nstates, self.deuterium_count + 1)
 
     @property

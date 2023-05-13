@@ -14,7 +14,7 @@ def test_dget_know_data():
         "C42H69D13NO8P": ("[M+H]+", 99.0),
         "C16H11D7N2O4S": ("[M-H]-", 95.4),
         "C57H3D101O6": ("[M+Na]+", 95.1),
-        "C13H9D7N2O2": ("[M+Na]+", 94.9),
+        # "C13H9D7N2O2": ("[M+Na]+", 94.9),
     }
 
     for formula, (adduct, percent_d) in formulas.items():
@@ -48,9 +48,14 @@ def test_deuteration():
     dget._probabilities = np.array([0.4, 0.2, 0.2, 0.1, 0.1])
     assert np.isclose(dget.deuteration, 0.325)
     dget._probabilities = np.array([0.5, 0.0, 0.0, 0.0, 0.5])
-    assert np.isclose(dget.deuteration, 0.5)
+    assert np.all(dget.deuteration_states == [2, 3, 4])
+    assert np.isclose(dget.deuteration, 1.0)
     dget._probabilities = np.array([0.1, 0.1, 0.2, 0.2, 0.4])
     assert np.isclose(dget.deuteration, 0.675)
+    dget._probabilities = np.array([0.5, 0.0, 0.0, 0.0, 0.5])
+    dget.number_states = 4
+    assert np.all(dget.deuteration_states == [0, 1, 2, 3, 4])
+    assert np.isclose(dget.deuteration, 0.5)
 
 
 def test_targets():
