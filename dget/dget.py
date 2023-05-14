@@ -166,7 +166,6 @@ class DGet(object):
             nstates = idx[-1] if idx.size > 0 else self.deuterium_count
         else:
             nstates = self.number_states
-        print(self.deuterium_count - nstates)
         return np.arange(self.deuterium_count - nstates, self.deuterium_count + 1)
 
     @property
