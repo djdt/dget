@@ -48,14 +48,35 @@ def test_deuteration():
     dget._probabilities = np.array([0.4, 0.2, 0.2, 0.1, 0.1])
     assert np.isclose(dget.deuteration, 0.325)
     dget._probabilities = np.array([0.5, 0.0, 0.0, 0.0, 0.5])
-    assert np.all(dget.deuteration_states == [2, 3, 4])
+    assert np.all(dget.deuteration_states == [3, 4])
     assert np.isclose(dget.deuteration, 1.0)
     dget._probabilities = np.array([0.1, 0.1, 0.2, 0.2, 0.4])
     assert np.isclose(dget.deuteration, 0.675)
     dget._probabilities = np.array([0.5, 0.0, 0.0, 0.0, 0.5])
-    dget.number_states = 4
+    dget.number_states = 5
     assert np.all(dget.deuteration_states == [0, 1, 2, 3, 4])
     assert np.isclose(dget.deuteration, 0.5)
+
+
+def test_number_states():
+    # Known error
+    dget = DGet("C6D6ClN", tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])))
+    dget._probabilities = np.array(
+        [
+            0.0,
+            0.0,
+            0.00722939,
+            0.02384589,
+            0.02229065,
+            0.19356285,
+            0.75307123,
+        ]
+    )
+    assert np.all(dget.deuteration_states == [1, 2, 3, 4, 5, 6])
+    dget.number_states = 3
+    assert np.all(dget.deuteration_states == [4, 5, 6])
+    dget.number_states = 30
+    assert np.all(dget.deuteration_states == [0, 1, 2, 3, 4, 5, 6])
 
 
 def test_targets():

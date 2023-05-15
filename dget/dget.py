@@ -148,6 +148,7 @@ class DGet(object):
             # Remove negative proabilities and normalise
             self._probabilities[self._probabilities < 0.0] = 0.0
             self._probabilities = self._probabilities / self._probabilities.sum()
+            print(self._probabilities)
 
         return self._probabilities  # type: ignore
 
@@ -162,11 +163,11 @@ class DGet(object):
         """
         if self.number_states is None:
             prob = self.deuteration_probabilites
-            idx = np.flatnonzero((prob[:-1] < 0.005) & (prob[1] < 0.005)) - 1
-            nstates = idx[-1] if idx.size > 0 else self.deuterium_count
+            idx = np.flatnonzero((prob[:-1] < 0.005) & (prob[1] < 0.005))
+            nstates = idx[-1] if idx.size > 0 else 0
         else:
-            nstates = self.number_states
-        return np.arange(self.deuterium_count - nstates, self.deuterium_count + 1)
+            nstates = self.deuterium_count + 1 - self.number_states
+        return np.arange(max(nstates, 0), self.deuterium_count + 1)
 
     @property
     def formula(self) -> Formula:
