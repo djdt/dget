@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 from molmass import Formula
 
 from dget import DGet
@@ -14,7 +15,7 @@ def test_dget_know_data():
         "C42H69D13NO8P": ("[M+H]+", 99.0),
         "C16H11D7N2O4S": ("[M-H]-", 95.4),
         "C57H3D101O6": ("[M+Na]+", 95.1),
-        # "C13H9D7N2O2": ("[M+Na]+", 94.9),
+        "C13H9D7N2O2": ("[M+Na]+", 94.9),
     }
 
     for formula, (adduct, percent_d) in formulas.items():
@@ -73,10 +74,33 @@ def test_number_states():
         ]
     )
     assert np.all(dget.deuteration_states == [1, 2, 3, 4, 5, 6])
-    dget.number_states = 3
-    assert np.all(dget.deuteration_states == [4, 5, 6])
-    dget.number_states = 30
-    assert np.all(dget.deuteration_states == [0, 1, 2, 3, 4, 5, 6])
+
+    dget = DGet(
+        "CD5", number_states=3, tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0]))
+    )
+    assert np.all(dget.deuteration_states == [3, 4, 5])
+    dget = DGet(
+        "CD5", number_states=30, tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0]))
+    )
+    assert np.all(dget.deuteration_states == [0, 1, 2, 3, 4, 5])
+    with pytest.raises(ValueError):
+        dget = DGet(
+            "CD5",
+            number_states=0,
+            tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])),
+        )
+
+    dget = DGet("CD5", tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])))
+    dget._probabilities = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+    assert np.all(dget.deuteration_states == [4, 5])
+    dget._probabilities = np.array([0.0, 0.0, 0.0, 0.0, 0.5, 0.5])
+    assert np.all(dget.deuteration_states == [3, 4, 5])
+    dget._probabilities = np.array([0.0, 0.0, 0.5, 0.0, 0.0, 0.5])
+    assert np.all(dget.deuteration_states == [4, 5])
+    dget._probabilities = np.array([0.0, 0.0, 0.0, 0.5, 0.0, 0.5])
+    assert np.all(dget.deuteration_states == [2, 3, 4, 5])
+    dget._probabilities = np.array([0.0, 0.3, 0.0, 0.4, 0.0, 0.3])
+    assert np.all(dget.deuteration_states == [0, 1, 2, 3, 4, 5])
 
 
 def test_targets():

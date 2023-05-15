@@ -78,11 +78,17 @@ class DGet(object):
                 f"formula: {self.adduct.base.formula} does not contain deuterium"
             )
 
+        if number_states is not None and number_states < 1:
+            raise ValueError("'number_states' must be > 0")
         self.number_states = number_states
+
         self.mass_width = signal_mass_width
+
         if signal_mode not in ["peak area", "peak height"]:
             raise ValueError("signal_mode must be one of 'peak area', 'peak height'.")
+
         self.signal_mode = signal_mode
+
         self.spectra_min_fraction = spectrum_min_fraction
 
         if isinstance(tofdata, (str | Path)):
@@ -148,7 +154,6 @@ class DGet(object):
             # Remove negative proabilities and normalise
             self._probabilities[self._probabilities < 0.0] = 0.0
             self._probabilities = self._probabilities / self._probabilities.sum()
-            print(self._probabilities)
 
         return self._probabilities  # type: ignore
 
@@ -162,8 +167,8 @@ class DGet(object):
             ``n - the 2nd last D with a probability < 0.5%``
         """
         if self.number_states is None:
-            prob = self.deuteration_probabilites
-            idx = np.flatnonzero((prob[:-1] < 0.005) & (prob[1] < 0.005))
+            prob = np.concatenate([[0], self.deuteration_probabilites])
+            idx = np.flatnonzero((prob[:-1] < 0.005) & (prob[1:] < 0.005))
             nstates = idx[-1] if idx.size > 0 else 0
         else:
             nstates = self.deuterium_count + 1 - self.number_states
