@@ -96,6 +96,7 @@ class DGet(object):
     def base_name(self) -> str:
         """The name of the base formula, with D instead of [2H]."""
         return self.adduct.base.formula.replace("[2H]", "D")
+
     @property
     def deuterium_count(self) -> int:
         """The number of deuterium atoms in the adduct."""
