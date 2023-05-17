@@ -8,16 +8,16 @@ from dget import DGet
 
 data_path = Path(__file__).parent.joinpath("data")
 
+formulas = {
+    "C12HD8N": ("[M-H]-", 94.4),
+    "C42H69D13NO8P": ("[M+H]+", 99.0),
+    "C16H11D7N2O4S": ("[M-H]-", 95.4),
+    "C57H3D101O6": ("[M+Na]+", 95.1),
+    "C13H9D7N2O2": ("[M+Na]+", 94.9),
+}
+
 
 def test_dget_know_data():
-    formulas = {
-        "C12HD8N": ("[M-H]-", 94.4),
-        "C42H69D13NO8P": ("[M+H]+", 99.0),
-        "C16H11D7N2O4S": ("[M-H]-", 95.4),
-        "C57H3D101O6": ("[M+Na]+", 95.1),
-        "C13H9D7N2O2": ("[M+Na]+", 94.9),
-    }
-
     for formula, (adduct, percent_d) in formulas.items():
         dget = DGet(
             formula,
@@ -28,6 +28,17 @@ def test_dget_know_data():
         dget.align_tof_with_spectra()
         # This test is too lenient, but best we can do with the data we have
         assert np.isclose(dget.deuteration * 100.0, percent_d, atol=1.6)
+
+
+def test_dget_auto_adduct():
+    for formula, (adduct, _) in formulas.items():
+        dget = DGet(
+            formula,
+            data_path.joinpath(f"{formula}.txt"),
+            loadtxt_kws={"delimiter": "\t"},
+        )
+        best, _ = dget.guess_adduct_from_base_peak()
+        assert best.adduct == adduct
 
 
 def test_deuteration():
