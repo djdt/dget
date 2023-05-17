@@ -93,6 +93,10 @@ class DGet(object):
             self.x, self.y = tofdata[0], tofdata[1]
 
     @property
+    def base_name(self) -> str:
+        """The name of the base formula, with D instead of [2H]."""
+        return self.adduct.base.formula.replace("[2H]", "D")
+    @property
     def deuterium_count(self) -> int:
         """The number of deuterium atoms in the adduct."""
         comp = self.formula.composition()
@@ -411,7 +415,7 @@ class DGet(object):
             linefmt="--",
             label="Adduct Spectra",
         )
-        ax.set_title(f"{self.adduct.base.formula} {self.adduct.adduct}")
+        ax.set_title(f"{self.base_name} {self.adduct.adduct}")
         ax.set_xlabel("M/Z")
         ax.set_ylabel("Signal")
         ax.legend(loc="best", bbox_to_anchor=(0.0, 0.6, 1.0, 0.4))
@@ -423,7 +427,7 @@ class DGet(object):
         prob = self.deuteration_probabilites[states]
         prob = prob / prob.sum()
 
-        print(f"Formula          : {self.adduct.base.formula}")
+        print(f"Formula          : {self.base_name}")
         print(f"Adduct           : {self.adduct.adduct}")
         print(f"M/Z              : {self.adduct.base.isotope.mz:.4f}")
         print(f"Adduct M/Z       : {self.formula.isotope.mz:.4f}")
