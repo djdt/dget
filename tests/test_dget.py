@@ -73,7 +73,7 @@ def test_number_states():
             0.75307123,
         ]
     )
-    assert np.all(dget.deuteration_states == [1, 2, 3, 4, 5, 6])
+    assert np.all(dget.deuteration_states == [2, 3, 4, 5, 6])
 
     dget = DGet(
         "CD5", number_states=3, tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0]))
