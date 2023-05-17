@@ -18,7 +18,7 @@ def generate_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--autoadduct",
         action="store_true",
-        help="Guess the adduct from the mass spectra base peak. Overrides --adduct.",
+        help="Guess the adduct from the mass spectra. Overrides --adduct.",
     )
     parser.add_argument("tofdata", type=Path, help="Path to mass spec data file.")
     parser.add_argument("--delimiter", default="\t", help="MS data file delimiter.")
@@ -90,7 +90,7 @@ def main():
     if args.autoadduct:
         adduct, diff = dget.guess_adduct_from_base_peak()
         dget.adduct = adduct
-        print(f"Adduct difference from base peak m/z: {diff:.4f}")
+        print(f"Adduct difference from adduct base peak m/z: {diff:.4f}")
         print()
 
     dget.mass_width = args.masswidth

@@ -31,7 +31,6 @@ class DGet(object):
         number_states: number of deuterated states to calculate
         signal_mass_width: range around each m/z to search for maxima or integrate
         signal_method: detection mode, valid values are 'peak area', 'peak height'
-        spectrum_min_fraction: limit spectra to entries with at least this fraction
         loadtxt_kws: parameters passed to `numpy.loadtxt`,
             defaults to {'delimiter': ',', 'usecols': (0, 1)}
     """
@@ -57,7 +56,6 @@ class DGet(object):
         number_states: int | None = None,
         signal_mass_width: float = 0.5,
         signal_mode: str = "peak height",
-        spectrum_min_fraction: float = 0.01,
         loadtxt_kws: dict | None = None,
     ):
         if isinstance(deuterated_formula, str):
@@ -88,8 +86,6 @@ class DGet(object):
             raise ValueError("signal_mode must be one of 'peak area', 'peak height'.")
 
         self.signal_mode = signal_mode
-
-        self.spectra_min_fraction = spectrum_min_fraction
 
         if isinstance(tofdata, (str | Path)):
             self.x, self.y = self._read_tofdata(tofdata, **_loadtxt_kws)
@@ -164,11 +160,11 @@ class DGet(object):
         Valid states are those Dx-Dn, where n is the number of deuterium atoms
         in the base molecule as x is either:
             ``n - self.number_states``
-            ``n - the 2nd last D with a probability < 0.5%``
+            ``n - the 2nd last D with a probability < 0.1%``
         """
         if self.number_states is None:
             prob = np.concatenate([[0], self.deuteration_probabilites])
-            idx = np.flatnonzero((prob[:-1] < 0.005) & (prob[1:] < 0.005))
+            idx = np.flatnonzero((prob[:-1] < 0.01) & (prob[1:] < 0.01))
             nstates = idx[-1] if idx.size > 0 else 0
         else:
             nstates = self.deuterium_count + 1 - self.number_states
@@ -296,19 +292,19 @@ class DGet(object):
     def guess_adduct_from_base_peak(
         self,
         adducts: List[Formula] | None = None,
-        mass_range: Tuple[float, float] | None = None,
     ) -> Tuple[Adduct, float]:
-        """Finds the adduct closest to the m/z of the largest tof peak.
+        """Search for the adduct with the highest intensity.
 
+        If multiple adducts have the maximum intensity then the adduct with the
+        monoisotopic mass closest to the local base peak is returned.
         This function will work best with highly deuterated samples.
 
         Args:
             adducts: adducts to try, defaults to DGet.common_adducts
-            mass_range: range to search for base peak, defaults to whole spectra
 
         Returns:
             best adduct
-            mass difference from base peak
+            mass difference from adducts base peak
         """
         if adducts is None:
             adducts = DGet.common_adducts
@@ -321,21 +317,27 @@ class DGet(object):
                 pass
 
         masses = np.array([f.formula.isotope.mz for f in formulas])
+        ranges = np.stack([f.mz_range(min_fraction=0.01) for f in formulas], axis=0)
+        ranges += (-0.5, 0.5)  # expand search by 0.5 Da
 
-        if mass_range is not None:
-            idx = np.searchsorted(self.x, mass_range)
-            start, end = np.clip(idx, 0, self.x.size)
-        else:
-            start, end = 0, self.x.size
-        if start == end:
-            raise ValueError(
-                "unable to get adduct, entire m/z range falls outside spectra"
-            )
+        # idx of start - end of each range
+        idx = np.searchsorted(self.x, ranges)
+        idx = np.clip(idx, 0, self.x.size - 1)
 
+        # max intensity for each adduct
+        intensities = np.maximum.reduceat(self.y, idx.flat)[::2]
+        max_intenstites = np.flatnonzero(intensities == intensities.max())
+
+        start = np.min(idx[max_intenstites, 0])
+        end = np.max(idx[max_intenstites, 1])
         base = self.x[start:end][np.argmax(self.y[start:end])]
-        diffs = masses - base
-        best = np.argmin(np.abs(diffs))
-        return formulas[best], diffs[best]
+        # multiple adducts overlap with base peak
+        if max_intenstites.size > 1:
+            best = max_intenstites[np.argmin(np.abs(base - masses[max_intenstites]))]
+        else:
+            best = max_intenstites[0]
+
+        return formulas[best], masses[best] - base
 
     def plot_predicted_spectra(
         self,

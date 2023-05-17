@@ -1,6 +1,7 @@
 """Class for adduct calculations."""
 
 import re
+from typing import Tuple
 
 from molmass import Composition, Formula, Spectrum
 
@@ -70,6 +71,13 @@ class Adduct(object):
     def spectrum(self) -> Spectrum:
         """The spectrum of the adduct."""
         return self.formula.spectrum()
+
+    def mz_range(self, min_fraction: float = 0.0) -> Tuple[float, float]:
+        """Return the spectrum mz range."""
+        mzs = list(
+            v.mz for v in self.formula.spectrum(min_fraction=min_fraction).values()
+        )
+        return min(mzs), max(mzs)
 
     def __str__(self) -> str:
         return f"{self.adduct}, M={self.base.formula}"
