@@ -158,14 +158,15 @@ class DGet(object):
         """Indexes of the valid deuteration states.
 
         Valid states are those Dx-Dn, where n is the number of deuterium atoms
-        in the base molecule as x is either:
-            ``n - self.number_states``
-            ``n - the 2nd last D with a probability < 0.1%``
+        in the base molecule as x is either ``n - self.number_states`` if defined
+        or the last 2 consecutive probabilities that are < 1% with an acummulative
+        probability of at least 10%.
         """
         if self.number_states is None:
-            prob = np.concatenate([[0], self.deuteration_probabilites])
+            prob = self.deuteration_probabilites[::-1]
             idx = np.flatnonzero((prob[:-1] < 0.01) & (prob[1:] < 0.01))
-            nstates = idx[-1] if idx.size > 0 else 0
+            idx = idx[idx > np.argmax(np.cumsum(prob) > 0.1)]
+            nstates = self.deuterium_count - idx[0] if idx.size > 0 else 0
         else:
             nstates = self.deuterium_count + 1 - self.number_states
         return np.arange(max(nstates, 0), self.deuterium_count + 1)
