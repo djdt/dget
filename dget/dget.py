@@ -319,8 +319,7 @@ class DGet(object):
 
         masses = np.array([f.formula.isotope.mz for f in formulas])
         ranges = np.stack([f.mz_range(min_fraction=0.01) for f in formulas], axis=0)
-        # Todo: mass percent based range
-        ranges += (-5.0, 5.0)  # expand search by 5.0 Da
+        ranges += np.stack([-masses * 0.01, masses * 0.01], axis=1) # Expand by 1% of mass
 
         # idx of start - end of each range
         idx = np.searchsorted(self.x, ranges)
