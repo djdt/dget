@@ -15,6 +15,8 @@ label {display: inline-block; text-align: left; width: 25%}
 input, select {display: inline-block; align: right}
 button {display: inline-block; align: right}
 h3 {background-color: #8aa29e; padding: 5px}
+img {background: white; width: 100%; height: auto}
+/* img:hover {transform:scale(2.0)} */
 
 @media screen and (max-width: 900px) {
   .leftcolumn, .rightcolumn {   

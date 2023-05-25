@@ -99,7 +99,7 @@ def run():
             print(f"Subtracting baseline of {baseline:.2f}")
             print()
 
-        fig, ax = plt.subplots(1, 1, figsize=(5, 3))
+        fig, ax = plt.subplots(1, 1, figsize=(10, 6), dpi=200)
 
         dget.plot_predicted_spectra(ax)
         fig.tight_layout()
