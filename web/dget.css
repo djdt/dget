@@ -11,6 +11,7 @@ body {background-color: #f1edee; max-width: 1600px; margin: auto}
 .footer li {float: right}
 .footer li a {color: black; display: block; text-align: center; text-decoration: none; padding: 10px}
 label {display: inline-block; text-align: left; width: 25%}
+.checklabel {width: 75%}
 input, select {display: inline-block; align: right}
 button {display: inline-block; align: right}
 h3 {background-color: #8aa29e; padding: 5px}
