@@ -31,7 +31,7 @@ class Adduct(object):
     regex_split = re.compile("([+-])(\\d*)(\\w+)")
 
     def __init__(self, base: Formula, adduct: str):
-        """Initialiation function.
+        """Initialisation function.
 
         Args:
             base: formula of the base molecule, represented by M in adduct
