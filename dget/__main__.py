@@ -5,7 +5,11 @@ from dget import DGet, __version__
 
 
 def generate_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser("dget")
+    parser = argparse.ArgumentParser(
+        "dget",
+        description="DGet! uses deconvolution of high-resolution mass spectrometry "
+        "data to calculate molecular deuteration.",
+    )
     parser.add_argument(
         "formula", help="Molecular formula of the compound, see molmass."
     )
@@ -20,6 +24,7 @@ def generate_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Guess the adduct from the mass spectra. Overrides --adduct.",
     )
+
     parser.add_argument("tofdata", type=Path, help="Path to mass spec data file.")
     parser.add_argument("--delimiter", default="\t", help="MS data file delimiter.")
     parser.add_argument(
@@ -36,6 +41,7 @@ def generate_parser() -> argparse.ArgumentParser:
         default=1,
         help="Number of header rows to skip in data file.",
     )
+
     parser.add_argument(
         "--plot",
         nargs="?",
@@ -46,7 +52,7 @@ def generate_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--nstates",
         type=int,
-        help="Maximum number of states to calculate, defaults to first 2 < 0.5%",
+        help="Maximum number of states to calculate, defaults to first 2 < 0.5%%",
     )
     parser.add_argument(
         "--masswidth",
