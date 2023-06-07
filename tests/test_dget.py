@@ -31,6 +31,31 @@ def test_dget_basic():
     assert dget.base_name == "C2HD3O"
 
 
+def test_dget_io():
+    dget = DGet(
+        "CD4",
+        data_path.joinpath("col02_comma_0h.txt"),
+        loadtxt_kws={"usecols": (0, 2), "delimiter": ","},
+    )
+    assert np.all(dget.x == [0, 1, 2])
+    assert np.all(dget.y == [0, 2, 4])
+    dget = DGet(
+        "CD4",
+        data_path.joinpath("col21_space_2h.txt"),
+        loadtxt_kws={"usecols": (2, 1), "delimiter": " ", "skiprows": 2},
+    )
+    assert np.all(dget.x == [0, 1, 2])
+    assert np.all(dget.y == [0, 2, 4])
+
+    # Exceptions
+    with pytest.raises(ValueError):
+        dget = DGet(
+            "CD4",
+            data_path.joinpath("col21_space_2h.txt"),
+            loadtxt_kws={"usecols": (0, 1, 2)},
+        )
+
+
 def test_dget_know_data():
     for formula, (adduct, percent_d) in formulas.items():
         dget = DGet(
