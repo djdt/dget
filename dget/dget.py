@@ -265,11 +265,11 @@ class DGet(object):
             ],
         )
         start, onmass, end = np.clip(idx, 0, self.x.size)
-        if start == end:
+        if start == end:  # pragma: no cover, exception
             raise ValueError("unable to align, m/z falls outside spectra")
 
         offset = self.x[onmass] - self.x[start + np.argmax(self.y[start:end])]
-        if abs(offset) > 0.5:  # type: ignore
+        if abs(offset) > 0.5:  # pragma: no cover, warning
             print("warning: calculated alignment offset greater than 0.5 Da!")
         self.x += offset
         return offset
@@ -287,7 +287,7 @@ class DGet(object):
             percentile: percentile to use
 
         Returns:
-            offset used for alignment
+            amount subtracted from baseline
         """
         if mass_range is not None:
             idx = np.searchsorted(self.x, mass_range)

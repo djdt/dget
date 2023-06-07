@@ -54,6 +54,17 @@ def test_dget_io():
             data_path.joinpath("col21_space_2h.txt"),
             loadtxt_kws={"usecols": (0, 1, 2)},
         )
+    # Maybe move to actual warnings
+    dget = DGet(
+        "CD4",
+        data_path.joinpath("col21_space_2h.txt"),
+        loadtxt_kws={
+            "usecols": (2, 1),
+            "delimiter": " ",
+            "skiprows": 2,
+            "unpack": False,
+        },
+    )
 
 
 def test_dget_know_data():
@@ -101,6 +112,16 @@ def test_dget_auto_adduct():
         if best.adduct != adduct:
             raise ValueError(formula, adduct)
         assert best.adduct == adduct
+
+
+def test_dget_baseline_subtraction():
+    x = np.linspace(16.0, 24.0, 1000)
+    y = np.random.normal(10.0, 0.1, size=1000)
+    old_y = y.copy()
+    dget = DGet("CD4", tofdata=(x, y), adduct="[M]+")
+    baseline = dget.subtract_baseline()
+    assert np.isclose(baseline, np.percentile(old_y, 25))
+    assert np.all(old_y - baseline == dget.y)
 
 
 def test_deuteration():
