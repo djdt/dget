@@ -117,11 +117,15 @@ def test_dget_auto_adduct():
 def test_dget_baseline_subtraction():
     x = np.linspace(16.0, 24.0, 1000)
     y = np.random.normal(10.0, 0.1, size=1000)
+    y[:100] = 0
     old_y = y.copy()
     dget = DGet("CD4", tofdata=(x, y), adduct="[M]+")
+    baseline = dget.subtract_baseline([16.0, 16.1])
+    assert baseline == 0.0
     baseline = dget.subtract_baseline()
     assert np.isclose(baseline, np.percentile(old_y, 25))
     assert np.all(old_y - baseline == dget.y)
+
 
 
 def test_deuteration():

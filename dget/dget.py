@@ -294,7 +294,7 @@ class DGet(object):
             start, end = np.clip(idx, 0, self.x.size)
         else:
             start, end = 0, self.x.size
-        if start == end:
+        if start == end:  # pragma: no cover, Exception
             raise ValueError(
                 "unable to subtract baseline, entire m/z range falls outside spectra"
             )
