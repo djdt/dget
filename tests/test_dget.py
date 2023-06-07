@@ -19,6 +19,18 @@ formulas = {
 }
 
 
+def test_dget_basic():
+    with pytest.raises(ValueError):  # No D
+        dget = DGet("CH3", data_path)
+
+    dget = DGet(
+        "C2HD3O",
+        adduct="[M+H]+",
+        tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])),
+    )
+    assert dget.base_name == "C2HD3O"
+
+
 def test_dget_know_data():
     for formula, (adduct, percent_d) in formulas.items():
         dget = DGet(
@@ -93,6 +105,40 @@ def test_deuteration():
     dget.number_states = 5
     assert np.all(dget.deuteration_states == [0, 1, 2, 3, 4])
     assert np.isclose(dget.deuteration, 0.5)
+
+
+def test_integration():
+    x = np.concatenate(
+        [
+            np.linspace(16.0, 16.1, 100),
+            np.linspace(17.0, 17.1, 100),
+            np.linspace(18, 22.1, 100),
+        ]
+    )
+    y = np.concatenate(
+        [
+            np.sin(np.linspace(0.0, np.pi, 100, endpoint=False)),
+            2.0 * np.sin(np.linspace(0.0, np.pi, 100, endpoint=False)),
+            np.zeros(100),
+        ]
+    )
+    # Could be better if we could test counts
+    dget = DGet("CH3D", tofdata=(x, y), adduct="[M]+", signal_mode="peak height")
+    assert np.allclose(dget.deuteration_probabilites, [0.33, 0.66], atol=0.01)
+
+    dget = DGet("CH3D", tofdata=(x, y), adduct="[M]+", signal_mode="peak area")
+    assert np.allclose(dget.deuteration_probabilites, [0.33, 0.66], atol=0.01)
+
+    # Test height != area
+    y = np.zeros_like(x)
+    y[40:60] = 2.0
+    y[120:180] = 2.0
+
+    dget = DGet("CH3D", tofdata=(x, y), adduct="[M]+", signal_mode="peak height")
+    assert np.allclose(dget.deuteration_probabilites, [0.5, 0.5], atol=0.01)
+
+    dget = DGet("CH3D", tofdata=(x, y), adduct="[M]+", signal_mode="peak area")
+    assert np.allclose(dget.deuteration_probabilites, [0.25, 0.75], atol=0.01)
 
 
 def test_number_states():
