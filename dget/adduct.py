@@ -31,7 +31,7 @@ class Adduct(object):
     regex_split = re.compile("([+-])(\\d*)(\\w+)")
 
     def __init__(self, base: Formula, adduct: str):
-        """Initialiation function.
+        """Initialisation function.
 
         Args:
             base: formula of the base molecule, represented by M in adduct
@@ -63,12 +63,12 @@ class Adduct(object):
         )
 
     @property
-    def composition(self) -> Composition:
+    def composition(self) -> Composition:  # pragma: no cover, pass-through
         """The composition of the adduct."""
         return self.formula.composition()
 
     @property
-    def spectrum(self) -> Spectrum:
+    def spectrum(self) -> Spectrum:  # pragma: no cover, pass-through
         """The spectrum of the adduct."""
         return self.formula.spectrum()
 
@@ -79,8 +79,8 @@ class Adduct(object):
         )
         return min(mzs), max(mzs)
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # pragma: no cover, debug
         return f"{self.adduct}, M={self.base.formula}"
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma: no cover, debug
         return f"Adduct({self.adduct!r}, M={self.base.formula!r})"

@@ -21,7 +21,7 @@ class DGet(object):
     Mass spectra files are expected to be a delimited text file with at least 2 columns,
     one for mass and one for signals. Specify columns using the keyword 'usecols' in
     `loadtxt_kws`, a (zero indexed) tuple of ints for (mass, signal) columns.
-    The deilimter can be specified using the 'delimiter' keyword.
+    The delimiter can be specified using the 'delimiter' keyword.
     Mass spectra can also be passed as a tuple of numpy arrays, (masses, signals).
 
     Attributes:
@@ -71,7 +71,7 @@ class DGet(object):
 
         self.adduct = Adduct(deuterated_formula, adduct)
 
-        if self.deuterium_count == 0:
+        if self.deuterium_count == 0:  # pragma: no cover, exception
             raise ValueError(
                 f"formula: {self.adduct.base.formula} does not contain deuterium"
             )
@@ -82,7 +82,10 @@ class DGet(object):
 
         self.mass_width = signal_mass_width
 
-        if signal_mode not in ["peak area", "peak height"]:
+        if signal_mode not in [
+            "peak area",
+            "peak height",
+        ]:  # pragma: no cover, exception
             raise ValueError("signal_mode must be one of 'peak area', 'peak height'.")
 
         self.signal_mode = signal_mode
@@ -91,6 +94,11 @@ class DGet(object):
             self.x, self.y = self._read_tofdata(tofdata, **_loadtxt_kws)
         else:
             self.x, self.y = tofdata[0], tofdata[1]
+
+    @property
+    def base_name(self) -> str:
+        """The name of the base formula, with D instead of [2H]."""
+        return self.adduct.base.formula.replace("[2H]", "D")
 
     @property
     def deuterium_count(self) -> int:
@@ -121,9 +129,10 @@ class DGet(object):
         """The deuteration fraction of each possible deuteration.
 
         Probabilities are listed in order of D=0 to N, where N is the number of
-        deuterium in the original molecular formula. Probabilites will sum to 1.0.
+        deuterium in the original molecular formula. Probabilities will sum to 1.0.
         """
         if self._probabilities is None:
+            print(self.targets)
             starts = np.searchsorted(self.x, self.targets - self.mass_width / 2.0)
             ends = np.searchsorted(self.x, self.targets + self.mass_width / 2.0)
 
@@ -138,16 +147,20 @@ class DGet(object):
                     np.trapz(self.y[s:e], x=self.x[s:e])
                     for s, e in zip(starts[valid], ends[valid])
                 ]
-            else:  # self.signal_mode == "peak height"
+            elif self.signal_mode == "peak height":
                 counts[valid] = np.maximum.reduceat(
                     self.y, np.stack((starts[valid], ends[valid]), axis=1).flat
                 )[::2]
+            else:  # pragma: no cover, exception
+                raise ValueError(
+                    "DGet.signal_mode must be 'peak area' or 'peak height'"
+                )
             counts = counts / counts.sum()
 
             self._probabilities, self._probability_remainders = deconvolve(
                 counts, self.psf
             )
-            # Remove negative proabilities and normalise
+            # Remove negative probabilities and normalise
             self._probabilities[self._probabilities < 0.0] = 0.0
             self._probabilities = self._probabilities / self._probabilities.sum()
 
@@ -159,7 +172,7 @@ class DGet(object):
 
         Valid states are those Dx-Dn, where n is the number of deuterium atoms
         in the base molecule as x is either ``n - self.number_states`` if defined
-        or the last 2 consecutive probabilities that are < 1% with an acummulative
+        or the last 2 consecutive probabilities that are < 1% with an accumulative
         probability of at least 10%.
         """
         if self.number_states is None:
@@ -200,10 +213,10 @@ class DGet(object):
             self._targets = spectra_mz_spread(spectra)
         return self._targets
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # pragma: no cover, debug
         return f"DGet({self.adduct})"
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma: no cover, debug
         return f"DGet({self.adduct!r})"
 
     def _read_tofdata(
@@ -235,7 +248,7 @@ class DGet(object):
         Please calibrate your MS instead of using this.
 
         Args:
-            alignment_mz: m/zz used for alignment, defaults to monoisotopic m/z
+            alignment_mz: m/z used for alignment, defaults to monoisotopic m/z
 
         Returns:
             offset used for alignment
@@ -252,11 +265,11 @@ class DGet(object):
             ],
         )
         start, onmass, end = np.clip(idx, 0, self.x.size)
-        if start == end:
+        if start == end:  # pragma: no cover, exception
             raise ValueError("unable to align, m/z falls outside spectra")
 
         offset = self.x[onmass] - self.x[start + np.argmax(self.y[start:end])]
-        if abs(offset) > 0.5:  # type: ignore
+        if abs(offset) > 0.5:  # pragma: no cover, warning
             print("warning: calculated alignment offset greater than 0.5 Da!")
         self.x += offset
         return offset
@@ -266,7 +279,7 @@ class DGet(object):
     ) -> float:
         """Subtracts baseline of region.
 
-        Clalulates the ``percentile`` percentile of the designated mass region and
+        Calculates the ``percentile`` percentile of the designated mass region and
         subtracts it from the mass spec signals.
 
         Args:
@@ -274,14 +287,14 @@ class DGet(object):
             percentile: percentile to use
 
         Returns:
-            offset used for alignment
+            amount subtracted from baseline
         """
         if mass_range is not None:
             idx = np.searchsorted(self.x, mass_range)
             start, end = np.clip(idx, 0, self.x.size)
         else:
             start, end = 0, self.x.size
-        if start == end:
+        if start == end:  # pragma: no cover, Exception
             raise ValueError(
                 "unable to subtract baseline, entire m/z range falls outside spectra"
             )
@@ -346,7 +359,7 @@ class DGet(object):
         self,
         ax: "matplotlib.axes.Axes",
         mass_range: Tuple[float, float] | str = "targets",  # noqa: F821
-        color_probabilites: bool = False,
+        color_probabilities: bool = False,
     ) -> None:
         """Plot spectra over mass spectra on `ax`.
 
@@ -357,7 +370,7 @@ class DGet(object):
         Args:
             ax: matplotlib axes to plot on
             mass_range: range to plot
-            color_probabilites: use a colour for each probability
+            color_probabilities: use a colour for each probability
         """
         targets = self.targets
 
@@ -378,7 +391,7 @@ class DGet(object):
         if self.deuteration_probabilites.size == 0:
             return
 
-        if color_probabilites:
+        if color_probabilities:
             ys = np.zeros(
                 (
                     self.deuteration_probabilites.size,
@@ -414,7 +427,7 @@ class DGet(object):
             linefmt="--",
             label="Adduct Spectra",
         )
-        ax.set_title(f"{self.adduct.base.formula} {self.adduct.adduct}")
+        ax.set_title(f"{self.base_name} {self.adduct.adduct}")
         ax.set_xlabel("M/Z")
         ax.set_ylabel("Signal")
         ax.legend(loc="best", bbox_to_anchor=(0.0, 0.6, 1.0, 0.4))
@@ -430,7 +443,7 @@ class DGet(object):
         prob = self.deuteration_probabilites[states]
         prob = prob / prob.sum()
 
-        print(f"Formula          : {self.adduct.base.formula}", file=file)
+        print(f"Formula          : {self.base_name}", file=file)
         print(f"Adduct           : {self.adduct.adduct}", file=file)
         print(f"M/Z              : {self.adduct.base.isotope.mz:.4f}", file=file)
         print(f"Adduct M/Z       : {self.formula.isotope.mz:.4f}", file=file)

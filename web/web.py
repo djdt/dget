@@ -89,7 +89,7 @@ def run():
         if auto_adduct:
             adduct, diff = dget.guess_adduct_from_base_peak()
             dget.adduct = adduct
-            print(f"Adduct difference from base peak m/z: {diff:.4f}")
+            print(f"Adduct difference from adduct base peak m/z: {diff:.4f}")
             print()
         if realign:
             offset = dget.align_tof_with_spectra()
