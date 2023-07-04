@@ -1,8 +1,9 @@
 from pathlib import Path
 
+import js
 import matplotlib.pyplot as plt
 from pyodide.ffi import create_proxy
-from pyscript import display, js
+from pyscript import display
 
 from dget import DGet, __version__
 
