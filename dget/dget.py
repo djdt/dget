@@ -1,7 +1,7 @@
 """Class for deuteration calculations."""
 
 from pathlib import Path
-from typing import Generator, List, Tuple
+from typing import Generator, List, TextIO, Tuple
 
 import numpy as np
 from molmass import Formula, Spectrum
@@ -319,7 +319,9 @@ class DGet(object):
 
         masses = np.array([f.formula.isotope.mz for f in formulas])
         ranges = np.stack([f.mz_range(min_fraction=0.01) for f in formulas], axis=0)
-        ranges += np.stack([-masses * 0.01, masses * 0.01], axis=1) # Expand by 1% of mass
+        ranges += np.stack(
+            [-masses * 0.01, masses * 0.01], axis=1
+        )  # Expand by 1% of mass
 
         # idx of start - end of each range
         idx = np.searchsorted(self.x, ranges)
@@ -417,22 +419,26 @@ class DGet(object):
         ax.set_ylabel("Signal")
         ax.legend(loc="best", bbox_to_anchor=(0.0, 0.6, 1.0, 0.4))
 
-    def print_results(self) -> None:
-        """Print results to stdout."""
+    def print_results(self, file: TextIO | None = None) -> None:
+        """Print results.
+
+        Args:
+            file: file to print to, or sys.stdout if None
+        """
         pd = self.deuteration  # ensure calculated
         states = self.deuteration_states
         prob = self.deuteration_probabilites[states]
         prob = prob / prob.sum()
 
-        print(f"Formula          : {self.adduct.base.formula}")
-        print(f"Adduct           : {self.adduct.adduct}")
-        print(f"M/Z              : {self.adduct.base.isotope.mz:.4f}")
-        print(f"Adduct M/Z       : {self.formula.isotope.mz:.4f}")
-        print(f"%Deuteration     : {pd * 100.0:.2f} %")
-        print()
-        print("Deuteration Ratio Spectra")
+        print(f"Formula          : {self.adduct.base.formula}", file=file)
+        print(f"Adduct           : {self.adduct.adduct}", file=file)
+        print(f"M/Z              : {self.adduct.base.isotope.mz:.4f}", file=file)
+        print(f"Adduct M/Z       : {self.formula.isotope.mz:.4f}", file=file)
+        print(f"%Deuteration     : {pd * 100.0:.2f} %", file=file)
+        print(file=file)
+        print("Deuteration Ratio Spectra", file=file)
         for s, p in zip(states, prob):
-            print(f"D{s:<2}              : {p * 100.0:5.2f} %")
+            print(f"D{s:<2}              : {p * 100.0:5.2f} %", file=file)
 
     def spectra(self, **kwargs) -> Generator[Spectrum, None, None]:
         """Spectrum of all compounds from non to fully deuterated.
