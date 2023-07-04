@@ -132,7 +132,6 @@ class DGet(object):
         deuterium in the original molecular formula. Probabilities will sum to 1.0.
         """
         if self._probabilities is None:
-            print(self.targets)
             starts = np.searchsorted(self.x, self.targets - self.mass_width / 2.0)
             ends = np.searchsorted(self.x, self.targets + self.mass_width / 2.0)
 
