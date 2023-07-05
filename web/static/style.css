@@ -1,0 +1,27 @@
+* {box-sizing: border-box;}
+body {background-color: #f1edee; max-width: 1600px; margin: auto}
+
+.header, .footer {background-color: #db5461; padding: 10px}
+.clearfix::after {background: lightgrey; content: ""; clear: both; display: table}
+.leftcolumn, .rightcolumn {float: left; width: 50%}
+.card {background-color: #f1edee; padding: 10px; margin-bottom: 10px}
+/* .py-terminal {min-height: 200px} */
+
+.footer {list-style-type: none; margin: 0; padding: 0; overflow: hidden}
+.footer li {float: right}
+.footer li a {color: black; display: block; text-align: center; text-decoration: none; padding: 10px}
+
+label {display: inline-block; text-align: left; width: 25%}
+.checklabel {width: 75%}
+input, select {display: inline-block; align: right}
+button {display: inline-block; align: right}
+h3 {background-color: #8aa29e; padding: 5px}
+img {background: white; width: 100%; height: auto}
+/* img:hover {transform:scale(2.0)} */
+
+@media screen and (max-width: 900px) {
+  .leftcolumn, .rightcolumn {   
+    width: 100%;
+    padding: 0;
+  }
+}
