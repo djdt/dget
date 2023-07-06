@@ -15,7 +15,6 @@ footer li a {color: black; display: block; text-align: center; text-decoration: 
 /* .checklabel {width: 75%} */
 /* input, select {display: inline-block; align: right} */
 /* button {display: inline-block; align: right} */
-/* h3 {background-color: #8aa29e; padding: 5px} */
 /* img {background: white; width: 100%; height: auto} */
 /* /1* img:hover {transform:scale(2.0)} *1/ */
 
@@ -29,6 +28,7 @@ footer li a {color: black; display: block; text-align: center; text-decoration: 
   box-sizing: border-box;
 }
 html, body {
+    font-family: sans-serif;
     margin: 0;
     height: 100%;
 }
@@ -46,7 +46,7 @@ header {
 main {
     overflow: auto;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
     grid-gap: 10px;
 }
 footer {
@@ -55,6 +55,45 @@ footer {
 }
 
 .card {
-    background-color: green;
+    border: 1px solid #d7cccf;
+    border-radius: 5px;
+    background-color: #f1edee;
+    margin: 0 auto;
     padding: 10px;
 }
+
+.card h3 {
+    background-color: #8aa29e;
+    padding: 5px;
+    border-radius: 5px;
+    margin-top: 0;
+}
+
+form {
+    margin: 0 auto;
+}
+form ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+form li + li {
+    margin-top: 10px;
+}
+label {
+    display: inline-block;
+    text-align: left;
+    width: 200px;
+}
+button,
+input,
+select {
+    display: inline-block;
+    width: 200px;
+    align: right;
+}
+
+.combobox {position: relative; width: 200px; display: inline-block}
+.combobox select {width: 100%; display: inline}
+.combobox > * {box-sizing: border-box}
+.combobox input {position: absolute; width: calc(100% - 20px)}

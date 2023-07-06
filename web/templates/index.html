@@ -3,8 +3,72 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="card">
-    Text
+<div class="card" id="input">
+    <h3>Input</h3>
+    <form action="/calculate" method="post", enctype="multipart/form-data">
+        <ul>
+            <li>
+                <label for="formula"> Formula: </label>
+                <input type="text" id="formula" name="formula">
+            </li>
+            <li>
+                <label for="adduct"> Adduct: </label>
+                <div class="combobox">
+                    <input name="adduct" id="adduct" value="[M+H]+">
+                    <select onchange="this.previousElementSibling.value=this.value">
+                        <option value=""></option>
+                        <option value="Auto">Auto</option>
+                        <option value="[M]+">[M]+</option>
+                        <option value="[M+H]+">[M+H]+</option>
+                        <option value="[M+Na]+">[M+Na]+</option>
+                        <option value="[M+2H]2+">[M+2H]2+</option>
+                        <option value="[M]-">[M]-</option>
+                        <option value="[M-H]-">[M-H]-</option>
+                        <option value="[2M-H]-">[2M-H]-</option>
+                        <option value="[M-2H]2-">[M-2H]2-</option>
+                        <option value="[M+Cl]-">[M+Cl]-</option>
+                    </select>
+                </div>
+            </li>
+            <li>
+                <label for="file"> Upload MS data: </label>
+                <input type="file" id="file", name="file">
+            </li>
+            <li>
+                <fieldset>
+                    <legend>MS data options:</legend>
+                    <label for="delimiter"> Delimiter: </label>
+                    <select name="delimiter" id="delimiter">
+                        <option id="comma", value="comma">Comma</option>
+                        <option id="semicolon", value="semicolon">Semicolon</option>
+                        <option value="tab">Tab</option>
+                        <option value="space">Space</option>
+                    </select>
+                    <br>
+                    <label for="skiprows"> Skip rows: </label>
+                    <input type="number", id="skiprows", name="skiprows", min="0", value="0">
+                    <br>
+                    <label for="masscol"> Mass column: </label>
+                    <input type="number", id="masscol", name="masscol", min="1", value="1">
+                    <br>
+                    <label for="signalcol"> Signal column: </label>
+                    <input type="number", id="signalcol", name="signalcol", min="1", value="2">
+                </fieldset>
+            </li>
+            <li>
+                <label class="checklabel" for="align"> Re-align MS data: </label>
+                <input type="checkbox" id="align">
+            </li>
+            <li>
+                <label class="checklabel" for="baseline"> Subtract MS basline: </label>
+                <input type="checkbox" id="baseline">
+            </li>
+            <li>
+                <button type="submit">Get D</button>
+            </li>
+        </ul>
+    <!-- <br><br> -->
+    </form>
 </div>
 <div class="card">
     Text
