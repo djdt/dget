@@ -1,11 +1,35 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
+
+from dget import DGet
 
 app = Flask(__name__)
 
 
 @app.route("/")
-def main():
+def index():
     return render_template("index.html")
+
+
+@app.post("/calculate")
+def calculate():
+    formula = request.form["formula"]
+    file = request.files["file"]
+    adduct = request.form["adduct"]
+    if adduct == "Auto":
+        adduct = None
+    loadtxt_kws = {
+        "delimiter": request.form["delimiter"],
+        "skiprows": request.form["skiprows"],
+        "usecols": (request.form["masscol"], request.form["signalcol"]),
+    }
+    dget = DGet(
+        deuterated_formula=formula, tofdata=file, adduct=adduct, loadtxt_kws=loadtxt_kws
+    )
+    if request.form["align"]:
+        offset = dget.align_tof_with_spectra()
+    if request.form["baseline"]:
+        baseline = dget.subtract_baseline()
+    pass
 
 
 if __name__ == "__main__":
