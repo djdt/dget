@@ -3,6 +3,8 @@
     <head>
         <title>DGet!</title>
         <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+        {% block head %}
+        {% endblock %}
     </head>
     <body>
         <div class="wrapper">
@@ -17,7 +19,7 @@
 
             <footer class="footer">
                 <ul>
-                    {% for href, caption in [("index.html", "Home"), ("help.html", "Help"), ("https://dget.readthedocs.io", "Reference"), ("https://github.com/djdt/dget", "GitHub")] %}
+                {% for href, caption in [("index.html", "Home"), ("help.html", "Help"), ("https://dget.readthedocs.io", "Reference"), ("https://github.com/djdt/dget", "GitHub")] %}
                     <li><a href="{{ href }}">{{ caption }}</a></li>
                 {% endfor %}
                 </ul>

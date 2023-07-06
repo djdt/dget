@@ -1,6 +1,9 @@
 <!doctype html>
 
 {% extends "layout.html" %}
+{% block head %}
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+{% endblock %}
 
 {% block content %}
 <div class="card" id="input">
@@ -17,32 +20,29 @@
                     <input name="adduct" id="adduct" value="[M+H]+">
                     <select onchange="this.previousElementSibling.value=this.value">
                         <option value=""></option>
-                        <option value="Auto">Auto</option>
-                        <option value="[M]+">[M]+</option>
-                        <option value="[M+H]+">[M+H]+</option>
-                        <option value="[M+Na]+">[M+Na]+</option>
-                        <option value="[M+2H]2+">[M+2H]2+</option>
-                        <option value="[M]-">[M]-</option>
-                        <option value="[M-H]-">[M-H]-</option>
-                        <option value="[2M-H]-">[2M-H]-</option>
-                        <option value="[M-2H]2-">[M-2H]2-</option>
-                        <option value="[M+Cl]-">[M+Cl]-</option>
+                        {% for adduct in adducts %}
+                        <option value="{{ adduct }}">{{ adduct }}</option>
+                        {% endfor %}
                     </select>
                 </div>
             </li>
             <li>
                 <label for="file"> Upload MS data: </label>
-                <input type="file" id="file", name="file">
+                <input type="file" id="file" name="file">
+                <script>
+                    const upload = document.getElementById("file");
+                    upload.addEventListener("change", uploadHandler, false);
+                </script>
             </li>
             <li>
                 <fieldset>
                     <legend>MS data options:</legend>
                     <label for="delimiter"> Delimiter: </label>
                     <select name="delimiter" id="delimiter">
-                        <option id="comma", value="comma">Comma</option>
-                        <option id="semicolon", value="semicolon">Semicolon</option>
-                        <option value="tab">Tab</option>
-                        <option value="space">Space</option>
+                        <option value=",">Comma</option>
+                        <option value=";">Semicolon</option>
+                        <option value="\t">Tab</option>
+                        <option value="\ ">Space</option>
                     </select>
                     <br>
                     <label for="skiprows"> Skip rows: </label>

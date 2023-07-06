@@ -4,23 +4,29 @@ from dget import DGet
 
 app = Flask(__name__)
 
+ms_data = None
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
+@app.post("/upload")
+def upload():
+    print(request.form)
+
 @app.post("/calculate")
 def calculate():
     formula = request.form["formula"]
     file = request.files["file"]
     adduct = request.form["adduct"]
+    print(request.form)
     if adduct == "Auto":
         adduct = None
     loadtxt_kws = {
         "delimiter": request.form["delimiter"],
-        "skiprows": request.form["skiprows"],
-        "usecols": (request.form["masscol"], request.form["signalcol"]),
+        "skiprows": int(request.form["skiprows"]),
+        "usecols": (int(request.form["masscol"]), int(request.form["signalcol"])),
     }
     dget = DGet(
         deuterated_formula=formula, tofdata=file, adduct=adduct, loadtxt_kws=loadtxt_kws
