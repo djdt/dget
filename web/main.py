@@ -4,23 +4,46 @@ from dget import DGet
 
 app = Flask(__name__)
 
+adducts = [
+    "Auto",
+    "[M]+",
+    "[M+H]+",
+    "[M+Na]+",
+    "[M+2H]2+",
+    "[M]-",
+    "[M-H]-",
+    "[2M-H]-",
+    "[M-2H]2-",
+    "[M+Cl]-",
+]
+delimiters = {"Comma": ",", "Semicolon": ";", "Tab": "\t", "Space": " "}
+
 ms_data = None
+
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", adducts=adducts, delimiters=delimiters)
 
 
 @app.post("/upload")
 def upload():
     print(request.form)
 
+
+@app.post("/guess_inputs")
+def guess_inputs():
+    print(request.form.getlist("lines[]"))
+
+    return ""
+
+
 @app.post("/calculate")
 def calculate():
-    formula = request.form["formula"]
-    file = request.files["file"]
-    adduct = request.form["adduct"]
     print(request.form)
+    formula = request.form["formula"]
+    file = request.files["upload"]
+    adduct = request.form["adduct"]
     if adduct == "Auto":
         adduct = None
     loadtxt_kws = {

@@ -28,10 +28,23 @@
             </li>
             <li>
                 <label for="file"> Upload MS data: </label>
-                <input type="file" id="file" name="file">
+                <input type="file" id="upload" name="upload">
                 <script>
-                    const upload = document.getElementById("file");
-                    upload.addEventListener("change", uploadHandler, false);
+                    $("#upload").on("change", function(e) {
+                        reader = new FileReader();
+                        reader.onload = function () {
+                           lines = reader.result.split("\n"); 
+                            $.ajax({
+                                url: "/guess_inputs",
+                                type: "POST",
+                                data: {lines: lines.slice(0, 20)},
+                            });
+                        }
+                        file = e.target.files[0];
+                        if (file) {
+                            reader.readAsText(file);
+                        }
+                    });
                 </script>
             </li>
             <li>
@@ -39,10 +52,9 @@
                     <legend>MS data options:</legend>
                     <label for="delimiter"> Delimiter: </label>
                     <select name="delimiter" id="delimiter">
-                        <option value=",">Comma</option>
-                        <option value=";">Semicolon</option>
-                        <option value="\t">Tab</option>
-                        <option value="\ ">Space</option>
+                        {% for name, delim in delimiters.items() %}
+                        <option value="{{ delim  }}">{{ name }}</option>
+                        {% endfor %}
                     </select>
                     <br>
                     <label for="skiprows"> Skip rows: </label>
