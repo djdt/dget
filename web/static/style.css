@@ -1,29 +1,3 @@
-/* * {box-sizing: border-box;} */
-/* body {background-color: #f1edee; max-width: 1600px; margin: auto} */
-
-/* .header, .footer {background-color: #db5461; padding: 10px} */
-/* .clearfix::after {background: lightgrey; content: ""; clear: both; display: table} */
-/* .leftcolumn, .rightcolumn {float: left; width: 50%} */
-/* .card {background-color: #f1edee; padding: 10px; margin-bottom: 10px} */
-/* /1* .py-terminal {min-height: 200px} *1/ */
-
-footer ul {list-style-type: none; margin: 0; padding: 0; overflow: hidden}
-footer li {float: right}
-footer li a {color: black; display: block; text-align: center; text-decoration: none; padding: 10px}
-
-/* label {display: inline-block; text-align: left; width: 25%} */
-/* .checklabel {width: 75%} */
-/* input, select {display: inline-block; align: right} */
-/* button {display: inline-block; align: right} */
-/* img {background: white; width: 100%; height: auto} */
-/* /1* img:hover {transform:scale(2.0)} *1/ */
-
-/* @media screen and (max-width: 900px) { */
-/*   .leftcolumn, .rightcolumn { */   
-/*     width: 100%; */
-/*     padding: 0; */
-/*   } */
-/* } */
 * {
   box-sizing: border-box;
 }
@@ -53,6 +27,21 @@ footer {
     grid-column: 1 / -1;
     background-color: #db5461;
 }
+footer ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden
+}
+footer li {float: right}
+footer li a {
+    color: black;
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    padding: 10px
+}
+
 
 .card {
     border: 1px solid #d7cccf;
@@ -63,38 +52,43 @@ footer {
     width: 95%;
 }
 
+.card div{
+    display: inline-block;
+}
 .card h3 {
     background-color: #8aa29e;
     padding: 5px;
     border-radius: 5px;
     margin-top: 0;
 }
-
-/* .card { */
-/*     margin: 0 auto; */
-/* } */
 .card ul {
     list-style: none;
     padding: 0;
     margin: 0;
 }
 .card li + li {
-    margin-top: 10px;
+    margin-top: 1em;
 }
+.card fieldset {
+    border: 1px solid #d7cccf;
+}
+.card fieldset li + li {
+    margin-top: 0.5em;
+}
+
 label {
     display: inline-block;
     text-align: left;
-    width: 200px;
+    width: 12em;
 }
 button,
 input,
 select {
     display: inline-block;
-    width: 200px;
-    align: right;
+    width: 12em;
+    align: center;
 }
 
-.combobox {position: relative; width: 200px; display: inline-block}
-.combobox select {width: 100%; display: inline}
-.combobox > * {box-sizing: border-box}
-.combobox input {position: absolute; width: calc(100% - 20px)}
+.combobox {position: relative; display: inline-block}
+.combobox select {width: 12em; display: inline}
+.combobox input {position: absolute; width: calc(100% - 1.5em)}
