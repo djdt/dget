@@ -1,5 +1,8 @@
 from io import TextIOWrapper
 
+from io import StringIO
+
+import numpy as np
 from flask import Flask, render_template, request
 
 from dget import DGet
@@ -63,7 +66,6 @@ def guess_inputs():
 
 @app.post("/calculate")
 def calculate():
-    print(request.form)
     formula = request.form["formula"]
     file = TextIOWrapper(request.files["data"])
     adduct = request.form["adduct"]
@@ -80,12 +82,40 @@ def calculate():
     dget = DGet(
         deuterated_formula=formula, tofdata=file, adduct=adduct, loadtxt_kws=loadtxt_kws
     )
+    if adduct is None:
+        adduct, diff = dget.guess_adduct_from_base_peak()
+        dget.adduct = adduct
     if request.form.get("align") == "true":
         offset = dget.align_tof_with_spectra()
     if request.form.get("baseline") == "true":
         baseline = dget.subtract_baseline()
 
-    return {"x": dget.x.tolist(), "y": dget.y.tolist()}
+    dx = dget.targets
+    dy = np.convolve(dget.deuteration_probabilites, dget.psf, mode="full")
+    dy /= dy.max()
+
+    start, end = np.searchsorted(dget.x, (dget.targets[0], dget.targets[-1]))
+    x = dget.x[start:end]
+    y = dget.y[start:end]
+    y /= y.max()
+
+    probabilities = dget.deuteration_probabilites[dget.deuteration_states]
+    probabilities /= probabilities.sum()
+
+    return {
+        "x": x.tolist(),
+        "y": y.tolist(),
+        "dx": dx.tolist(),
+        "dy": dy.tolist(),
+        "formula": dget.base_name,
+        "adduct": dget.adduct.adduct,
+        "m/z": dget.adduct.base.isotope.mz,
+        "adduct m/z": dget.formula.isotope.mz,
+        "deuteration": dget.deuteration,
+        "states": dget.deuteration_states.tolist(),
+        "probabilities": probabilities.tolist(),
+    }
+
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8080, debug=True)

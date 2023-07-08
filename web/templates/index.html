@@ -9,14 +9,14 @@
 {% block content %}
 <div class="card" id="input">
     <h3>Input</h3>
-    <!-- <form action="/calculate" method="post" enctype="multipart/form-data"> -->
+    <div id="inputs">
         <ul>
             <li>
-                <label for="formula"> Formula: </label>
+                <label for="formula"> Formula </label>
                 <input type="text" id="formula" name="formula">
             </li>
             <li>
-                <label for="adduct"> Adduct: </label>
+                <label for="adduct"> Adduct </label>
                 <div class="combobox">
                     <input name="adduct" id="adduct" value="[M+H]+">
                     <select onchange="this.previousElementSibling.value=this.value">
@@ -28,7 +28,7 @@
                 </div>
             </li>
             <li>
-                <label for="file"> Upload MS data: </label>
+                <label for="file"> Upload MS data </label>
                 <input type="file" id="upload" name="upload">
                 <script>
                     $("#upload").on("change", function(e) {
@@ -56,30 +56,37 @@
             </li>
             <li>
                 <fieldset>
-                    <legend>MS data options:</legend>
-                    <label for="delimiter"> Delimiter: </label>
-                    <select name="delimiter" id="delimiter">
-                        {% for name, delim in delimiters.items() %}
-                        <option value="{{ delim  }}">{{ name }}</option>
-                        {% endfor %}
-                    </select>
-                    <br>
-                    <label for="skiprows"> Skip rows: </label>
-                    <input type="number", id="skiprows", name="skiprows", min="0", value="0">
-                    <br>
-                    <label for="masscol"> Mass column: </label>
-                    <input type="number", id="masscol", name="masscol", min="1", value="1">
-                    <br>
-                    <label for="signalcol"> Signal column: </label>
-                    <input type="number", id="signalcol", name="signalcol", min="1", value="2">
+                    <legend> MS data options </legend>
+                    <ul>
+                        <li>
+                            <label for="delimiter"> Delimiter </label>
+                            <select name="delimiter" id="delimiter">
+                                {% for name, delim in delimiters.items() %}
+                                <option value="{{ delim  }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </li>
+                        <li>
+                            <label for="skiprows"> Skip rows </label>
+                            <input type="number", id="skiprows", name="skiprows", min="0", value="0">
+                        </li>
+                        <li>
+                            <label for="masscol"> Mass column </label>
+                            <input type="number", id="masscol", name="masscol", min="1", value="1">
+                        </li>
+                        <li>
+                            <label for="signalcol"> Signal column </label>
+                            <input type="number", id="signalcol", name="signalcol", min="1", value="2">
+                        </li>
+                    </ul>
                 </fieldset>
             </li>
             <li>
-                <label class="checklabel" for="align"> Re-align MS data: </label>
+                <label class="checklabel" for="align"> Re-align MS data </label>
                 <input type="checkbox" id="align">
             </li>
             <li>
-                <label class="checklabel" for="baseline"> Subtract MS basline: </label>
+                <label class="checklabel" for="baseline"> Subtract MS basline </label>
                 <input type="checkbox" id="baseline">
             </li>
             <li>
@@ -104,30 +111,57 @@
                             data: formdata,
                             success: function(result) {
                                 console.log(result);
+                                html = `<p>Formula: ${result["formula"]}<br>
+                                    Adduct: ${result["adduct"]}<br>
+                                    m/z: ${result["m/z"].toFixed(4)}<br>
+                                    Adduct m/z: ${result["adduct m/z"].toFixed(4)}<br>
+                                    %Deuteration: ${(result["deuteration"] * 100.0).toFixed(2)} %<br>
+                                    <br>
+                                    Deuteration Ratio Spectra<br>
+                                    `
+                                html += result["states"].map((s, i) => {
+                                    return `D${s}: ${(result["probabilities"][i] * 100).toFixed(2)} %`
+                                }).join("<br>");
+                                html += "</p>";
+                                $("#output").html(html);
 
                                 const ctx = $("#plot");
 
-                                data = result["x"].map((x, i) => {
+                                msdata = result["x"].map((x, i) => {
                                     return {x: x, y: result["y"][i]}
                                 });
-                                console.log(data);
+
+                                ddata = result["dx"].map((x, i) => {
+                                    return {x: x, y: result["dy"][i]}
+                                });
 
                                 new Chart(ctx, {
                                     type: 'scatter',
                                     data: {
-                                        datasets: [{
-                                            data: data,
-                                            label: "",
+                                        datasets: [
+                                        {
+                                            data: ddata,
+                                            label: "Deconvoled Spectra",
+                                            backgroundColor: "orange",
+                                            pointRadius: 5,
+                                        },
+                                        {
+                                            data: msdata,
+                                            label: "MS Data",
+                                            borderColor: "black",
                                             showLine: true,
                                             pointRadius: 0,
-                                            spanGaps: true,
-                                            borderColor: "black",
-                                            borderJoinStyle: "round",
-                                        }]
+                                        },
+                                        ]
                                     },
                                     options: {
+                                        animation: false,
+                                        maintainAspectRatio: false,
+                                        normalised: true,
                                         responsive: true,
                                         resizeDelay: 100,
+                                        spanGaps: true,
+                                        borderJoinStyle: "round",
                                         scales: {
                                             x: {
                                                 title: {
@@ -136,9 +170,6 @@
                                                 }
                                             },
                                             y: {
-                                                ticks: {
-                                                    callback: (v) => (v.toExponential())
-                                                },
                                                 beginAtZero: true
                                             }
                                         }
@@ -150,17 +181,20 @@
                 </script>
             </li>
         </ul>
-    <!-- </form> -->
+    </div>
 </div>
-<div class="card" id="results">
-    <h3>Results</h3>
+<div class="card" id="spectra">
+    <h3>Spectra</h3>
     <div id="figure">
         <canvas id="plot"></canvas>
     </div>
-    <div id="text">
+</div>
+<div class="card" id="results">
+    <h3>Results</h3>
+    <div id="output">
     </div>
 </div>
-<div class="card">
-    Text
-</div>
+<!-- <div class="card"> -->
+<!--     Text -->
+<!-- </div> -->
 {% endblock %}

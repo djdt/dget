@@ -20,8 +20,13 @@ header {
 main {
     overflow: auto;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+    grid-template-columns: 1fr 1fr;
     grid-gap: 10px;
+}
+@media only screen and (max-width: 1000px) {
+    main {
+        grid-template-columns: 1fr;
+    }
 }
 footer {
     grid-column: 1 / -1;
@@ -47,13 +52,13 @@ footer li a {
     border: 1px solid #d7cccf;
     border-radius: 5px;
     background-color: #f1edee;
-    margin: 0 auto;
+    margin: 0 10px;
     padding: 10px;
-    width: 95%;
 }
 
-.card div{
+.card > div{
     display: inline-block;
+    width: 100%;
 }
 .card h3 {
     background-color: #8aa29e;
@@ -92,3 +97,18 @@ select {
 .combobox {position: relative; display: inline-block}
 .combobox select {width: 12em; display: inline}
 .combobox input {position: absolute; width: calc(100% - 1.5em)}
+
+#output {
+    font-size: 150%;
+    font-family: monospace;
+}
+
+#results {
+    grid-column: 1 / -1;
+}
+
+
+canvas {
+    width: 100%;
+    height: 100%;
+}
