@@ -90,10 +90,10 @@ class DGet(object):
 
         self.signal_mode = signal_mode
 
-        if isinstance(tofdata, (str | Path)):
-            self.x, self.y = self._read_tofdata(tofdata, **_loadtxt_kws)
-        else:
+        if isinstance(tofdata, tuple):
             self.x, self.y = tofdata[0], tofdata[1]
+        else:
+            self.x, self.y = self._read_tofdata(tofdata, **_loadtxt_kws)
 
     @property
     def base_name(self) -> str:

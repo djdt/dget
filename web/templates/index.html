@@ -3,12 +3,13 @@
 {% extends "layout.html" %}
 {% block head %}
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
 
 {% block content %}
 <div class="card" id="input">
     <h3>Input</h3>
-    <form action="/calculate" method="post", enctype="multipart/form-data">
+    <!-- <form action="/calculate" method="post" enctype="multipart/form-data"> -->
         <ul>
             <li>
                 <label for="formula"> Formula: </label>
@@ -33,11 +34,17 @@
                     $("#upload").on("change", function(e) {
                         reader = new FileReader();
                         reader.onload = function () {
-                           lines = reader.result.split("\n"); 
+                           lines = reader.result.split(/\r\n|\n|\r/); 
                             $.ajax({
                                 url: "/guess_inputs",
                                 type: "POST",
                                 data: {lines: lines.slice(0, 20)},
+                                success: function(result) {
+                                    for (name in result) {
+                                        $("#" + name).val(result[name]).change();
+                                    }
+                                    console.log(result);
+                                }
                             });
                         }
                         file = e.target.files[0];
@@ -76,14 +83,82 @@
                 <input type="checkbox" id="baseline">
             </li>
             <li>
-                <button type="submit">Get D</button>
+                <button id="calculate">Get D</button>
+                <script>
+                    $("#calculate").on("click", function() {
+                        formdata = new FormData();
+                        formdata.append("data", $("#upload")[0].files[0]);
+                        formdata.append("formula", $("#formula").val());
+                        formdata.append("adduct", $("#adduct").val());
+                        formdata.append("delimiter", $("#delimiter").val());
+                        formdata.append("skiprows", $("#skiprows").val());
+                        formdata.append("masscol", $("#masscol").val());
+                        formdata.append("signalcol", $("#signalcol").val());
+                        formdata.append("align", $("#align").prop("checked"));
+                        formdata.append("baseline", $("#baseline").prop("checked"));
+                        $.ajax({
+                            url: "/calculate",
+                            type: "POST",
+                            contentType: false,
+                            processData: false,
+                            data: formdata,
+                            success: function(result) {
+                                console.log(result);
+
+                                const ctx = $("#plot");
+
+                                data = result["x"].map((x, i) => {
+                                    return {x: x, y: result["y"][i]}
+                                });
+                                console.log(data);
+
+                                new Chart(ctx, {
+                                    type: 'scatter',
+                                    data: {
+                                        datasets: [{
+                                            data: data,
+                                            label: "",
+                                            showLine: true,
+                                            pointRadius: 0,
+                                            spanGaps: true,
+                                            borderColor: "black",
+                                            borderJoinStyle: "round",
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        resizeDelay: 100,
+                                        scales: {
+                                            x: {
+                                                title: {
+                                                    display: true,
+                                                    text: "m/z",
+                                                }
+                                            },
+                                            y: {
+                                                ticks: {
+                                                    callback: (v) => (v.toExponential())
+                                                },
+                                                beginAtZero: true
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    });
+                </script>
             </li>
         </ul>
-    <!-- <br><br> -->
-    </form>
+    <!-- </form> -->
 </div>
-<div class="card">
-    Text
+<div class="card" id="results">
+    <h3>Results</h3>
+    <div id="figure">
+        <canvas id="plot"></canvas>
+    </div>
+    <div id="text">
+    </div>
 </div>
 <div class="card">
     Text
