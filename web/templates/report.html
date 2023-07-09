@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+    <title>DGet Report for {{formula}}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        html * {
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h3>Information</h3>
+        <table>
+            <tr><td>Date:</td><td>{{ date }}</td></tr>
+            <tr><td>User:</td><td><input type="text"></input></td></tr>
+            <tr><td>Location:</td><td><input type="text"></input></td></tr>
+        </table>
+    <h3>Compound Information</h3>
+        <table>
+            <tr><td>Name / ID:</td><td><input type="text"></input></td></tr>
+            <tr><td>Formula:</td><td>{{ formula }}</td></tr>
+            <tr><td>m/z:</td><td>{{ mz|round(4) }}</td></tr>
+            <tr><td>Adduct:</td><td>{{ adduct }}</td></tr>
+            <tr><td>Adduct m/z:</td><td>{{ adduct_mz|round(4) }}</td></tr>
+        </table>
+    <h3>Results</h3>
+        <table>
+            <tr><td>%Deuteration:</td><td><b> {{ deuteration|round(2) }} %</td></b></tr>
+            <tr><td>Deuteration Ratio Spectra</td></tr>
+            {% for state, perc in ratios.items() %}
+            <tr><td>D{{ state }}:</td><td>{{ perc|round(2) }} %</td></tr>
+            {% endfor %}
+        </table>
+    <h3>Spectra</h3>
+    <img src={{ image }}></img>
+    <!-- <h3>Options</h3> -->
+    <!-- {% for key, var in options.items() %} -->
+    <!-- <p>{{key}}: {{var}}</p> -->
+    <!-- {% endfor %} -->
+    <p>Report generated using the dget webapp, version {{ version }}.</p>
+    <p>For more information see <a href="https://github.com/djdt/dget">https://github.com/djdt/dget</a>.</p>
+</body>
+</html>

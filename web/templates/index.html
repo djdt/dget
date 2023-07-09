@@ -2,8 +2,8 @@
 
 {% extends "layout.html" %}
 {% block head %}
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -14,18 +14,19 @@
             <li>
                 <label for="formula"> Formula </label>
                 <input type="text" id="formula" name="formula">
+                <script>$("#formula").on("change", completeChanged);</script>
             </li>
             <li>
                 <label for="adduct"> Adduct </label>
                 <div class="combobox">
                     <input name="adduct" id="adduct" value="[M+H]+">
                     <select onchange="this.previousElementSibling.value=this.value">
-                        <option value=""></option>
                         {% for adduct in adducts %}
                         <option value="{{ adduct }}">{{ adduct }}</option>
                         {% endfor %}
                     </select>
                 </div>
+                <!-- <script>$("#adduct").on("change", completeChanged);</script> -->
             </li>
             <li>
                 <label for="file"> Upload MS data </label>
@@ -36,9 +37,12 @@
                         reader.onload = function () {
                            lines = reader.result.split(/\r\n|\n|\r/); 
                             $.ajax({
-                                url: "/guess_inputs",
+                                url: "/api/guess_inputs",
                                 type: "POST",
                                 data: {lines: lines.slice(0, 20)},
+                                error: function(response) {
+                                    $("#output").html(`<p>${response.responseJSON["error"]}</p>`);
+                                },
                                 success: function(result) {
                                     for (name in result) {
                                         $("#" + name).val(result[name]).change();
@@ -51,6 +55,7 @@
                         if (file) {
                             reader.readAsText(file);
                         }
+                        completeChanged();
                     });
                 </script>
             </li>
@@ -93,88 +98,21 @@
                 <button id="calculate">Get D</button>
                 <script>
                     $("#calculate").on("click", function() {
-                        formdata = new FormData();
-                        formdata.append("data", $("#upload")[0].files[0]);
-                        formdata.append("formula", $("#formula").val());
-                        formdata.append("adduct", $("#adduct").val());
-                        formdata.append("delimiter", $("#delimiter").val());
-                        formdata.append("skiprows", $("#skiprows").val());
-                        formdata.append("masscol", $("#masscol").val());
-                        formdata.append("signalcol", $("#signalcol").val());
-                        formdata.append("align", $("#align").prop("checked"));
-                        formdata.append("baseline", $("#baseline").prop("checked"));
+                        formdata = getFormData();
                         $.ajax({
-                            url: "/calculate",
+                            url: "/api/calculate",
                             type: "POST",
                             contentType: false,
                             processData: false,
                             data: formdata,
+                            error: function(response) {
+                                $("#output").html(`<p>${response.responseJSON["error"]}</p>`);
+                                clearResult();
+                            },
                             success: function(result) {
-                                console.log(result);
-                                html = `<p>Formula: ${result["formula"]}<br>
-                                    Adduct: ${result["adduct"]}<br>
-                                    m/z: ${result["m/z"].toFixed(4)}<br>
-                                    Adduct m/z: ${result["adduct m/z"].toFixed(4)}<br>
-                                    %Deuteration: ${(result["deuteration"] * 100.0).toFixed(2)} %<br>
-                                    <br>
-                                    Deuteration Ratio Spectra<br>
-                                    `
-                                html += result["states"].map((s, i) => {
-                                    return `D${s}: ${(result["probabilities"][i] * 100).toFixed(2)} %`
-                                }).join("<br>");
-                                html += "</p>";
-                                $("#output").html(html);
-
-                                const ctx = $("#plot");
-
-                                msdata = result["x"].map((x, i) => {
-                                    return {x: x, y: result["y"][i]}
-                                });
-
-                                ddata = result["dx"].map((x, i) => {
-                                    return {x: x, y: result["dy"][i]}
-                                });
-
-                                new Chart(ctx, {
-                                    type: 'scatter',
-                                    data: {
-                                        datasets: [
-                                        {
-                                            data: ddata,
-                                            label: "Deconvoled Spectra",
-                                            backgroundColor: "orange",
-                                            pointRadius: 5,
-                                        },
-                                        {
-                                            data: msdata,
-                                            label: "MS Data",
-                                            borderColor: "black",
-                                            showLine: true,
-                                            pointRadius: 0,
-                                        },
-                                        ]
-                                    },
-                                    options: {
-                                        animation: false,
-                                        maintainAspectRatio: false,
-                                        normalised: true,
-                                        responsive: true,
-                                        resizeDelay: 100,
-                                        spanGaps: true,
-                                        borderJoinStyle: "round",
-                                        scales: {
-                                            x: {
-                                                title: {
-                                                    display: true,
-                                                    text: "m/z",
-                                                }
-                                            },
-                                            y: {
-                                                beginAtZero: true
-                                            }
-                                        }
-                                    }
-                                });
+                                updateOutputs(result["compound"]);
+                                updateChart(result["chart"]["x"], result["chart"]["y"], result["chart"]["dx"], result["chart"]["dy"]);
+                                storeResult(result["compound"]);
                             }
                         });
                     });
@@ -192,9 +130,21 @@
 <div class="card" id="results">
     <h3>Results</h3>
     <div id="output">
+        <p>Welcome to DGet version {{ version }}!</p>
+    </div>
+    <div id="report">
+        <form id="report" action="/report" method="post">
+        <input type="hidden" id="json" name="result" value="">
+        <input type="hidden" id="jsonImg" name="img" value="">
+        <button id="report">Generate Report</button>
+        </form>
+        <script>
+            $("button#report").on("click", function() {
+                $("#json").val(JSON.stringify(result));
+                $("#jsonImg").val(chartAsImage(600, 400));
+                $("form#report").submit();
+            });
+        </script>
     </div>
 </div>
-<!-- <div class="card"> -->
-<!--     Text -->
-<!-- </div> -->
 {% endblock %}
