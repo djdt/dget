@@ -51,7 +51,7 @@ class DGet(object):
     def __init__(
         self,
         deuterated_formula: str | Formula,
-        tofdata: str | Path | Tuple[np.ndarray, np.ndarray],
+        tofdata: str | Path | TextIO | Tuple[np.ndarray, np.ndarray],
         adduct: str = "[M]+",
         number_states: int | None = None,
         signal_mass_width: float = 0.5,
