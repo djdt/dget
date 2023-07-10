@@ -38,7 +38,7 @@ To visualise the deuteration and mass spectrum pass ``--plot``::
 
     $ dget C12HD8N <path-to-ms-file.csv> --adduct "[M-H]-" --plot
 
-This will show the deconvloved deuteration spectra in red and the predicted adduct spectra in blue.
+This will show the de-convolved deuteration spectra in red and the predicted adduct spectra in blue.
 These spectra are scaled to fit the mass data so absolute heights will not be indicative of good fit.
 
 .. image:: https://github.com/djdt/djdt.github.io/raw/main/img/dget_c12hd8n.png
@@ -48,9 +48,9 @@ Plotting depends on `matplotlib <https://matplotlib.org>`_.
 Web App
 -------
 
-A web application of DGet is avaliable at `<https://djdt.github.io/dget>`_.
+A web application of DGet is available at `<https://dget.app>`_.
 
-Details on its usage can be found on the `Help <https://djdt.github.io/dget/help>`_ page.
+Details on its usage can be found on the `Help <https://dget.app/help>`_ page.
 
 
 Installation
@@ -81,4 +81,4 @@ Requirements
 Documentation
 =============
 
-Documentation is avaliable at `<https://dget.readthedocs.io>`_.
+Documentation is available at `<https://dget.readthedocs.io>`_.
