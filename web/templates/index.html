@@ -1,0 +1,153 @@
+<!doctype html>
+
+{% extends "layout.html" %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="card" id="input">
+    <h3>Input</h3>
+    <div id="inputs">
+        <ul>
+            <li>
+                <label for="formula"> Formula </label>
+                <input type="text" id="formula" name="formula">
+                <script>$("#formula").on("change", completeChanged);</script>
+            </li>
+            <li>
+                <label for="adduct"> Adduct </label>
+                <div class="combobox">
+                    <input name="adduct" id="adduct" value="[M+H]+">
+                    <select onchange="this.previousElementSibling.value=this.value">
+                        {% for adduct in adducts %}
+                        <option value="{{ adduct }}">{{ adduct }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- <script>$("#adduct").on("change", completeChanged);</script> -->
+            </li>
+            <li>
+                <label for="file"> Upload MS data </label>
+                <input type="file" id="upload" name="upload">
+                <script>
+                    $("#upload").on("change", function(e) {
+                        reader = new FileReader();
+                        reader.onload = function () {
+                           lines = reader.result.split(/\r\n|\n|\r/); 
+                            $.ajax({
+                                url: "/api/guess_inputs",
+                                type: "POST",
+                                data: {lines: lines.slice(0, 20)},
+                                error: function(response) {
+                                    $("#output").html(`<p>${response.responseJSON["error"]}</p>`);
+                                },
+                                success: function(result) {
+                                    for (name in result) {
+                                        $("#" + name).val(result[name]).change();
+                                    }
+                                    console.log(result);
+                                }
+                            });
+                        }
+                        file = e.target.files[0];
+                        if (file) {
+                            reader.readAsText(file);
+                        }
+                        completeChanged();
+                    });
+                </script>
+            </li>
+            <li>
+                <fieldset>
+                    <legend> MS data options </legend>
+                    <ul>
+                        <li>
+                            <label for="delimiter"> Delimiter </label>
+                            <select name="delimiter" id="delimiter">
+                                {% for name, delim in delimiters.items() %}
+                                <option value="{{ delim  }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </li>
+                        <li>
+                            <label for="skiprows"> Skip rows </label>
+                            <input type="number", id="skiprows", name="skiprows", min="0", value="0">
+                        </li>
+                        <li>
+                            <label for="masscol"> Mass column </label>
+                            <input type="number", id="masscol", name="masscol", min="1", value="1">
+                        </li>
+                        <li>
+                            <label for="signalcol"> Signal column </label>
+                            <input type="number", id="signalcol", name="signalcol", min="1", value="2">
+                        </li>
+                    </ul>
+                </fieldset>
+            </li>
+            <li>
+                <label class="checklabel" for="align"> Re-align MS data </label>
+                <input type="checkbox" id="align">
+            </li>
+            <li>
+                <label class="checklabel" for="baseline"> Subtract MS basline </label>
+                <input type="checkbox" id="baseline">
+            </li>
+            <li>
+                <button id="calculate">Get D</button>
+                <script>
+                    $("#calculate").on("click", function() {
+                        formdata = getFormData();
+                        $.ajax({
+                            url: "/api/calculate",
+                            type: "POST",
+                            contentType: false,
+                            processData: false,
+                            data: formdata,
+                            error: function(response) {
+                                $("#output").html(`<p>${response.responseJSON["error"]}</p>`);
+                                clearResult();
+                            },
+                            success: function(result) {
+                                updateOutputs(result["compound"]);
+                                updateChart(
+                                    result["chart"]["x"], result["chart"]["y"],
+                                    result["chart"]["dx"], result["chart"]["dy"],
+                                    result["chart"]["dl"], result["compound"]["states"]);
+                                storeResult(result["compound"]);
+                            }
+                        });
+                    });
+                </script>
+            </li>
+        </ul>
+    </div>
+</div>
+<div class="card" id="spectra">
+    <h3>Spectra</h3>
+    <div id="figure">
+        <canvas id="plot"></canvas>
+    </div>
+</div>
+<div class="card" id="results">
+    <h3>Results</h3>
+    <div id="output">
+        <p>Welcome to DGet version {{ version }}!</p>
+    </div>
+    <div id="report">
+        <form id="report" action="/report" method="post">
+        <input type="hidden" id="json" name="result" value="">
+        <input type="hidden" id="jsonImg" name="img" value="">
+        <button id="report">Generate Report</button>
+        </form>
+        <script>
+            $("button#report").on("click", function() {
+                $("#json").val(JSON.stringify(result));
+                $("#jsonImg").val(chartAsImage(600, 400));
+                $("form#report").submit();
+            });
+        </script>
+    </div>
+</div>
+{% endblock %}

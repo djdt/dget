@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+    <head>
+        <title>DGet!</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+        {% block head %}
+        {% endblock %}
+    </head>
+    <body>
+        <div class="wrapper">
+            <header class="header">
+                <h1>DGet!</h1>
+            </header>
+
+            <main class="content">
+            {% block content %}
+            {% endblock %}
+            </main>
+
+            <footer class="footer">
+                <ul>
+                {% for href, caption in [("index.html", "Home"), ("help.html", "Help"), ("https://dget.readthedocs.io", "Reference"), ("https://github.com/djdt/dget", "GitHub")] %}
+                    <li><a href="{{ href }}">{{ caption }}</a></li>
+                {% endfor %}
+                </ul>
+            </footer>
+        </div>
+    </body>
+</html>
