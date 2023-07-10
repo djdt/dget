@@ -35,7 +35,7 @@ def get_chart_values(dget: DGet) -> dict:
     dy /= dy.max()
 
     labels = np.empty(dx.size, dtype="U8")
-    labels[:dget.deuteration_states[-1]] = np.core.defchararray.add(
+    labels[: dget.deuteration_states[-1]] = np.core.defchararray.add(
         "D", np.arange(0, dget.deuteration_states[-1]).astype(str)
     )
 
@@ -51,6 +51,11 @@ def get_chart_values(dget: DGet) -> dict:
 @app.errorhandler(500)
 def handle_error(error):
     return {"error": str(error)}, 500
+
+
+@app.route("/help")
+def help():
+    return render_template("help.html", version=__version__)
 
 
 @app.route("/")
