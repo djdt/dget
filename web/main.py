@@ -35,8 +35,8 @@ def get_chart_values(dget: DGet) -> dict:
     dy /= dy.max()
 
     labels = np.empty(dx.size, dtype="U8")
-    labels[: dget.deuteration_states[-1]] = np.core.defchararray.add(
-        "D", np.arange(0, dget.deuteration_states[-1]).astype(str)
+    labels[: dget.deuteration_states[-1] + 1] = np.core.defchararray.add(
+        "D", np.arange(0, dget.deuteration_states[-1] + 1).astype(str)
     )
 
     return {
