@@ -219,7 +219,7 @@ class DGet(object):
         return f"DGet({self.adduct!r})"
 
     def _read_tofdata(
-        self, path: str | Path, **kwargs
+        self, path: str | Path | TextIO, **kwargs
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Internal helper to read mass spectra data.
 
