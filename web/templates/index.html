@@ -2,8 +2,8 @@
 
 {% extends "layout.html" %}
 {% block head %}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -111,7 +111,10 @@
                             },
                             success: function(result) {
                                 updateOutputs(result["compound"]);
-                                updateChart(result["chart"]["x"], result["chart"]["y"], result["chart"]["dx"], result["chart"]["dy"]);
+                                updateChart(
+                                    result["chart"]["x"], result["chart"]["y"],
+                                    result["chart"]["dx"], result["chart"]["dy"],
+                                    result["chart"]["dl"], result["compound"]["states"]);
                                 storeResult(result["compound"]);
                             }
                         });

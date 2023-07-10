@@ -24,6 +24,30 @@ adducts = [
 delimiters = {"Comma": ",", "Semicolon": ";", "Tab": "\t", "Space": " "}
 
 
+def get_chart_values(dget: DGet) -> dict:
+    start, end = np.searchsorted(dget.x, (dget.targets[0], dget.targets[-1]))
+    x = dget.x[start:end]
+    y = dget.y[start:end]
+    y /= y.max()
+
+    dx = dget.targets
+    dy = np.convolve(dget.deuteration_probabilites, dget.psf, mode="full")
+    dy /= dy.max()
+
+    labels = np.empty(dx.size, dtype="U8")
+    labels[:dget.deuteration_states[-1]] = np.core.defchararray.add(
+        "D", np.arange(0, dget.deuteration_states[-1]).astype(str)
+    )
+
+    return {
+        "x": x.tolist(),
+        "y": y.tolist(),
+        "dx": dx.tolist(),
+        "dy": dy.tolist(),
+        "dl": labels.tolist(),
+    }
+
+
 @app.errorhandler(500)
 def handle_error(error):
     return {"error": str(error)}, 500
@@ -132,27 +156,14 @@ def calculate():
         abort(500, description=f"Processing failed with error: {e}")
 
     try:
-        dx = dget.targets
-        dy = np.convolve(dget.deuteration_probabilites, dget.psf, mode="full")
-        dy /= dy.max()
-
-        start, end = np.searchsorted(dget.x, (dget.targets[0], dget.targets[-1]))
-        x = dget.x[start:end]
-        y = dget.y[start:end]
-        y /= y.max()
-
         probabilities = dget.deuteration_probabilites[dget.deuteration_states]
         probabilities /= probabilities.sum()
+        chart_results = get_chart_values(dget)
     except Exception as e:
         abort(500, description=f"Processing failed with error: {e}")
 
     return {
-        "chart": {
-            "x": x.tolist(),
-            "y": y.tolist(),
-            "dx": dx.tolist(),
-            "dy": dy.tolist(),
-        },
+        "chart": chart_results,
         "compound": {
             "formula": dget.base_name,
             "adduct": dget.adduct.adduct,

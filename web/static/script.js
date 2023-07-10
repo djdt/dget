@@ -28,7 +28,7 @@ function storeResult(res) {
 }
 
 function getFormData() {
-    fd = new FormData();
+    var fd = new FormData();
     fd.append("data", $("#upload")[0].files[0]);
     fd.append("formula", $("#formula").val());
     fd.append("adduct", $("#adduct").val());
@@ -42,7 +42,7 @@ function getFormData() {
 }
 
 function updateOutputs(result) {
-    html = `<p>Formula: ${result["formula"]}<br>
+    var html = `<p>Formula: ${result["formula"]}<br>
         Adduct: ${result["adduct"]}<br>
         m/z: ${result["m/z"].toFixed(4)}<br>
         Adduct m/z: ${result["adduct m/z"].toFixed(4)}<br>
@@ -57,12 +57,13 @@ function updateOutputs(result) {
     $("#output").html(html);
 }
 
+var chart;
 function createChart(canvas) {
     chart = new Chart(canvas, {
-        type: 'scatter',
         data: {
             datasets: [
             {
+                type: "scatter",
                 label: "MS Data",
                 borderColor: "black",
                 showLine: true,
@@ -70,9 +71,11 @@ function createChart(canvas) {
                 order: 2,
             },
             {
-                label: "Deconvoled Spectra",
-                backgroundColor: "#db5461",
+                type: "scatter",
+                label: "Deconvolved Spectra",
+                backgroundColor: "#8aa29e",
                 pointRadius: 5,
+                hoverRadius: 10,
                 order: 1,
             },
             ]
@@ -94,18 +97,48 @@ function createChart(canvas) {
                 y: {
                     beginAtZero: true
                 }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        usePointStyle: true,
+                        filter: function(item, data) {  // remove ms data
+                            return item.datasetIndex != 0;
+                        },
+                    }
+                },
+                tooltip: {
+                    filter: function(item) {  // no interaction on ms data
+                        return item.datasetIndex != 0;
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            // var index = 
+                            var mz = context.parsed.x.toFixed(4);
+                            var label = context.dataset.labels[context.dataIndex];
+                            if (label.length > 0) {
+                                return label + ", " + mz;
+                            }
+                            return mz;
+                        }
+                    }
+                }
             }
         }
     });
 }
 
-function updateChart(mx, my, dx, dy) {
+function updateChart(mx, my, dx, dy, dlabels, states) {
     chart.data.datasets[0].data = mx.map((x, i) => {
         return {x: x, y: my[i]}
     });
     chart.update("none");
     chart.data.datasets[1].data = dx.map((x, i) => {
         return {x: x, y: dy[i]}
+    });
+    chart.data.datasets[1].labels = dlabels;
+    chart.data.datasets[1].backgroundColor = dlabels.map((l, i) => {
+        return states.includes(i) ? "#db5461" : "#8aa29e";
     });
     chart.update();
 }
