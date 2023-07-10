@@ -100,6 +100,7 @@ function createChart(canvas) {
             },
             plugins: {
                 legend: {
+                    display: false,
                     labels: {
                         usePointStyle: true,
                         filter: function(item, data) {  // remove ms data
