@@ -113,7 +113,6 @@ function createChart(canvas) {
                     },
                     callbacks: {
                         label: function(context) {
-                            // var index = 
                             var mz = context.parsed.x.toFixed(4);
                             var label = context.dataset.labels[context.dataIndex];
                             if (label.length > 0) {

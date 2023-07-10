@@ -149,9 +149,9 @@ def calculate():
             adduct, diff = dget.guess_adduct_from_base_peak()
             dget.adduct = adduct
         if request.form.get("align") == "true":
-            offset = dget.align_tof_with_spectra()
+            _ = dget.align_tof_with_spectra()
         if request.form.get("baseline") == "true":
-            baseline = dget.subtract_baseline()
+            _ = dget.subtract_baseline()
     except Exception as e:
         abort(500, description=f"Processing failed with error: {e}")
 
