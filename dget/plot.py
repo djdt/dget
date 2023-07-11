@@ -51,7 +51,6 @@ def stacked_stem(
         bottom: initial minimum y values
         stack_kwargs: kwargs for each stack
     """
-    print(ys.shape, x.shape)
     if isinstance(bottom, float):
         bottom = np.full(x.size, bottom)
 
