@@ -132,8 +132,8 @@ def calculate():
     file = TextIOWrapper(request.files["data"])
 
     adduct = request.form["adduct"]
-    if adduct == "Auto":
-        adduct = None
+    if len(adduct) == 0:
+        abort(500, description="Missing or invalid adduct.")
 
     loadtxt_kws = {
         "delimiter": request.form["delimiter"],
@@ -147,10 +147,10 @@ def calculate():
         dget = DGet(
             deuterated_formula=formula,
             tofdata=file,
-            adduct=adduct,
+            adduct=adduct if adduct != "Auto" else "[M]+",
             loadtxt_kws=loadtxt_kws,
         )
-        if adduct is None:
+        if adduct == "Auto":
             adduct, diff = dget.guess_adduct_from_base_peak()
             dget.adduct = adduct
         if request.form.get("align") == "true":
@@ -158,14 +158,14 @@ def calculate():
         if request.form.get("baseline") == "true":
             _ = dget.subtract_baseline()
     except Exception as e:
-        abort(500, description=f"Processing failed with error: {e}")
+        abort(500, description=f"Processing error: {e}")
 
     try:
         probabilities = dget.deuteration_probabilites[dget.deuteration_states]
         probabilities /= probabilities.sum()
         chart_results = get_chart_values(dget)
     except Exception as e:
-        abort(500, description=f"Processing failed with error: {e}")
+        abort(500, description=f"Plotting error: {e}")
 
     return {
         "chart": chart_results,
