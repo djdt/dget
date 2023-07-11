@@ -32,21 +32,29 @@ def get_chart_values(dget: DGet) -> dict:
     x = dget.x[start:end]
     y = dget.y[start:end]
 
-    dx = dget.targets
-    dy = np.convolve(dget.deuteration_probabilites, dget.psf, mode="full")
-    dy = scale_to_match(x, y, dx, dy, dget.mass_width)
+    # The deconv prediction
+    pred_X = dget.targets
+    pred_y = np.convolve(dget.deuteration_probabilites, dget.psf, mode="full")
+    pred_y = scale_to_match(x, y, pred_X, pred_y, dget.mass_width)
 
-    labels = np.empty(dx.size, dtype="U8")
-    labels[: dget.deuteration_states[-1] + 1] = np.core.defchararray.add(
-        "D", np.arange(0, dget.deuteration_states[-1] + 1).astype(str)
-    )
+    # Generate labels D0-Dmax, Dmax + 1-X
+    labels = [f"D{i}" for i in range(0, dget.deuteration_probabilites)] + [
+        f"D{dget.deuterium_count} + {i}" for i in range(1, dget.psf.size)
+    ]
+
+    # Get the isotopic spectra
+    spec_x = np.array([i.mz for i in dget.spectrum.values()])
+    spec_y = dget.psf
+    spec_y = scale_to_match(x, y, spec_x, spec_y, dget.mass_width)
 
     return {
         "x": x.tolist(),
         "y": y.tolist(),
-        "dx": dx.tolist(),
-        "dy": dy.tolist(),
-        "dl": labels.tolist(),
+        "pred x": pred_X.tolist(),
+        "pred y": pred_y.tolist(),
+        "pred labels": labels,
+        "spec x": spec_x.tolist(),
+        "spec y": spec_y.tolist(),
     }
 
 
