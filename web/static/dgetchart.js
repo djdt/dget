@@ -32,7 +32,6 @@ function createChart(canvas) {
         },
         options: {
             maintainAspectRatio: false,
-            normalised: true,
             responsive: true,
             resizeDelay: 0,
             spanGaps: true,
@@ -45,7 +44,10 @@ function createChart(canvas) {
                     }
                 },
                 y: {
-                    beginAtZero: true
+                    ticks: {
+                        callback: (v) => (v.toExponential());
+                    },
+                    beginAtZero: true,
                 }
             },
             interaction: {

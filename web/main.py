@@ -6,6 +6,7 @@ from flask import Flask, abort, json, render_template, request
 from google.cloud import firestore
 
 from dget import DGet, __version__
+from dget.plot import scale_to_match
 
 app = Flask(__name__)
 fs = firestore.Client()
@@ -30,11 +31,10 @@ def get_chart_values(dget: DGet) -> dict:
     start, end = np.searchsorted(dget.x, (dget.targets[0], dget.targets[-1]))
     x = dget.x[start:end]
     y = dget.y[start:end]
-    y /= y.max()
 
     dx = dget.targets
     dy = np.convolve(dget.deuteration_probabilites, dget.psf, mode="full")
-    dy /= dy.max()
+    dy = scale_to_match(x, y, dx, dy, dget.mass_width)
 
     labels = np.empty(dx.size, dtype="U8")
     labels[: dget.deuteration_states[-1] + 1] = np.core.defchararray.add(
