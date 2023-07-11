@@ -4,6 +4,7 @@
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='script.js') }}"></script>
+<script src="{{ url_for('static', filename='dgetchart.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -128,6 +129,7 @@
     <h3>Spectra</h3>
     <div id="figure">
         <canvas id="plot"></canvas>
+        <script>createChart($("#plot"))</script>
     </div>
 </div>
 <div class="card" id="results">
