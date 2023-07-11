@@ -1,10 +1,30 @@
 var chart;
 
-// Chart.Interaction.modes.nearestWithRadius = function(chart, e, options, useFinalPosition) {
-//     items = Chart.Interaction.modes.nearest(chart, e, options, useFinalPosition);
-//     console.log(items);
-//     return items.filter(item => item.element.options.radius > 0);
-// }
+Chart.Interaction.modes.nearestInRadius = function(chart, e, options, useFinalPosition) {
+    // Mode to select nearest point inside interaction
+    // Use with pointHitRadius and filters points with pointHitRadius<=0
+    items = Chart.Interaction.modes.point(chart, e, options, useFinalPosition);
+    items = items.filter(item => item.element.options.hitRadius > 0);
+    if (items.length < 2) {
+        return items;
+    }
+
+    let min_dist = Number.POSITIVE_INFINITY;
+    let index = 0;
+    const pos = Chart.helpers.getRelativePosition(e, chart);
+    items.forEach(function (item, i) {
+        const center = item.element.getCenterPoint(useFinalPosition);
+        const dist = Math.sqrt(
+            Math.pow(Math.abs(pos.x - center.x), 2)
+            + Math.pow(Math.abs(pos.y - center.y), 2)
+        );
+        if (dist < min_dist) {
+            min_dist = dist;
+            index = i;
+        }
+    });
+    return [items[index]];
+}
 
 function createChart(canvas) {
     chart = new Chart(canvas, {
@@ -14,19 +34,33 @@ function createChart(canvas) {
                 type: "scatter",
                 label: "MS Data",
                 borderColor: "black",
+                borderWidth: 1,
                 showLine: true,
                 pointRadius: 0,
-                order: 2,
+                order: 3,
                 animation: false,
-                hoverRadius: 0,
+                pointHitRadius: 0,
             },
             {
                 type: "scatter",
                 label: "Deconvolved Spectra",
                 backgroundColor: "#db5461",
+                hoverBackgroundColor: "#db5461",
                 pointRadius: 4,
                 hoverRadius: 8,
                 order: 1,
+                pointHitRadius: 10,
+            },
+            {
+                type: "scatter",
+                label: "Predicted Spectra",
+                borderColor: "#364699",
+                pointStyle: "circle",
+                borderWidth: 2,
+                pointRadius: 6,
+                hoverRadius: 0,
+                order: 2,
+                pointHitRadius: 0,
             },
             ]
         },
@@ -51,8 +85,8 @@ function createChart(canvas) {
                 }
             },
             interaction: {
-                intersect: false,
-                mode: "point",
+                intersect: true,
+                mode: "nearestInRadius",
             },
             plugins: {
                 legend: {
@@ -66,7 +100,7 @@ function createChart(canvas) {
                 },
                 tooltip: {
                     filter: function(item) {  // no interaction on ms data
-                        return item.datasetIndex != 0;
+                        return !!item.dataset.labels
                     },
                     callbacks: {
                         label: function(context) {
@@ -84,18 +118,31 @@ function createChart(canvas) {
     });
 }
 
-function updateChart(mx, my, dx, dy, dlabels, states) {
-    chart.data.datasets[0].data = mx.map((x, i) => {
-        return {x: x, y: my[i]}
+function updateChartData(x, y) {
+    chart.data.datasets[0].data = x.map((ix, i) => {
+        return {x: ix, y: y[i]}
     });
     chart.update("none");
-    chart.data.datasets[1].data = dx.map((x, i) => {
-        return {x: x, y: dy[i]}
+}
+
+function updateChartPrediction(x, y, labels, states) {
+    chart.data.datasets[1].data = x.map((ix, i) => {
+        return {x: ix, y: y[i]}
     });
-    chart.data.datasets[1].labels = dlabels;
-    // chart.data.datasets[1].backgroundColor = dlabels.map((l, i) => {
-    //     return states.includes(i) ? "#db5461" : "#8aa29e";
-    // });
+    chart.data.datasets[1].labels = labels;
+    const max_state = Math.max.apply(null, states);
+    console.log(states);
+    chart.data.datasets[1].backgroundColor = x.map((_, i) => {
+        console.log(i, max_state);
+        return states.includes(i) || (i > max_state) ? "#db5461" : "#8aa29e";
+    });
+    chart.update();
+}
+
+function updateChartSpectra(x, y) {
+    chart.data.datasets[2].data = x.map((ix, i) => {
+        return {x: ix, y: y[i]}
+    });
     chart.update();
 }
 

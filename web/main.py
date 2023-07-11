@@ -27,8 +27,7 @@ adducts = [
 delimiters = {"Comma": ",", "Semicolon": ";", "Tab": "\t", "Space": " "}
 
 
-def get_chart_values(dget: DGet) -> dict:
-    start, end = np.searchsorted(dget.x, (dget.targets[0], dget.targets[-1]))
+def get_chart_results(dget: DGet, start: int, end: int) -> dict:
     x = dget.x[start:end]
     y = dget.y[start:end]
 
@@ -38,7 +37,7 @@ def get_chart_values(dget: DGet) -> dict:
     pred_y = scale_to_match(x, y, pred_X, pred_y, dget.mass_width)
 
     # Generate labels D0-Dmax, Dmax + 1-X
-    labels = [f"D{i}" for i in range(0, dget.deuteration_probabilites)] + [
+    labels = [f"D{i}" for i in range(0, dget.deuterium_count + 1)] + [
         f"D{dget.deuterium_count} + {i}" for i in range(1, dget.psf.size)
     ]
 
@@ -167,15 +166,16 @@ def calculate():
             _ = dget.align_tof_with_spectra()
         if request.form.get("baseline") == "true":
             _ = dget.subtract_baseline()
+
+        probabilities = dget.deuteration_probabilites[dget.deuteration_states]
+        probabilities /= probabilities.sum()
     except Exception as e:
         abort(500, description=f"Processing error: {e}")
 
-    try:
-        probabilities = dget.deuteration_probabilites[dget.deuteration_states]
-        probabilities /= probabilities.sum()
-        chart_results = get_chart_values(dget)
-    except Exception as e:
-        abort(500, description=f"Plotting error: {e}")
+    start, end = np.searchsorted(dget.x, (dget.targets[0], dget.targets[-1]))
+    start, end = np.clip((start, end), 0, dget.x.size)
+    if start == end:
+        abort(500, description="Enitre m/z range falls outside of spetra.")
 
     # Store some information about successful runs
     fs.collection("dget").add(
@@ -186,6 +186,7 @@ def calculate():
         }
     )
 
+    chart_results = get_chart_results(dget, start, end)
     return {
         "chart": chart_results,
         "compound": {

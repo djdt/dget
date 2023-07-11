@@ -111,11 +111,13 @@
                                 clearResult();
                             },
                             success: function(result) {
+                                console.log(result["compound"]);
                                 updateOutputs(result["compound"]);
-                                updateChart(
-                                    result["chart"]["x"], result["chart"]["y"],
-                                    result["chart"]["dx"], result["chart"]["dy"],
-                                    result["chart"]["dl"], result["compound"]["states"]);
+                                updateChartData(result["chart"]["x"], result["chart"]["y"]);
+                                updateChartPrediction(
+                                    result["chart"]["pred x"], result["chart"]["pred y"],
+                                    result["chart"]["pred labels"], result["compound"]["states"]);
+                                updateChartSpectra(result["chart"]["spec x"], result["chart"]["spec y"]);
                                 storeResult(result["compound"]);
                             }
                         });
