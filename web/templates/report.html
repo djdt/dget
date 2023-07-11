@@ -7,6 +7,14 @@
             font-family: monospace;
         }
         td { min-width: 200px;}
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
         @media print {
             input{
                 border: none;
@@ -15,30 +23,38 @@
     </style>
 </head>
 <body>
-    <h3>Information</h3>
-        <table>
-            <tr><td>Date:</td><td>{{ date }}</td></tr>
-            <tr><td>User:</td><td><input type="text"></input></td></tr>
-            <tr><td>Location:</td><td><input type="text"></input></td></tr>
-        </table>
-    <h3>Compound Information</h3>
-        <table>
-            <tr><td>Name / ID:</td><td><input type="text"></input></td></tr>
-            <tr><td>Formula:</td><td>{{ formula }}</td></tr>
-            <tr><td>m/z:</td><td>{{ mz|round(4) }}</td></tr>
-            <tr><td>Adduct:</td><td>{{ adduct }}</td></tr>
-            <tr><td>Adduct m/z:</td><td>{{ adduct_mz|round(4) }}</td></tr>
-        </table>
-    <h3>Results</h3>
-        <table>
-            <tr><td>%Deuteration:</td><td><b> {{ deuteration|round(2) }} %</td></b></tr>
-            <tr><td>Deuteration Ratio Spectra</td></tr>
-            {% for state, perc in ratios.items() %}
-            <tr><td>D{{ state }}:</td><td>{{ perc|round(2) }} %</td></tr>
-            {% endfor %}
-        </table>
-    <h3>Spectra</h3>
-    <img src={{ image }}></img>
+    <div class="container">
+        <div class="row">
+            <h3>Information</h3>
+                <table>
+                    <tr><td>Date:</td><td>{{ date }}</td></tr>
+                    <tr><td>Notes:</td><td><input type="text"></input></td></tr>
+                    <!-- <tr><td>Location:</td><td><input type="text"></input></td></tr> -->
+                </table>
+            <h3>Compound Information</h3>
+                <table>
+                    <tr><td>Name / ID:</td><td><input type="text"></input></td></tr>
+                    <tr><td>Formula:</td><td>{{ formula }}</td></tr>
+                    <tr><td>m/z:</td><td>{{ mz|round(4) }}</td></tr>
+                    <tr><td>Adduct:</td><td>{{ adduct }}</td></tr>
+                    <tr><td>Adduct m/z:</td><td>{{ adduct_mz|round(4) }}</td></tr>
+                </table>
+        </div>
+        <div class="row">
+            <h3>Results</h3>
+                <table>
+                    <tr><td>%Deuteration:</td><td><b> {{ deuteration|round(2) }} %</td></b></tr>
+                    <tr><td>Deuteration Ratio Spectra</td></tr>
+                    {% for state, perc in ratios.items() %}
+                    <tr><td>D{{ state }}:</td><td>{{ perc|round(2) }} %</td></tr>
+                    {% endfor %}
+                </table>
+        </div>
+        <div class="center">
+            <h3>Spectra</h3>
+            <img src={{ image }}></img>
+        </div>
+    </div>
     <!-- <h3>Options</h3> -->
     <!-- {% for key, var in options.items() %} -->
     <!-- <p>{{key}}: {{var}}</p> -->
