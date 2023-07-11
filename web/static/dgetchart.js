@@ -24,8 +24,8 @@ function createChart(canvas) {
                 type: "scatter",
                 label: "Deconvolved Spectra",
                 backgroundColor: "#db5461",
-                pointRadius: 3,
-                hoverRadius: 6,
+                pointRadius: 4,
+                hoverRadius: 8,
                 order: 1,
             },
             ]
