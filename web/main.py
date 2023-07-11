@@ -3,10 +3,12 @@ from io import TextIOWrapper
 
 import numpy as np
 from flask import Flask, abort, json, render_template, request
+from google.cloud import firestore
 
 from dget import DGet, __version__
 
 app = Flask(__name__)
+fs = firestore.Client()
 
 
 adducts = [
@@ -151,8 +153,8 @@ def calculate():
             loadtxt_kws=loadtxt_kws,
         )
         if adduct == "Auto":
-            adduct, diff = dget.guess_adduct_from_base_peak()
-            dget.adduct = adduct
+            _adduct, diff = dget.guess_adduct_from_base_peak()
+            dget.adduct = _adduct
         if request.form.get("align") == "true":
             _ = dget.align_tof_with_spectra()
         if request.form.get("baseline") == "true":
@@ -166,6 +168,15 @@ def calculate():
         chart_results = get_chart_values(dget)
     except Exception as e:
         abort(500, description=f"Plotting error: {e}")
+
+    # Store some information about successful runs
+    fs.collection("dget").add(
+        {
+            "timestamp": datetime.datetime.now(),
+            "formula": dget.base_name,
+            "adduct": dget.adduct.adduct,
+        }
+    )
 
     return {
         "chart": chart_results,
