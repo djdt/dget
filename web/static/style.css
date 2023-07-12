@@ -20,11 +20,11 @@ header {
 main {
     overflow: auto;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: auto 1fr;
     grid-template-rows: 1fr 1fr;
     grid-gap: 10px;
 }
-@media only screen and (max-width: 1000px) {
+@media only screen and (max-width: 800px) {
     main {
         grid-template-columns: 1fr;
         grid-template-rows: 1fr;
@@ -87,13 +87,14 @@ footer li a {
 label {
     display: inline-block;
     text-align: left;
-    width: 12em;
+    width: 40%;
+    min-width: 10em;
 }
 input,
 select {
     display: inline-block;
-    width: 12em;
-    align: center;
+    width: 50%;
+    min-width: 15em;
 }
 button {
     display: inline-block;
@@ -114,8 +115,8 @@ button:disabled {
 }
 
 .combobox {position: relative; display: inline-block}
-.combobox select {width: 12em; display: inline}
-.combobox input {position: absolute; width: calc(100% - 1.5em)}
+.combobox select {display: inline}
+.combobox input {position: absolute; min-width: calc(100% - 1.5em)}
 
 #results {
     background: #2d2e2f;
