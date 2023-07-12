@@ -47,6 +47,7 @@ class DGet(object):
         "[M+Cl]-",
         "[M-H3O]-",
     ]
+    min_fraction_for_spectra = 1e-3
 
     def __init__(
         self,
@@ -199,7 +200,7 @@ class DGet(object):
     @property
     def spectrum(self) -> Spectrum:
         """The adduct spectrum."""
-        return self.formula.spectrum()
+        return self.formula.spectrum(min_fraction=DGet.min_fraction_for_spectra)
 
     @property
     def targets(self) -> np.ndarray:
@@ -330,7 +331,10 @@ class DGet(object):
                 pass
 
         masses = np.array([f.formula.isotope.mz for f in formulas])
-        ranges = np.stack([f.mz_range(min_fraction=0.01) for f in formulas], axis=0)
+        ranges = np.stack(
+            [f.mz_range(min_fraction=DGet.min_fraction_for_spectra) for f in formulas],
+            axis=0,
+        )
         ranges += np.stack(
             [-masses * 0.01, masses * 0.01], axis=1
         )  # Expand by 1% of mass
@@ -457,9 +461,11 @@ class DGet(object):
 
         kwargs are passed to molmass.Formula.spectrum()
         """
+        spectra_kws = {"min_fraction": DGet.min_fraction_for_spectra}
+        spectra_kws.update(**kwargs)
 
         for i in range(self.deuterium_count, 0, -1):
             yield (self.formula - Formula("D") * i + Formula("H") * i).spectrum(
-                **kwargs
+                **spectra_kws
             )
-        yield self.formula.spectrum(**kwargs)
+        yield self.formula.spectrum(**spectra_kws)
