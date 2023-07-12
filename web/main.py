@@ -3,11 +3,13 @@ from io import TextIOWrapper
 
 import numpy as np
 from flask import Flask, abort, json, render_template, request
+from google.cloud import firestore
 
 from dget import DGet, __version__
 from dget.plot import scale_to_match
 
 app = Flask(__name__)
+fs = firestore.Client()
 
 
 adducts = [
@@ -172,9 +174,9 @@ def calculate():
             cutoff=cutoff,
             loadtxt_kws=loadtxt_kws,
         )
-        if adduct.lower() == "auto":
-            adduct, diff = dget.guess_adduct_from_base_peak()
-            dget.adduct = adduct
+        if adduct == "Auto":
+            _adduct, diff = dget.guess_adduct_from_base_peak()
+            dget.adduct = _adduct
         if request.form.get("align") == "true":
             _ = dget.align_tof_with_spectra()
         if request.form.get("baseline") == "true":
@@ -190,7 +192,15 @@ def calculate():
     if start == end:
         abort(500, description="Enitre m/z range falls outside of spetra.")
 
-    chart_results = get_chart_results(dget, start, end)
+    # Store some information about successful runs
+    fs.collection("dget").add(
+        {
+            "timestamp": datetime.datetime.now(),
+            "formula": dget.base_name,
+            "adduct": dget.adduct.adduct,
+        }
+    )
+
     return {
         "chart": chart_results,
         "compound": {
