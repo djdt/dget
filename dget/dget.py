@@ -54,7 +54,8 @@ class DGet(object):
         deuterated_formula: str | Formula,
         tofdata: str | Path | TextIO | Tuple[np.ndarray, np.ndarray],
         adduct: str = "[M]+",
-        number_states: int | None = None,
+        # number_states: int | None = None,
+        cutoff: float | str | None = None,
         signal_mass_width: float = 0.5,
         signal_mode: str = "peak height",
         loadtxt_kws: dict | None = None,
@@ -77,9 +78,14 @@ class DGet(object):
                 f"formula: {self.adduct.base.formula} does not contain deuterium"
             )
 
-        if number_states is not None and number_states < 1:
-            raise ValueError("'number_states' must be > 0")
-        self.number_states = number_states
+        if isinstance(cutoff, str) and cutoff[0] == "D":
+            try:
+                c = int(cutoff[1:])
+            except ValueError:
+                raise ValueError("'cutoff' must be a float or str of format D<int>")
+            if c < 0:
+                raise ValueError("deuterium based 'cutoff' must be greater than 0")
+        self.deuteration_cutoff = cutoff
 
         self.mass_width = signal_mass_width
 
@@ -87,7 +93,7 @@ class DGet(object):
             "peak area",
             "peak height",
         ]:  # pragma: no cover, exception
-            raise ValueError("signal_mode must be one of 'peak area', 'peak height'.")
+            raise ValueError("signal_mode must be one of 'peak area', 'peak height'")
 
         self.signal_mode = signal_mode
 
@@ -175,14 +181,16 @@ class DGet(object):
         or the last 2 consecutive probabilities that are < 1% with an accumulative
         probability of at least 10%.
         """
-        if self.number_states is None:
+        if self.deuteration_cutoff is None:
             prob = self.deuteration_probabilites[::-1]
             idx = np.flatnonzero((prob[:-1] < 0.01) & (prob[1:] < 0.01))
             idx = idx[idx > np.argmax(np.cumsum(prob) > 0.1)]
-            nstates = self.deuterium_count - idx[0] if idx.size > 0 else 0
-        else:
-            nstates = self.deuterium_count + 1 - self.number_states
-        return np.arange(max(nstates, 0), self.deuterium_count + 1)
+            cutoff = self.deuterium_count - idx[0] if idx.size > 0 else 0
+        elif isinstance(self.deuteration_cutoff, str):
+            cutoff = int(self.deuteration_cutoff[1:])
+        else:  # is float
+            cutoff = np.searchsorted(self.targets, self.deuteration_cutoff)
+        return np.arange(max(cutoff, 0), self.deuterium_count + 1)
 
     @property
     def formula(self) -> Formula:

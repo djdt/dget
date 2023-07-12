@@ -127,7 +127,6 @@ def test_dget_baseline_subtraction():
     assert np.all(old_y - baseline == dget.y)
 
 
-
 def test_deuteration():
     dget = DGet("C2H5D1", tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])))
     dget._probabilities = np.array([1.0, 0.0])
@@ -152,7 +151,7 @@ def test_deuteration():
     dget._probabilities = np.array([0.1, 0.1, 0.2, 0.2, 0.4])
     assert np.isclose(dget.deuteration, 0.675)
     dget._probabilities = np.array([0.5, 0.0, 0.0, 0.0, 0.5])
-    dget.number_states = 5
+    dget.deuteration_cutoff = 0
     assert np.all(dget.deuteration_states == [0, 1, 2, 3, 4])
     assert np.isclose(dget.deuteration, 0.5)
 
@@ -191,7 +190,7 @@ def test_integration():
     assert np.allclose(dget.deuteration_probabilites, [0.25, 0.75], atol=0.01)
 
 
-def test_number_states():
+def test_cutoff():
     # Known previous error
     dget = DGet("C6D6ClN", tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])))
     dget._probabilities = np.array(
@@ -208,20 +207,19 @@ def test_number_states():
     assert np.all(dget.deuteration_states == [2, 3, 4, 5, 6])
 
     dget = DGet(
-        "CD5", number_states=3, tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0]))
+        "CD5", cutoff="D3", tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0]))
     )
     assert np.all(dget.deuteration_states == [3, 4, 5])
     dget = DGet(
-        "CD5", number_states=30, tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0]))
+        "CD5", cutoff=0.0, tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0]))
     )
     assert np.all(dget.deuteration_states == [0, 1, 2, 3, 4, 5])
     with pytest.raises(ValueError):
         dget = DGet(
-            "CD5",
-            number_states=0,
-            tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])),
+            "CD5", cutoff="D-1", tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0]))
         )
 
+    # Test automatic
     dget = DGet("CD5", tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])))
     dget._probabilities = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
     assert np.all(dget.deuteration_states == [4, 5])
@@ -243,6 +241,11 @@ def test_targets():
 
     assert np.allclose(dget.targets[:7], [Formula(f).isotope.mz for f in formulas])
     assert np.allclose(
-        dget.targets[6:],
-        [s.mz for s in dget.formula.spectrum().values()],
+        dget.targets[-4:],
+        [
+            s.mz
+            for s in dget.formula.spectrum(
+                min_fraction=DGet.min_fraction_for_spectra
+            ).values()
+        ],
     )

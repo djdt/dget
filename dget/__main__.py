@@ -47,12 +47,13 @@ def generate_parser() -> argparse.ArgumentParser:
         nargs="?",
         const="targets",
         help="Plot the convolved match against the MS data, "
-        "use '--plot full' to show the entire mass range..",
+        "use '--plot full' to show the entire mass range.",
     )
     parser.add_argument(
-        "--nstates",
-        type=int,
-        help="Maximum number of states to calculate, defaults to first 2 < 0.5%%",
+        "--cutoff",
+        type=str,
+        help="Mass <float> or deuterium D<int> cutoff to calculate, "
+        "defaults to first 2 points < 1%%.",
     )
     parser.add_argument(
         "--masswidth",
@@ -78,6 +79,12 @@ def main():
     if args.autoadduct:
         args.adduct = "[M]+"
 
+    if args.cutoff:
+        try:
+            args.cutoff = float(args.cutoff)
+        except ValueError:
+            pass
+
     if "D" not in args.formula:
         parser.error("--formula, must contain at least one D atom.")
 
@@ -90,7 +97,7 @@ def main():
         args.formula,
         args.tofdata,
         adduct=args.adduct,
-        number_states=args.nstates,
+        cutoff=args.cutoff,
         loadtxt_kws=loadtxt_kws,
     )
     if args.autoadduct:
