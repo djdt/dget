@@ -74,15 +74,15 @@
                         </li>
                         <li>
                             <label for="skiprows"> Skip rows </label>
-                            <input type="number", id="skiprows", name="skiprows", min="0", value="0">
+                            <input type="number" id="skiprows" name="skiprows" min="0" value="0">
                         </li>
                         <li>
                             <label for="masscol"> Mass column </label>
-                            <input type="number", id="masscol", name="masscol", min="1", value="1">
+                            <input type="number" id="masscol" name="masscol" min="1" value="1">
                         </li>
                         <li>
                             <label for="signalcol"> Signal column </label>
-                            <input type="number", id="signalcol", name="signalcol", min="1", value="2">
+                            <input type="number" id="signalcol" name="signalcol" min="1" value="2">
                         </li>
                     </ul>
                 </fieldset>
@@ -94,6 +94,10 @@
             <li>
                 <label class="checklabel" for="baseline"> Subtract MS baseline </label>
                 <input type="checkbox" id="baseline">
+            </li>
+            <li>
+                <label class="checklabel" for="cutoff"> Calculation Cutoff </label>
+                <input type="text" id="cutoff" name="cutoff" value="Auto">
             </li>
             <li>
                 <button id="calculate">Get Deuteration</button>

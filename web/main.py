@@ -44,7 +44,7 @@ def get_chart_results(dget: DGet, start: int, end: int) -> dict:
     # Get the isotopic spectra
     spec_x = np.array([i.mz for i in dget.spectrum.values()])
     spec_y = dget.psf
-    spec_y = scale_to_match(x, y, spec_x, spec_y, dget.mass_width)
+    spec_y = spec_y / spec_y[0] * pred_y[dget.deuterium_count]
 
     return {
         "x": x.tolist(),
@@ -152,16 +152,31 @@ def calculate():
             request.form.get("signalcol", type=int) - 1,
         ),
     }
+
+    cutoff = request.form.get("cutoff")
+    if cutoff.lower() == "auto":
+        cutoff = None
+    elif cutoff[0] == "D" and cutoff[1:].isdecimal():
+        cutoff = cutoff
+    else:
+        try:
+            cutoff = float(cutoff)
+        except ValueError:
+            abort(
+                500, description="Calculation Cutoff must be 'Auto', a m/z or D{int}."
+            )
+
     try:
         dget = DGet(
             deuterated_formula=formula,
             tofdata=file,
-            adduct=adduct if adduct != "Auto" else "[M]+",
+            adduct=adduct if adduct.lower() != "auto" else "[M]+",
+            cutoff=cutoff,
             loadtxt_kws=loadtxt_kws,
         )
-        if adduct == "Auto":
-            _adduct, diff = dget.guess_adduct_from_base_peak()
-            dget.adduct = _adduct
+        if adduct.lower() == "auto":
+            adduct, diff = dget.guess_adduct_from_base_peak()
+            dget.adduct = adduct
         if request.form.get("align") == "true":
             _ = dget.align_tof_with_spectra()
         if request.form.get("baseline") == "true":
