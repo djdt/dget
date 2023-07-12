@@ -22,16 +22,17 @@
 </div>
 <div class="card" id="usage">
     <h3>Usage</h3>
-    <p><b>Formula</b> - molecular formula of the fully deuterated sample, see <a href="https://github.com/cgohlke/molass">molmass</a> for more details.</p>
-    <p><b>Adduct</b> - molecular species, use 'Auto' to guess the adduct with the highest intensity from the mass spectra. You can also enter a custom adduct here.</p>
-    <p><b>Upload MS data</b> - DGet expects a delimited text file with at least two columns: mass-per-charge and signal/intensity values.</p>
-    <p><b>MS data options</b> - the following options control how data is read from the uploaded file. DGet will try to guess options on file upload.</p>
-    <ul style="margin-left:2em">
-        <li><b>Delimiter</b> - text delimiter used in the data file.</li>
-        <li><b>Skip rows</b> - number of rows in file before data.</li>
-        <li><b>Mass/Signal column</b> - column in file containing the mass/signal data.</li>
+    <ul>
+    <li><b>Formula</b> - molecular formula of the fully deuterated sample, see <a href="https://github.com/cgohlke/molass">molmass</a> for more details.</li>
+    <li><b>Adduct</b> - molecular species, use 'Auto' to guess the adduct with the highest intensity from the mass spectra. You can also enter a custom adduct here.</li>
+    <li><b>Upload MS data</b> - DGet expects a delimited text file with at least two columns: mass-per-charge and signal/intensity values.</li>
+    <li><b>MS data options</b> - the following options control how data is read from the uploaded file. DGet will try to guess options on file upload.</li>
+    <li style="margin-left: 2em"><b>Delimiter</b> - text delimiter used in the data file.</li>
+    <li style="margin-left: 2em"><b>Skip rows</b> - number of rows in file before data.</li>
+    <li style="margin-left: 2em"><b>Mass/Signal column</b> - column in file containing the mass/signal data.</li>
+    <li><b>Re-align MS data</b> - shifts data to better align with the formula's predicted mass. Please calibrate your instruments instead of using this.</li>
+    <li><b>Subtract MS baseline</b> - performs baseline subtraction, calculated as the 25th percentile of the target region.</li>
+    <li><b>Calculation Cutoff</b> - .</li>
     </ul>
-    <p><b>Re-align MS data</b> - shifts data to better align with the formula's predicted mass. Please calibrate your instruments instead of using this.</p>
-    <p><b>Subtract MS baseline</b> - performs baseline subtraction, calculated as the 25th percentile of the target region.</p>
 </div>
 {% endblock %}
