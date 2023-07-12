@@ -131,10 +131,8 @@ function updateChartPrediction(x, y, labels, states) {
     });
     chart.data.datasets[1].labels = labels;
     const max_state = Math.max.apply(null, states);
-    console.log(states);
     chart.data.datasets[1].backgroundColor = x.map((_, i) => {
-        console.log(i, max_state);
-        return states.includes(i) || (i > max_state) ? "#db5461" : "#8aa29e";
+        return states.includes(i) || ((max_state > 0) && (i > max_state)) ? "#db5461" : "#8aa29e";
     });
     chart.update();
 }
