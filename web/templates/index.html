@@ -48,7 +48,6 @@
                                     for (name in result) {
                                         $("#" + name).val(result[name]).change();
                                     }
-                                    console.log(result);
                                 }
                             });
                         }
@@ -115,7 +114,6 @@
                                 clearResult();
                             },
                             success: function(result) {
-                                console.log(result["compound"]);
                                 updateOutputs(result["compound"]);
                                 updateChartData(result["chart"]["x"], result["chart"]["y"]);
                                 updateChartPrediction(
