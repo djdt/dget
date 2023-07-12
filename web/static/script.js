@@ -38,6 +38,7 @@ function getFormData() {
     fd.append("signalcol", $("#signalcol").val());
     fd.append("align", $("#align").prop("checked"));
     fd.append("baseline", $("#baseline").prop("checked"));
+    fd.append("cutoff", $("#cutoff").val());
     return fd;
 }
 
