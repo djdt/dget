@@ -3,13 +3,13 @@ from io import TextIOWrapper
 
 import numpy as np
 from flask import Flask, abort, json, render_template, request
-# from google.cloud import firestore
+from google.cloud import firestore
 
 from dget import DGet, __version__
 from dget.plot import scale_to_match
 
 app = Flask(__name__)
-# fs = firestore.Client()
+fs = firestore.Client()
 
 
 adducts = [
@@ -85,7 +85,6 @@ def report():
         adduct=result["adduct"],
         mz=result["m/z"],
         adduct_mz=result["adduct m/z"],
-        options={"a": 1},
         deuteration=result["deuteration"] * 100.0,
         ratios={
             s: p * 100.0 for s, p in zip(result["states"], result["probabilities"])
@@ -175,7 +174,7 @@ def calculate():
             loadtxt_kws=loadtxt_kws,
         )
         if adduct == "Auto":
-            _adduct, diff = dget.guess_adduct_from_base_peak()
+            _adduct, _ = dget.guess_adduct_from_base_peak()
             dget.adduct = _adduct
         if request.form.get("align") == "true":
             _ = dget.align_tof_with_spectra()
@@ -194,13 +193,13 @@ def calculate():
 
     chart_results = get_chart_results(dget, start, end)
     # Store some information about successful runs
-    # fs.collection("dget").add(
-    #     {
-    #         "timestamp": datetime.datetime.now(),
-    #         "formula": dget.base_name,
-    #         "adduct": dget.adduct.adduct,
-    #     }
-    # )
+    fs.collection("dget").add(
+        {
+            "timestamp": datetime.datetime.now(),
+            "formula": dget.base_name,
+            "adduct": dget.adduct.adduct,
+        }
+    )
 
     return {
         "chart": chart_results,
@@ -212,7 +211,7 @@ def calculate():
             "deuteration": dget.deuteration,
             "states": dget.deuteration_states.tolist(),
             "probabilities": probabilities.tolist(),
-        },
+        }
     }
 
 
