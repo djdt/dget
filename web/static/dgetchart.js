@@ -79,7 +79,7 @@ function createChart(canvas) {
                 },
                 y: {
                     ticks: {
-                        callback: (v) => (v.toExponential());
+                        callback: (v) => (v.toExponential()),
                     },
                     beginAtZero: true,
                 }
