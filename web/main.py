@@ -192,6 +192,7 @@ def calculate():
     if start == end:
         abort(500, description="Enitre m/z range falls outside of spetra.")
 
+    chart_results = get_chart_results(dget, start, end)
     # Store some information about successful runs
     fs.collection("dget").add(
         {
