@@ -1,14 +1,18 @@
 import datetime
+import secrets
 from io import TextIOWrapper
 
 import numpy as np
-from flask import Flask, abort, json, render_template, request
+from flask import Flask, abort, json, render_template, request, session
 from google.cloud import firestore
 
 from dget import DGet, __version__
 from dget.plot import scale_to_match
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = "dev56179e7461961afa552021c4e0957"
+app.config.from_pyfile("app.cfg", silent=True)
+
 if not app.debug:
     fs = firestore.Client()
 
@@ -70,6 +74,8 @@ def help():
 
 @app.route("/")
 def index():
+    if "id" not in session:
+        session["id"] = secrets.token_hex(4)
     return render_template(
         "index.html", version=__version__, adducts=adducts, delimiters=delimiters
     )
@@ -197,6 +203,7 @@ def calculate():
     if not app.debug:
         fs.collection("dget").add(
             {
+                "session": session.get("id", ""),
                 "timestamp": datetime.datetime.now(),
                 "formula": dget.base_name,
                 "adduct": dget.adduct.adduct,
@@ -214,7 +221,7 @@ def calculate():
             "deuteration": dget.deuteration,
             "states": dget.deuteration_states.tolist(),
             "probabilities": probabilities.tolist(),
-        }
+        },
     }
 
 
