@@ -11,7 +11,7 @@ from dget import DGet, __version__
 from dget.adduct import Adduct
 from dget.plot import scale_to_match
 
-__web_version__ = "0.22.2"
+__web_version__ = "0.22.3"
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "dev56179e7461961afa552021c4e0957"

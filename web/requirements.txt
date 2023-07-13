@@ -1,4 +1,4 @@
 Flask==2.2.5
 numpy==1.24.3
-dget==0.21
+dget==0.22
 google-cloud-firestore
