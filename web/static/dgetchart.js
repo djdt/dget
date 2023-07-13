@@ -43,7 +43,7 @@ function createChart(canvas) {
             },
             {
                 type: "scatter",
-                label: "Deconvolved Spectra",
+                label: "Deconvolution",
                 backgroundColor: "#db5461",
                 hoverBackgroundColor: "#db5461",
                 pointRadius: 4,
@@ -53,9 +53,10 @@ function createChart(canvas) {
             },
             {
                 type: "scatter",
-                label: "Predicted Spectra",
+                label: "Isotope Spectra",
                 borderColor: "#364699",
                 pointStyle: "circle",
+                backgroundColor: "#ffffff00",
                 borderWidth: 2,
                 pointRadius: 6,
                 hoverRadius: 0,
@@ -90,18 +91,24 @@ function createChart(canvas) {
             },
             plugins: {
                 legend: {
-                    display: false,
+                    // display: false,
                     labels: {
                         usePointStyle: true,
                         filter: function(item, data) {  // remove ms data
                             return item.datasetIndex != 0;
                         },
+                        generateLabels: function(chart) { // override green color
+                            var labels = Chart.Legend.defaults.labels.generateLabels(chart);
+                            return labels.map((label, i) => {
+                                if (label.fillStyle == "#8aa29e") {
+                                    label.fillStyle = "#db5461";
+                                }
+                                return label;
+                            });
+                        },
                     }
                 },
                 tooltip: {
-                    filter: function(item) {  // no interaction on ms data
-                        return !!item.dataset.labels
-                    },
                     callbacks: {
                         label: function(context) {
                             var mz = context.parsed.x.toFixed(4);
