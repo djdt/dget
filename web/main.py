@@ -5,11 +5,13 @@ from io import TextIOWrapper
 import numpy as np
 from flask import Flask, abort, json, render_template, request, session
 from google.cloud import firestore
+from molmass import Formula, FormulaError
 
 from dget import DGet, __version__
+from dget.adduct import Adduct
 from dget.plot import scale_to_match
 
-__web_version__ = "0.21.1"
+__web_version__ = "0.22.1"
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "dev56179e7461961afa552021c4e0957"
@@ -149,17 +151,31 @@ def guess_inputs():
 @app.post("/api/calculate")
 def calculate():
     formula = request.form["formula"]
-    if len(formula) == 0 or formula.count("D") == 0:
-        abort(500, description="Missing or invalid formula.")
+    if len(formula) == 0:
+        abort(500, description="Missing formula.")
+    elif formula.count("D") == 0:
+        abort(500, description="Formula must contain deuterium.")
+    else:
+        try:
+            formula = Formula(formula)
+            _ = formula.monoisotopic_mass
+        except FormulaError:
+            abort(500, description="Invalid formula.")
 
     if "data" not in request.files:
         abort(500, description="Missing MS data upload.")
-
     file = TextIOWrapper(request.files["data"])
 
     adduct = request.form["adduct"]
-    if len(adduct) == 0:
-        abort(500, description="Missing or invalid adduct.")
+    use_auto_adduct = adduct.lower() == "auto" or len(adduct) == 0
+    if not use_auto_adduct and not Adduct.is_valid_adduct(adduct):
+        abort(500, description="Invalid adduct string.")
+
+    if any(
+        len(request.form[x]) == 0
+        for x in ["delimiter", "skiprows", "masscol", "signalcol"]
+    ):
+        abort(500, description="Missing one or more MS data options.")
 
     loadtxt_kws = {
         "delimiter": request.form["delimiter"],
@@ -170,8 +186,13 @@ def calculate():
         ),
     }
 
-    cutoff = request.form.get("cutoff")
-    if cutoff.lower() == "auto":
+    use_align = request.form["align"] == "true"
+    use_baseline = request.form["baseline"] == "true"
+
+    cutoff = request.form["cutoff"]
+    use_auto_cutoff = cutoff.lower() == "auto" or len(cutoff) == 0
+
+    if use_auto_cutoff:
         cutoff = None
     elif cutoff[0] == "D" and cutoff[1:].isdecimal():
         cutoff = cutoff
@@ -191,12 +212,11 @@ def calculate():
             cutoff=cutoff,
             loadtxt_kws=loadtxt_kws,
         )
-        if adduct == "Auto":
-            _adduct, _ = dget.guess_adduct_from_base_peak()
-            dget.adduct = _adduct
-        if request.form.get("align") == "true":
+        if use_auto_adduct:
+            dget.adduct, _ = dget.guess_adduct_from_base_peak()
+        if use_align:
             _ = dget.align_tof_with_spectra()
-        if request.form.get("baseline") == "true":
+        if use_baseline:
             _ = dget.subtract_baseline()
 
         probabilities = dget.deuteration_probabilites[dget.deuteration_states]
@@ -207,21 +227,23 @@ def calculate():
     start, end = np.searchsorted(dget.x, (dget.targets[0], dget.targets[-1]))
     start, end = np.clip((start, end), 0, dget.x.size)
     if start == end:
-        abort(500, description="Enitre m/z range falls outside of spetra.")
-
+        abort(500, description="Entire spectra falls outside of m/z range.")
     chart_results = get_chart_results(dget, start, end)
+
     # Store some information about successful runs
     if not app.debug:
-        fs.collection("dget").add(
+        fs.collection("dget", session.get("id", "nosession")).add(
             {
-                "session": session.get("id", ""),
                 "timestamp": datetime.datetime.now(),
                 "formula": dget.base_name,
                 "adduct": dget.adduct.adduct,
+                "auto adduct": use_auto_adduct,
+                "auto cutoff": use_auto_cutoff,
+                "align": use_align,
+                "baseline": use_baseline,
             }
         )
 
-    chart_results = get_chart_results(dget, start, end)
     return {
         "chart": chart_results,
         "compound": {
