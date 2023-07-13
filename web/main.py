@@ -9,6 +9,8 @@ from google.cloud import firestore
 from dget import DGet, __version__
 from dget.plot import scale_to_match
 
+__web_version__ = "0.21.1"
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "dev56179e7461961afa552021c4e0957"
 app.config.from_pyfile("app.cfg", silent=True)
@@ -69,24 +71,33 @@ def handle_error(error):
 
 @app.route("/help")
 def help():
-    return render_template("help.html", version=__version__)
+    return render_template(
+        "help.html", version=__version__, web_version=__web_version__
+    )
 
 
 @app.route("/")
 def index():
     if "id" not in session:
         session["id"] = secrets.token_hex(4)
+
     return render_template(
-        "index.html", version=__version__, adducts=adducts, delimiters=delimiters
+        "index.html",
+        version=__version__,
+        web_version=__web_version__,
+        adducts=adducts,
+        delimiters=delimiters,
     )
 
 
 @app.post("/report")
 def report():
     result = json.loads(request.form["result"])
+
     return render_template(
         "report.html",
         version=__version__,
+        web_version=__web_version__,
         date=datetime.date.today(),
         formula=result["formula"],
         adduct=result["adduct"],
