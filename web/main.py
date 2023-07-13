@@ -9,7 +9,8 @@ from dget import DGet, __version__
 from dget.plot import scale_to_match
 
 app = Flask(__name__)
-fs = firestore.Client()
+if not app.debug:
+    fs = firestore.Client()
 
 
 adducts = [
@@ -193,13 +194,14 @@ def calculate():
 
     chart_results = get_chart_results(dget, start, end)
     # Store some information about successful runs
-    fs.collection("dget").add(
-        {
-            "timestamp": datetime.datetime.now(),
-            "formula": dget.base_name,
-            "adduct": dget.adduct.adduct,
-        }
-    )
+    if not app.debug:
+        fs.collection("dget").add(
+            {
+                "timestamp": datetime.datetime.now(),
+                "formula": dget.base_name,
+                "adduct": dget.adduct.adduct,
+            }
+        )
 
     chart_results = get_chart_results(dget, start, end)
     return {
