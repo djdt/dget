@@ -32,7 +32,7 @@
     <li style="margin-left: 2em"><b>Mass/Signal column</b> - column in file containing the mass/signal data.</li>
     <li><b>Re-align MS data</b> - shifts data to better align with the formula's predicted mass. Please calibrate your instruments instead of using this.</li>
     <li><b>Subtract MS baseline</b> - performs baseline subtraction, calculated as the 25th percentile of the target region.</li>
-    <li><b>Calculation Cutoff</b> - .</li>
+    <li><b>Calculation Cutoff</b> - the lowest deuterium state to consider in the calculation. This can be passed a number to indicate a m/z, a D prefixed integer for a dueterium state (e.g. D7) or 'Auto' to be determined automatically using the first 2 states below 1 % probability.</li>
     </ul>
 </div>
 {% endblock %}
