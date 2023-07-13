@@ -11,7 +11,7 @@ from dget import DGet, __version__
 from dget.adduct import Adduct
 from dget.plot import scale_to_match
 
-__web_version__ = "0.22.1"
+__web_version__ = "0.22.2"
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "dev56179e7461961afa552021c4e0957"
@@ -232,8 +232,9 @@ def calculate():
 
     # Store some information about successful runs
     if not app.debug:
-        fs.collection("dget", session.get("id", "nosession")).add(
+        fs.collection("dget").add(
             {
+                "session": session.get("id", "nosession"),
                 "timestamp": datetime.datetime.now(),
                 "formula": dget.base_name,
                 "adduct": dget.adduct.adduct,
