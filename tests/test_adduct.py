@@ -46,10 +46,19 @@ def test_adducts():
 
     with pytest.raises(ValueError):
         Adduct(formula, "M+")
-    with pytest.raises(ValueError):
-        a = Adduct(formula, "[MNa]+")
-        print(a.formula)
-    with pytest.raises(ValueError):
-        Adduct(formula, "[M+Na]")
-    with pytest.raises(ValueError):
-        Adduct(formula, "[M-Na]+")
+
+
+def test_adduct_valid():
+    assert Adduct.is_valid_adduct("[M]+")
+    assert Adduct.is_valid_adduct("[M]2+")
+    assert Adduct.is_valid_adduct("[M+Na]+")
+    assert Adduct.is_valid_adduct("[M-Cl]-")
+    assert Adduct.is_valid_adduct("[M+K-2H]-")
+    assert Adduct.is_valid_adduct("[2M+2H]+")
+    assert Adduct.is_valid_adduct("[2M+H2]+")
+
+    assert not Adduct.is_valid_adduct("M+")
+    assert not Adduct.is_valid_adduct("[M+H]")
+    assert not Adduct.is_valid_adduct("[M2+H]+")
+    assert not Adduct.is_valid_adduct("[M+H+]+")
+    assert not Adduct.is_valid_adduct("[M+H]+2")

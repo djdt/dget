@@ -37,13 +37,11 @@ class Adduct(object):
             base: formula of the base molecule, represented by M in adduct
             adduct: adduct string in the form [nM+nX-nY]n+
         """
-        match = Adduct.regex.match(adduct)
-
-        if match is None or (
-            len(match.group(2)) > 0
-            and Adduct.regex_split.search(match.group(2)) is None
-        ):
+        if not Adduct.is_valid_adduct(adduct):
             raise ValueError("adduct must be in the format [nM+X-Y]n+")
+
+        match = Adduct.regex.match(adduct)
+        assert match is not None
 
         self.adduct = adduct
         self.base = base
@@ -84,3 +82,25 @@ class Adduct(object):
 
     def __repr__(self) -> str:  # pragma: no cover, debug
         return f"Adduct({self.adduct!r}, M={self.base.formula!r})"
+
+    @staticmethod
+    def is_valid_adduct(adduct: str) -> bool:
+        """Test to see if adduct string is valid.
+
+        Tests string against ``Adduct.regex`` and makes sure any +/- adducts
+        match ``Adduct.regex_split``.
+
+        Args:
+            adduct: adduct string in the form [nM+nX-nY]n+
+        Returns:
+            True if valid
+        """
+        match = Adduct.regex.fullmatch(adduct)
+        if match is None:
+            return False
+        if len(match.group(2)) > 0:
+            return sum(  # check all of group 2 covered by matches
+                m.span()[1] - m.span()[0]
+                for m in Adduct.regex_split.finditer(match.group(2))
+            ) == len(match.group(2))
+        return True
