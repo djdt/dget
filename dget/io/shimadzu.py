@@ -11,16 +11,15 @@ def is_shimadzu_header(header: List[str]) -> bool:
 
 
 def is_shimadzu_file(file: str | Path | TextIO) -> bool:
-    if isinstance(file, (str, Path)):
+    if isinstance(file, (str, Path)):  # pragma: no cover
         file = open(file, "r")
     header = file.readlines(2048)
     return is_shimadzu_header(header)
 
 
 def get_loadtxt_kws(file: str | Path | TextIO) -> dict:
-    if isinstance(file, (str, Path)):
+    if isinstance(file, (str, Path)):  # pragma: no cover
         file = open(file, "r")
-    # file.seek(0)
 
     loadtxt_kws: dict = {"skiprows": 0}
     line = file.readline()
