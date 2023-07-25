@@ -1,3 +1,4 @@
+from io import StringIO
 from pathlib import Path
 
 import numpy as np
@@ -248,4 +249,26 @@ def test_targets():
                 min_fraction=DGet.min_fraction_for_spectra
             ).values()
         ],
+    )
+
+
+def test_output_results():
+    dget = DGet("C2H2D4", tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])))
+    dget._probabilities = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
+
+    results = StringIO()
+    dget.print_results(file=results)
+    assert results.getvalue() == (
+        "Formula          : C2H2D4\n"
+        "Adduct           : [M]+\n"
+        "M/Z              : 34.0721\n"
+        "Adduct M/Z       : 34.0715\n"
+        "%Deuteration     : 75.00 %\n"
+        "\n"
+        "Deuteration Ratio Spectra\n"
+        "D0               :  0.00 %\n"
+        "D1               : 10.00 %\n"
+        "D2               : 20.00 %\n"
+        "D3               : 30.00 %\n"
+        "D4               : 40.00 %\n"
     )
