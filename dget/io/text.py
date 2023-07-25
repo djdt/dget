@@ -1,18 +1,24 @@
-# from pathlib import Path
-from typing import List
+from pathlib import Path
+from typing import TextIO
 
 delimiters = [";", ",", "\t", " "]
 
-mass_hints = ["mass", "m/z", "thompsons"]
-signal_hints = ["signal", "intensity", "counts", "cps"]
+mass_hints = ["mass", "m/z", "thompson"]
+signal_hints = ["signal", "intensity", "count", "cps"]
 
 
-def guess_loadtxt_kws(header: List[str], loadtxt_kws: dict | None = None) -> dict:
+def guess_loadtxt_kws(
+    file: str | Path | TextIO, loadtxt_kws: dict | None = None
+) -> dict:
+    if isinstance(file, (str, Path)):  # pragma: no cover
+        file = open(file, "r")
+    header = file.readlines(2048)
+
     if loadtxt_kws is None:
         loadtxt_kws = {}
 
     for delim in delimiters:
-        if all(delim in line for line in header):
+        if all(delim in line for line in header if line[0].isdigit()):
             loadtxt_kws["delimiter"] = delim
             break
 
@@ -31,8 +37,8 @@ def guess_loadtxt_kws(header: List[str], loadtxt_kws: dict | None = None) -> dic
         last_text_line = header[loadtxt_kws["skiprows"] - 1].split(
             loadtxt_kws["delimiter"]
         )
+        masscol, signalcol = None, None
         for i, text in enumerate(last_text_line):
-            masscol, signalcol = None, None
             if masscol is None and any(x in text.lower() for x in mass_hints):
                 masscol = i
                 continue
