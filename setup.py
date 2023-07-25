@@ -19,7 +19,7 @@ setup(
     description="Calculates compound deuteration from ToF-MS data.",
     long_description=long_description,
     long_description_content_type="text/x-rst",
-    packages=["dget"],
+    packages=["dget", "dget.io"],
     license="GPL3",
     author="djdt",
     url="https://github.com/djdt/dget",
