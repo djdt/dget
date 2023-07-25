@@ -1,6 +1,6 @@
 import datetime
 import secrets
-from io import TextIOWrapper
+from pathlib import Path
 
 import numpy as np
 from flask import Flask, abort, json, render_template, request, session
@@ -9,6 +9,7 @@ from molmass import Formula, FormulaError
 
 from dget import DGet, __version__
 from dget.adduct import Adduct
+from dget.io import shimadzu, text
 from dget.plot import scale_to_match
 
 __web_version__ = "0.22.3"
@@ -16,6 +17,9 @@ __web_version__ = "0.22.3"
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "dev56179e7461961afa552021c4e0957"
 app.config.from_pyfile("app.cfg", silent=True)
+app.config["SESSION_COOKIE_SECURE"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["UPLOAD_PATH"] = "/tmp/uploads"
 
 if not app.debug:
     fs = firestore.Client()
@@ -113,39 +117,38 @@ def report():
     )
 
 
+@app.post("/api/upload")
+def upload():
+    if "id" not in session:
+        abort(500, description="No ID for session, are cookies enabled?")
+
+    if "data" not in request.files:
+        abort(500, description="Missing MS data upload.")
+
+    dir = Path(app.config["UPLOAD_PATH"])
+    if not dir.exists():
+        dir.mkdir()
+
+    path = dir.joinpath(secrets.token_hex(4))
+    request.files["data"].save(path)
+    session["upload"] = str(path)
+    return {"upload": str(path)}
+
+
 @app.post("/api/guess_inputs")
 def guess_inputs():
-    lines = request.form.getlist("lines[]")
-    if len(lines) == 0:
-        raise ValueError("Text not uploaded.")
-    result = {}
+    if "upload" not in request.form:
+        print("upload not in request")
+        if "upload" not in session:
+            abort(500, description="No upload found for session or request.")
+        path = session["upload"]
+    else:
+        path = request.form["upload"]
 
-    # find delimiter
-    for key, val in delimiters.items():
-        if all(val in line for line in lines[10:]):
-            result["delimiter"] = val
-            break
+    if shimadzu.is_shimadzu_file(path):
+        return shimadzu.get_loadtxt_kws(path)
 
-    if "delimiter" in result:
-        result["skiprows"] = 0
-        # check for first line able to be parsed
-        for line in lines:
-            try:
-                float(line.split(result["delimiter"])[-1])
-                break
-            except ValueError:
-                pass
-            result["skiprows"] = result["skiprows"] + 1
-
-        # try to find the signal / mass columns
-        header_line = lines[result["skiprows"] - 1].split(result["delimiter"])
-        for i, text in enumerate(header_line):
-            if any(x in text.lower() for x in ["mass", "m/z"]):
-                result["masscol"] = i
-            if any(x in text.lower() for x in ["signal", "intensity", "counts"]):
-                result["signalcol"] = i
-
-    return result
+    return text.guess_loadtxt_kws(path)
 
 
 @app.post("/api/calculate")
@@ -162,9 +165,12 @@ def calculate():
         except FormulaError:
             abort(500, description="Invalid formula.")
 
-    if "data" not in request.files:
-        abort(500, description="Missing MS data upload.")
-    file = TextIOWrapper(request.files["data"])
+    if "upload" not in request.form:
+        if "upload" not in session:
+            abort(500, description="No upload found for session or request.")
+        path = session["upload"]
+    else:
+        path = request.form["upload"]
 
     adduct = request.form["adduct"]
     use_auto_adduct = adduct.lower() == "auto" or len(adduct) == 0
@@ -207,7 +213,7 @@ def calculate():
     try:
         dget = DGet(
             deuterated_formula=formula,
-            tofdata=file,
+            tofdata=path,
             adduct=adduct if adduct.lower() != "auto" else "[M]+",
             cutoff=cutoff,
             loadtxt_kws=loadtxt_kws,

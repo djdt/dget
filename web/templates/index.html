@@ -34,27 +34,34 @@
                 <input type="file" id="upload" name="upload">
                 <script>
                     $("#upload").on("change", function(e) {
-                        reader = new FileReader();
-                        reader.onload = function () {
-                           lines = reader.result.split(/\r\n|\n|\r/); 
-                            $.ajax({
-                                url: "/api/guess_inputs",
-                                type: "POST",
-                                data: {lines: lines.slice(0, 20)},
-                                error: function(response) {
-                                    $("#output").html(`<p>${response.responseJSON["error"]}</p>`);
-                                },
-                                success: function(result) {
-                                    for (name in result) {
-                                        $("#" + name).val(result[name]).change();
+                        var formData = new FormData();
+                        formData.append("data", this.files[0]);
+                        $.ajax({
+                            url: "/api/upload",
+                            type: "POST",
+                            contentType: false,
+                            processData: false,
+                            data: formData,
+                            error: function(response) {
+                                $("#output").html(`<p>${response.responseJSON["error"]}</p>`);
+                                $("#upload").val("");
+                            },
+                            success: function(result) {
+                                $.ajax({
+                                    url: "/api/guess_inputs",
+                                    type: "POST",
+                                    data: result,
+                                    error: function(response) {
+                                        $("#output").html(`<p>${response.responseJSON["error"]}</p>`);
+                                    },
+                                    success: function(result) {
+                                        for (name in result) {
+                                            $("#" + name).val(result[name]).change();
+                                        }
                                     }
-                                }
-                            });
-                        }
-                        file = e.target.files[0];
-                        if (file) {
-                            reader.readAsText(file);
-                        }
+                                });
+                            }
+                        });
                         completeChanged();
                     });
                 </script>

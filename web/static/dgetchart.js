@@ -76,13 +76,19 @@ function createChart(canvas) {
                     title: {
                         display: true,
                         text: "m/z",
-                    }
+                    },
+                    grid: {
+                        display: false,
+                    },
                 },
                 y: {
                     ticks: {
                         callback: (v) => (v.toExponential()),
                     },
                     beginAtZero: true,
+                    grid: {
+                        display: false,
+                    },
                 }
             },
             interaction: {

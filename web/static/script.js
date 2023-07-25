@@ -29,7 +29,6 @@ function storeResult(res) {
 
 function getFormData() {
     var fd = new FormData();
-    fd.append("data", $("#upload")[0].files[0]);
     fd.append("formula", $("#formula").val());
     fd.append("adduct", $("#adduct").val());
     fd.append("delimiter", $("#delimiter").val());
