@@ -122,13 +122,10 @@ def guess_inputs():
     file = request.files["data"]
     file.save(app.config["UPLOAD_PATH"])
 
-    with open(app.config["UPLOAD_PATH"], "r") as fp:
-        header = fp.readlines(2048)
-
-    if shimadzu.is_shimadzu_header(header):
+    if shimadzu.is_shimadzu_file("/tmp/dget.upload"):
         return shimadzu.get_loadtxt_kws("/tmp/dget.upload")
 
-    return text.guess_loadtxt_kws(header)
+    return text.guess_loadtxt_kws("/tmp/dget.upload")
 
 
 @app.post("/api/calculate")
