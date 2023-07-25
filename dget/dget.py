@@ -81,7 +81,7 @@ class DGet(object):
         if isinstance(cutoff, str) and cutoff[0] == "D":
             try:
                 c = int(cutoff[1:])
-            except ValueError:
+            except ValueError:  # pragma: no cover, exception
                 raise ValueError("'cutoff' must be a float or str of format D<int>")
             if c < 0:
                 raise ValueError("deuterium based 'cutoff' must be greater than 0")
