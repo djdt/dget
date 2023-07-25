@@ -35,21 +35,31 @@
                 <script>
                     $("#upload").on("change", function(e) {
                         var formData = new FormData();
-                        console.log(this.files);
                         formData.append("data", this.files[0]);
                         $.ajax({
-                            url: "/api/guess_inputs",
+                            url: "/api/upload",
                             type: "POST",
                             contentType: false,
                             processData: false,
                             data: formData,
                             error: function(response) {
                                 $("#output").html(`<p>${response.responseJSON["error"]}</p>`);
+                                $("#upload").val("");
                             },
                             success: function(result) {
-                                for (name in result) {
-                                    $("#" + name).val(result[name]).change();
-                                }
+                                $.ajax({
+                                    url: "/api/guess_inputs",
+                                    type: "POST",
+                                    data: result,
+                                    error: function(response) {
+                                        $("#output").html(`<p>${response.responseJSON["error"]}</p>`);
+                                    },
+                                    success: function(result) {
+                                        for (name in result) {
+                                            $("#" + name).val(result[name]).change();
+                                        }
+                                    }
+                                });
                             }
                         });
                         completeChanged();
@@ -100,7 +110,6 @@
                 <script>
                     $("#calculate").on("click", function() {
                         formdata = getFormData();
-                        formdata.append("data", $("#upload")[0].files[0]);
                         $.ajax({
                             url: "/api/calculate",
                             type: "POST",

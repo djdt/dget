@@ -1,6 +1,5 @@
 import datetime
 import secrets
-from io import TextIOWrapper
 from pathlib import Path
 
 import numpy as np
@@ -18,6 +17,9 @@ __web_version__ = "0.22.3"
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "dev56179e7461961afa552021c4e0957"
 app.config.from_pyfile("app.cfg", silent=True)
+app.config["SESSION_COOKIE_SECURE"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["UPLOAD_PATH"] = "/tmp/uploads"
 
 if not app.debug:
     fs = firestore.Client()
@@ -115,17 +117,38 @@ def report():
     )
 
 
-@app.post("/api/guess_inputs")
-def guess_inputs():
+@app.post("/api/upload")
+def upload():
+    if "id" not in session:
+        abort(500, description="No ID for session, are cookies enabled?")
+
     if "data" not in request.files:
         abort(500, description="Missing MS data upload.")
-    file = TextIOWrapper(request.files["data"])
 
-    if shimadzu.is_shimadzu_file(file):
-        file.seek(0)
-        return shimadzu.get_loadtxt_kws(file)
+    dir = Path(app.config["UPLOAD_PATH"])
+    if not dir.exists():
+        dir.mkdir()
 
-    return text.guess_loadtxt_kws(file)
+    path = dir.joinpath(secrets.token_hex(4))
+    request.files["data"].save(path)
+    session["upload"] = str(path)
+    return {"upload": str(path)}
+
+
+@app.post("/api/guess_inputs")
+def guess_inputs():
+    if "upload" not in request.form:
+        print("upload not in request")
+        if "upload" not in session:
+            abort(500, description="No upload found for session or request.")
+        path = session["upload"]
+    else:
+        path = request.form["upload"]
+
+    if shimadzu.is_shimadzu_file(path):
+        return shimadzu.get_loadtxt_kws(path)
+
+    return text.guess_loadtxt_kws(path)
 
 
 @app.post("/api/calculate")
@@ -142,9 +165,12 @@ def calculate():
         except FormulaError:
             abort(500, description="Invalid formula.")
 
-    if "data" not in request.files:
-        abort(500, description="Missing MS data upload.")
-    file = TextIOWrapper(request.files["data"])
+    if "upload" not in request.form:
+        if "upload" not in session:
+            abort(500, description="No upload found for session or request.")
+        path = session["upload"]
+    else:
+        path = request.form["upload"]
 
     adduct = request.form["adduct"]
     use_auto_adduct = adduct.lower() == "auto" or len(adduct) == 0
@@ -187,7 +213,7 @@ def calculate():
     try:
         dget = DGet(
             deuterated_formula=formula,
-            tofdata=file,
+            tofdata=path,
             adduct=adduct if adduct.lower() != "auto" else "[M]+",
             cutoff=cutoff,
             loadtxt_kws=loadtxt_kws,
