@@ -1,5 +1,6 @@
 import datetime
 import secrets
+from io import TextIOWrapper
 from pathlib import Path
 
 import numpy as np
@@ -17,7 +18,6 @@ __web_version__ = "0.22.3"
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "dev56179e7461961afa552021c4e0957"
 app.config.from_pyfile("app.cfg", silent=True)
-app.config["UPLOAD_PATH"] = "/tmp/dget.upload"
 
 if not app.debug:
     fs = firestore.Client()
@@ -119,13 +119,13 @@ def report():
 def guess_inputs():
     if "data" not in request.files:
         abort(500, description="Missing MS data upload.")
-    file = request.files["data"]
-    file.save(app.config["UPLOAD_PATH"])
+    file = TextIOWrapper(request.files["data"])
 
-    if shimadzu.is_shimadzu_file("/tmp/dget.upload"):
-        return shimadzu.get_loadtxt_kws("/tmp/dget.upload")
+    if shimadzu.is_shimadzu_file(file):
+        file.seek(0)
+        return shimadzu.get_loadtxt_kws(file)
 
-    return text.guess_loadtxt_kws("/tmp/dget.upload")
+    return text.guess_loadtxt_kws(file)
 
 
 @app.post("/api/calculate")
@@ -142,8 +142,9 @@ def calculate():
         except FormulaError:
             abort(500, description="Invalid formula.")
 
-    if not Path(app.config["UPLOAD_PATH"]).exists():
+    if "data" not in request.files:
         abort(500, description="Missing MS data upload.")
+    file = TextIOWrapper(request.files["data"])
 
     adduct = request.form["adduct"]
     use_auto_adduct = adduct.lower() == "auto" or len(adduct) == 0
@@ -186,7 +187,7 @@ def calculate():
     try:
         dget = DGet(
             deuterated_formula=formula,
-            tofdata=Path(app.config["UPLOAD_PATH"]),
+            tofdata=file,
             adduct=adduct if adduct.lower() != "auto" else "[M]+",
             cutoff=cutoff,
             loadtxt_kws=loadtxt_kws,
