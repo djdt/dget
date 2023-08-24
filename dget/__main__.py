@@ -62,6 +62,11 @@ def generate_parser() -> argparse.ArgumentParser:
         help="Window for integration of MS data.",
     )
     parser.add_argument(
+        "--baseline",
+        action="store_true",
+        help="Subtract the 'baseline' from the spectra.",
+    )
+    parser.add_argument(
         "--realign",
         action="store_true",
         help="Force alignment of MS data with predicted spectra, "
@@ -99,6 +104,7 @@ def main():
         adduct=args.adduct,
         cutoff=args.cutoff,
         loadtxt_kws=loadtxt_kws,
+        signal_mass_width=args.masswidth,
     )
     if args.autoadduct:
         adduct, diff = dget.guess_adduct_from_base_peak()
@@ -106,15 +112,15 @@ def main():
         print(f"Adduct difference from adduct base peak m/z: {diff:.4f}")
         print()
 
-    dget.mass_width = args.masswidth
     if args.realign:
         offset = dget.align_tof_with_spectra()
         print(f"Re-aligned ToF data by shifting {offset:.2f} m/z")
         print()
 
-    baseline = dget.subtract_baseline((dget.targets[0], dget.targets[-1]))
-    print(f"Subtracting baseline of {baseline:.2f}")
-    print()
+    if args.baseline:
+        baseline = dget.subtract_baseline()
+        print(f"Subtracting baseline of {baseline:.2f}")
+        print()
 
     dget.print_results()
 
