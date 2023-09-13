@@ -30,7 +30,7 @@ class DGet(object):
         adduct: form of adduct ion, see `dget.adduct`
         number_states: number of deuterated states to calculate
         signal_mass_width: range around each m/z to search for maxima or integrate
-        signal_method: detection mode, valid values are 'peak area', 'peak height'
+        signal_method: detection mode, valid values are 'peak area', 'peak height', 'raw'
         loadtxt_kws: parameters passed to `numpy.loadtxt`,
             defaults to {'delimiter': ',', 'usecols': (0, 1)}
     """
@@ -92,8 +92,11 @@ class DGet(object):
         if signal_mode not in [
             "peak area",
             "peak height",
+            "raw",
         ]:  # pragma: no cover, exception
-            raise ValueError("signal_mode must be one of 'peak area', 'peak height'")
+            raise ValueError(
+                "signal_mode must be one of 'peak area', 'peak height', 'raw'"
+            )
 
         self.signal_mode = signal_mode
 
@@ -153,7 +156,7 @@ class DGet(object):
                     np.trapz(self.y[s:e], x=self.x[s:e])
                     for s, e in zip(starts[valid], ends[valid])
                 ]
-            elif self.signal_mode == "peak height":
+            elif self.signal_mode in ["peak height", "raw"]:
                 counts[valid] = np.maximum.reduceat(
                     self.y, np.stack((starts[valid], ends[valid]), axis=1).flat
                 )[::2]
@@ -162,13 +165,15 @@ class DGet(object):
                     "DGet.signal_mode must be 'peak area' or 'peak height'"
                 )
             counts = counts / counts.sum()
-
-            self._probabilities, self._probability_remainders = deconvolve(
-                counts, self.psf
-            )
-            # Remove negative probabilities and normalise
-            self._probabilities[self._probabilities < 0.0] = 0.0
-            self._probabilities = self._probabilities / self._probabilities.sum()
+            if self.signal_mode == "raw":  # Skip deconvolution
+                self._probabilities = counts
+            else:
+                self._probabilities, self._probability_remainders = deconvolve(
+                    counts, self.psf
+                )
+                # Remove negative probabilities and normalise
+                self._probabilities[self._probabilities < 0.0] = 0.0
+                self._probabilities = self._probabilities / self._probabilities.sum()
 
         return self._probabilities  # type: ignore
 
