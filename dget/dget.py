@@ -135,6 +135,21 @@ class DGet(object):
         return np.sum(prob * states) / self.deuterium_count / self.adduct.num_base
 
     @property
+    def deuteration_error(self) -> float:
+        """Estimation the error of the deconvolution.
+
+        Provides an estimate of the accuracy of the deuterations calculation,
+        based on the deconvolution residuals.
+        """
+        states = self.deuteration_states
+        prob = self.deuteration_probabilites[states].sum()
+        prob += self.deuteration_probabilites[states.max() :].sum()
+        assert self._probability_remainders is not None
+        err = np.abs(self._probability_remainders[states]).sum()
+        err += np.abs(self._probability_remainders[states.max() :]).sum()
+        return err / prob
+
+    @property
     def deuteration_probabilites(self) -> np.ndarray:
         """The deuteration fraction of each possible deuteration.
 
@@ -162,7 +177,7 @@ class DGet(object):
                 )[::2]
             else:  # pragma: no cover, exception
                 raise ValueError(
-                    "DGet.signal_mode must be 'peak area' or 'peak height'"
+                    "DGet.signal_mode must be 'peak area', 'peak height', 'raw'"
                 )
             counts = counts / counts.sum()
             if self.signal_mode == "raw":  # Skip deconvolution
@@ -455,6 +470,7 @@ class DGet(object):
             file: file to print to, or sys.stdout if None
         """
         pd = self.deuteration  # ensure calculated
+        err = self.deuteration_error
         states = self.deuteration_states
         prob = self.deuteration_probabilites[states]
         prob = prob / prob.sum()
@@ -463,7 +479,7 @@ class DGet(object):
         print(f"Adduct           : {self.adduct.adduct}", file=file)
         print(f"M/Z              : {self.adduct.base.isotope.mz:.4f}", file=file)
         print(f"Adduct M/Z       : {self.formula.isotope.mz:.4f}", file=file)
-        print(f"%Deuteration     : {pd * 100.0:.2f} %", file=file)
+        print(f"%Deuteration     : {pd * 100.0:.2f} ± {err * 100.0:.2f} %", file=file)
         print(file=file)
         print("Deuteration Ratio Spectra", file=file)
         for s, p in zip(states, prob):
