@@ -29,6 +29,6 @@ def deconvolve(x: np.ndarray, psf: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     X = np.fft.rfft(x, r)
     P = np.fft.rfft(psf, r)
     y = np.fft.irfft(X / P, r)
-    rec = np.real(y)[: x.size - (psf.size - 1)]
+    rec = y[: x.size - (psf.size - 1)]
     rem = x - np.convolve(rec, psf, mode="full")
     return rec, rem
