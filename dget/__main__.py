@@ -18,12 +18,7 @@ def generate_parser() -> argparse.ArgumentParser:
         "--adduct",
         default="[M]+",
         help="Type of adduct in form [xM<+-><adduct>]x<+->. Valid examples are [M]-, "
-        "[M+H]+, [2M+Na2]2+, [M-H2]2-. Defaults to [M]+.",
-    )
-    parser.add_argument(
-        "--autoadduct",
-        action="store_true",
-        help="Guess the adduct from the mass spectra. Overrides --adduct.",
+        "[M+H]+, [2M+Na2]2+, [M-2H]2-. To guess pass 'Auto'. Defaults to [M]+.",
     )
 
     parser.add_argument("tofdata", type=Path, help="Path to mass spec data file.")
@@ -88,7 +83,9 @@ def main():
     parser = generate_parser()
     args = parser.parse_args()
 
-    if args.autoadduct:
+    args.auto_adduct = False
+    if args.adduct == "Auto":
+        args.auto_adduct = True
         args.adduct = "[M]+"
 
     if args.cutoff:
@@ -116,7 +113,7 @@ def main():
         loadtxt_kws=loadtxt_kws,
         signal_mass_width=args.masswidth,
     )
-    if args.autoadduct:
+    if args.auto_adduct:
         adduct, diff = dget.guess_adduct_from_base_peak()
         dget.adduct = adduct
         print(f"Adduct difference from adduct base peak m/z: {diff:.4f}")
