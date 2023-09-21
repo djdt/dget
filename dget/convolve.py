@@ -25,11 +25,10 @@ def deconvolve(x: np.ndarray, psf: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         Based on https://rosettacode.org/wiki/Deconvolution/1D
     """
 
-    def shift_bit_length(x: int) -> int:
-        return 1 << (x - 1).bit_length()
-
-    r = shift_bit_length(max(x.size, psf.size))
-    y = np.fft.irfft(np.fft.rfft(x, r) / np.fft.rfft(psf, r), r)
-    rec = np.trim_zeros(np.real(y))[: x.size - (psf.size - 1)]
+    r = max(x.size, psf.size)
+    X = np.fft.rfft(x, r)
+    P = np.fft.rfft(psf, r)
+    y = np.fft.irfft(X / P, r)
+    rec = np.real(y)[: x.size - (psf.size - 1)]
     rem = x - np.convolve(rec, psf, mode="full")
     return rec, rem
