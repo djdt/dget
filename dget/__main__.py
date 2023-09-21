@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 
 from dget import DGet, __version__
+from dget.io import shimadzu, text
 
 
 def generate_parser() -> argparse.ArgumentParser:
@@ -26,19 +27,17 @@ def generate_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument("tofdata", type=Path, help="Path to mass spec data file.")
-    parser.add_argument("--delimiter", default="\t", help="MS data file delimiter.")
+    parser.add_argument("--delimiter", help="MS data file delimiter.")
     parser.add_argument(
         "--columns",
         metavar=("MASS", "SIGNAL"),
         type=int,
-        default=(0, 1),
         nargs=2,
         help="Columns used in the MS data file.",
     )
     parser.add_argument(
         "--skiprows",
         type=int,
-        default=1,
         help="Number of header rows to skip in data file.",
     )
 
@@ -72,6 +71,14 @@ def generate_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def guess_loadtxt_kws(path: Path):
+    if shimadzu.is_shimadzu_file(path):
+        return shimadzu.get_loadtxt_kws(path)
+    return text.guess_loadtxt_kws(
+        path, {"delimiter": "\t", "usecols": (0, 1), "skiprows": 1}
+    )
+
+
 def main():
     parser = generate_parser()
     args = parser.parse_args()
@@ -88,11 +95,14 @@ def main():
     if "D" not in args.formula:
         parser.error("--formula, must contain at least one D atom.")
 
-    loadtxt_kws = {
-        "delimiter": args.delimiter,
-        "skiprows": args.skiprows,
-        "usecols": args.columns,
-    }
+    loadtxt_kws = guess_loadtxt_kws(args.tofdata)
+    if args.delimiter is not None:
+        loadtxt_kws["delimiter"] = args.delimiter
+    if args.columns is not None:
+        loadtxt_kws["usecols"] = args.columns
+    if args.skiprows is not None:
+        loadtxt_kws["delimiter"] = args.skiprows
+
     dget = DGet(
         args.formula,
         args.tofdata,
