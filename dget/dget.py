@@ -30,7 +30,7 @@ class DGet(object):
         adduct: form of adduct ion, see `dget.adduct`
         number_states: number of deuterated states to calculate
         signal_mass_width: range around each m/z to search for maxima or integrate
-        signal_method: detection mode, valid values are 'peak area', 'peak height', 'raw'
+        signal_method: detection mode, one of 'peak area', 'peak height', 'raw'
         loadtxt_kws: parameters passed to `numpy.loadtxt`,
             defaults to {'delimiter': ',', 'usecols': (0, 1)}
     """

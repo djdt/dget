@@ -1,4 +1,4 @@
-Dget
+DGet
 ====
 
 .. automodule:: dget.dget

@@ -1,15 +1,33 @@
+"""Module for importing MS data from delimited text files."""
 from pathlib import Path
 from typing import TextIO
 
 delimiters = [";", ",", "\t", " "]
+"""List[str]: text delimiters"""
 
 mass_hints = ["mass", "m/z", "thompson"]
+"""List[str]: strings used guess m/z column from header"""
+
 signal_hints = ["signal", "intensity", "count", "cps"]
+"""List[str]: strings used guess signal intensity column from header"""
 
 
 def guess_loadtxt_kws(
     file: str | Path | TextIO, loadtxt_kws: dict | None = None
 ) -> dict:
+    """Attempt to guess the ``loadtxt_kws`` for a file.
+
+    These keywords are passed to ``np.loadtxt`` during initilisation of a
+    ``dget.DGet`` class. Guessed values are 'delimiter', 'usecols' and
+    'skiprows'.
+
+    Args:
+        file: str, path or file pointer to MS text file
+        loadtxt_kws: current keywords, values may be overwritten
+
+    Returns:
+        ``loadtxt_kws`` updated with guessed values
+    """
     if isinstance(file, (str, Path)):  # pragma: no cover
         file = open(file, "r")
     header = file.readlines(2048)
