@@ -112,10 +112,6 @@ def main():
         print(f"Re-aligned ToF data by shifting {offset:.2f} m/z")
         print()
 
-    baseline = dget.subtract_baseline((dget.targets[0], dget.targets[-1]))
-    print(f"Subtracting baseline of {baseline:.2f}")
-    print()
-
     dget.print_results()
 
     if args.plot:
