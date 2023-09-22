@@ -54,7 +54,6 @@ class DGet(object):
         deuterated_formula: str | Formula,
         tofdata: str | Path | TextIO | Tuple[np.ndarray, np.ndarray],
         adduct: str = "[M]+",
-        # number_states: int | None = None,
         cutoff: float | str | None = None,
         signal_mass_width: float = 0.5,
         signal_mode: str = "peak height",
