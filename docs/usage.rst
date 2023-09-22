@@ -48,6 +48,6 @@ Plotting depends on `matplotlib <https://matplotlib.org>`_.
 Web App
 -------
 
-A web application of DGet is avaliable at `<https://djdt.github.io/dget>`_.
+A web application of DGet is avaliable at `<https://dget.app>`_.
 
-Details on its usage can be found on the `Help <https://djdt.github.io/dget/help>`_ page.
+Details on its usage can be found on the `Help <https://dget.app/help>`_ page.
