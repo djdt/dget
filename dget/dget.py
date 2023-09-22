@@ -136,7 +136,7 @@ class DGet(object):
         states = self.deuteration_states
         prob = self.deuteration_probabilites[states]
         prob = prob / prob.sum()  # re-normalise
-        return np.sum(prob * states) / self.deuterium_count / self.adduct.num_base
+        return np.sum(prob * states) / self.deuterium_count
 
     @property
     def deuteration_error(self) -> float:

@@ -156,6 +156,48 @@ def test_deuteration():
     assert np.all(dget.deuteration_states == [0, 1, 2, 3, 4])
     assert np.isclose(dget.deuteration, 0.5)
 
+    # 2 molecules with 0.5, 0.5
+    dget = DGet(
+        "C2H3D1",
+        adduct="[2M+H]+",
+        tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])),
+    )
+    dget._probabilities = np.array([0.25, 0.5, 0.25])
+    assert np.isclose(dget.deuteration, 0.5)
+
+    # 2 molecules with 0.6, 0.3, 0.1
+    dget = DGet(
+        "C2H4D2",
+        adduct="[2M+H]+",
+        tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])),
+    )
+    dget._probabilities = np.array(
+        [
+            0.6 * 0.6,
+            0.6 * 0.3 + 0.3 * 0.6,
+            0.3 * 0.3 + 0.6 * 0.1 + 0.1 * 0.6,
+            0.3 * 0.1 + 0.1 * 0.3,
+            0.1 * 0.1,
+        ]
+    )
+    assert np.isclose(dget.deuteration, 0.25)
+
+    # 3 molecules with 0.5, 0.5
+    dget = DGet(
+        "C2H3D1",
+        adduct="[3M+H]+",
+        tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])),
+    )
+    dget._probabilities = np.array(
+        [
+            0.5 * 0.5 * 0.5,
+            (0.5 * 0.5 * 0.5) * 3,
+            (0.5 * 0.5 * 0.5) * 3,
+            (0.5 * 0.5 * 0.5),
+        ]
+    )
+    assert np.isclose(dget.deuteration, 0.5)
+
 
 def test_deuteration_error():
     dget = DGet("C2H2D4", tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])))
