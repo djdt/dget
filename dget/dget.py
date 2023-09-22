@@ -18,9 +18,19 @@ class DGet(object):
     This class contains functions for calculating deuteration from
     a molecular formula and mass spectra.
 
+    The lowest deuteration state to include in the calculation can be selected using the
+    ``cutoff`` argument. This accepts floats to specify an m/z or a string in the format
+    'D<int>' to specify the lowest state. By default the lowest state will be the first
+    where 2 consecutive states are < 1% and the accumulated probability is > 10%.
+
+    Signals are read from the data using the ``signal_mode``, 'peak area' will integrate
+    the ``signal_mass_width`` region around each m/z, while 'peak height'and 'raw' will
+    select the highest peak within this region. If 'raw' is selected, no de-convolution
+    is performed.
+
     Mass spectra files are expected to be a delimited text file with at least 2 columns,
     one for mass and one for signals. Specify columns using the keyword 'usecols' in
-    `loadtxt_kws`, a (zero indexed) tuple of ints for (mass, signal) columns.
+    ``loadtxt_kws``, a (zero indexed) tuple of ints for (mass, signal) columns.
     The delimiter can be specified using the 'delimiter' keyword.
     Mass spectra can also be passed as a tuple of numpy arrays, (masses, signals).
 
@@ -28,9 +38,9 @@ class DGet(object):
         deuterated_formula: formula of fully deuterated molecule
         tofdata: path to mass spectra text file, or tuple of masses, signals
         adduct: form of adduct ion, see `dget.adduct`
-        number_states: number of deuterated states to calculate
+        cutoff: cutoff for calculation as an m/z '123.4' or state 'D<int>'
         signal_mass_width: range around each m/z to search for maxima or integrate
-        signal_method: detection mode, one of 'peak area', 'peak height', 'raw'
+        signal_mode: detection mode, one of 'peak area', 'peak height', 'raw'
         loadtxt_kws: parameters passed to `numpy.loadtxt`,
             defaults to {'delimiter': ',', 'usecols': (0, 1)}
     """
@@ -88,15 +98,11 @@ class DGet(object):
 
         self.mass_width = signal_mass_width
 
-        if signal_mode not in [
-            "peak area",
-            "peak height",
-            "raw",
-        ]:  # pragma: no cover, exception
+        if signal_mode not in ["peak area", "peak height", "raw"]:
+            # pragma: no cover, exception
             raise ValueError(
                 "signal_mode must be one of 'peak area', 'peak height', 'raw'"
             )
-
         self.signal_mode = signal_mode
 
         if isinstance(tofdata, tuple):
@@ -125,8 +131,7 @@ class DGet(object):
         formula that have been deuterated successfully.
         For example: 60% C2H5D1, 40% C2H6 would give a deuteration of 0.6.
 
-        Deuteration is only calculated for the ``number_states`` highest deuteration
-        states.
+        Deuteration is only calculated for the states above the deuteration cutoff.
         """
         states = self.deuteration_states
         prob = self.deuteration_probabilites[states]
@@ -196,9 +201,9 @@ class DGet(object):
         """Indexes of the valid deuteration states.
 
         Valid states are those Dx-Dn, where n is the number of deuterium atoms
-        in the base molecule as x is either ``n - self.number_states`` if defined
-        or the last 2 consecutive probabilities that are < 1% with an accumulative
-        probability of at least 10%.
+        in the base molecule as x is inferred from ``self.deuteration_cutoff`` if
+        defined or the last 2 consecutive probabilities that are < 1% with an
+        accumulative probability of at least 10%.
         """
         if self.deuteration_cutoff is None:
             prob = self.deuteration_probabilites[::-1]
