@@ -157,6 +157,21 @@ def test_deuteration():
     assert np.isclose(dget.deuteration, 0.5)
 
 
+def test_deuteration_error():
+    dget = DGet("C2H2D4", tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])))
+    dget._probabilities = np.array([0.2, 0.2, 0.2, 0.2, 0.2])
+    dget._probability_remainders = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
+    assert np.isclose(dget.deuteration_error, 0.0)
+    dget._probability_remainders = np.array([0.1, 0.1, 0.1, 0.1, 0.0])
+    assert np.isclose(dget.deuteration_error, 0.33333)
+    dget._probability_remainders = np.array([0.1, 0.1, 0.1, 0.1, 0.1])
+    assert np.isclose(dget.deuteration_error, 0.5)
+    dget._probability_remainders = np.array([0.2, 0.2, 0.2, 0.2, 0.0])
+    assert np.isclose(dget.deuteration_error, 0.66666)
+    dget._probability_remainders = np.array([0.2, 0.2, 0.2, 0.2, 0.2])
+    assert np.isclose(dget.deuteration_error, 1.0)
+
+
 def test_integration():
     x = np.concatenate(
         [
@@ -255,7 +270,7 @@ def test_targets():
 def test_output_results():
     dget = DGet("C2H2D4", tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])))
     dget._probabilities = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
-    dget._probability_remainders = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
+    dget._probability_remainders = np.array([0.0, 0.1, 0.2, 0.3, 0.4]) / 2.0
 
     results = StringIO()
     dget.print_results(file=results)
@@ -264,7 +279,7 @@ def test_output_results():
         "Adduct           : [M]+\n"
         "M/Z              : 34.0721\n"
         "Adduct M/Z       : 34.0715\n"
-        "%Deuteration     : 75.00 ± 100.00 %\n"
+        "%Deuteration     : 75.00 ± 50.00 %\n"
         "\n"
         "Deuteration Ratio Spectra\n"
         "D0               :  0.00 %\n"
