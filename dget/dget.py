@@ -147,10 +147,10 @@ class DGet(object):
         """
         states = self.deuteration_states
         prob = self.deuteration_probabilites[states].sum()
-        prob += self.deuteration_probabilites[states.max() :].sum()
+        prob += self.deuteration_probabilites[states.max() + 1 :].sum()
         assert self._probability_remainders is not None
         err = np.abs(self._probability_remainders[states]).sum()
-        err += np.abs(self._probability_remainders[states.max() :]).sum()
+        err += np.abs(self._probability_remainders[states.max() + 1 :]).sum()
         return err / prob
 
     @property

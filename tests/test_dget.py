@@ -205,11 +205,11 @@ def test_deuteration_error():
     dget._probability_remainders = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
     assert np.isclose(dget.deuteration_error, 0.0)
     dget._probability_remainders = np.array([0.1, 0.1, 0.1, 0.1, 0.0])
-    assert np.isclose(dget.deuteration_error, 0.33333)
+    assert np.isclose(dget.deuteration_error, 0.4)
     dget._probability_remainders = np.array([0.1, 0.1, 0.1, 0.1, 0.1])
     assert np.isclose(dget.deuteration_error, 0.5)
     dget._probability_remainders = np.array([0.2, 0.2, 0.2, 0.2, 0.0])
-    assert np.isclose(dget.deuteration_error, 0.66666)
+    assert np.isclose(dget.deuteration_error, 0.8)
     dget._probability_remainders = np.array([0.2, 0.2, 0.2, 0.2, 0.2])
     assert np.isclose(dget.deuteration_error, 1.0)
 
