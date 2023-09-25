@@ -4,7 +4,6 @@ from pathlib import Path
 
 import numpy as np
 from flask import Flask, abort, json, render_template, request, session
-from google.cloud import firestore
 from molmass import Formula, FormulaError
 
 from dget import DGet, __version__
@@ -115,6 +114,7 @@ def report():
         mz=result["m/z"],
         adduct_mz=result["adduct m/z"],
         deuteration=result["deuteration"] * 100.0,
+        error=result["error"] * 100.0,
         ratios={
             s: p * 100.0 for s, p in zip(result["states"], result["probabilities"])
         },
@@ -264,6 +264,7 @@ def calculate():
             "m/z": dget.adduct.base.isotope.mz,
             "adduct m/z": dget.formula.isotope.mz,
             "deuteration": dget.deuteration,
+            "error": dget.deuteration_error,
             "states": dget.deuteration_states.tolist(),
             "probabilities": probabilities.tolist(),
         },

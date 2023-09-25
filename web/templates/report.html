@@ -43,7 +43,7 @@
         <div class="row">
             <h3>Results</h3>
                 <table>
-                    <tr><td>%Deuteration:</td><td><b> {{ deuteration|round(2) }} %</td></b></tr>
+                    <tr><td>%Deuteration:</td><td><b> {{ deuteration|round(2) }} ± {{ error|round(2) }} %</td></b></tr>
                     <tr><td>Deuteration Ratio Spectra</td></tr>
                     {% for state, perc in ratios.items() %}
                     <tr><td>D{{ state }}:</td><td>{{ perc|round(2) }} %</td></tr>
