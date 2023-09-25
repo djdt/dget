@@ -16,12 +16,17 @@ __web_version__ = "0.24.1"
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "dev56179e7461961afa552021c4e0957"
+app.config["GCLOUD_FIRESTORE"] = False
 app.config.from_pyfile("app.cfg", silent=True)
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["UPLOAD_PATH"] = "/tmp/uploads"
 
-if not app.debug:
+if app.config["GCLOUD_FIRESTORE"]:
+    # If running on google cloud, store some data about runs
+    # (id, time, formula, adduct, options)
+    from google.cloud import firestore
+
     fs = firestore.Client()
 
 
@@ -237,7 +242,7 @@ def calculate():
     chart_results = get_chart_results(dget, start, end)
 
     # Store some information about successful runs
-    if not app.debug:
+    if app.config["GCLOUD_FIRESTORE"]:
         fs.collection("dget").add(
             {
                 "session": session.get("id", "nosession"),
