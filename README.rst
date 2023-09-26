@@ -12,24 +12,24 @@ To use DGet pass a molecular formula, mass spectra text file and optionally the 
 
     $ dget C12HD8N <path-to-ms-file.csv> --adduct "[M-H]-"
 
-This will print the deuteration of the base molecule ``%Deuteration`` and the predicted deuteration of every possible deuteration state from ``D0`` (no deuterium) to ``Dn`` (full deuterium):: 
+This will print the deuteration of the base molecule ``%Deuteration`` and the predicted deuteration of every possible deuteration state from ``D0`` (no deuterium) to ``Dn`` (full deuterium)::
 
-    Formula          : C12H[2H]8N
+    Formula          : C12HD8N
     Adduct           : [M-H]-
     M/Z              : 175.1237
     Adduct M/Z       : 174.1164
-    %Deuteration     : 93.66 %
+    %Deuteration     : 93.73 ± 5.30 %
 
     Deuteration Ratio Spectra
-    D0               :  0.15 %
-    D1               :  0.18 %
+    D0               :  0.07 %
+    D1               :  0.19 %
     D2               :  0.20 %
     D3               :  0.26 %
     D4               :  0.39 %
     D5               :  1.41 %
     D6               :  6.05 %
-    D7               : 27.79 %
-    D8               : 63.56 %
+    D7               : 27.80 %
+    D8               : 63.62 %
 
 Plotting
 --------
