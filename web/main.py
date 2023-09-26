@@ -11,7 +11,7 @@ from dget.adduct import Adduct
 from dget.io import shimadzu, text
 from dget.plot import scale_to_match
 
-__web_version__ = "0.25.1"
+__web_version__ = "0.25.2"
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "dev56179e7461961afa552021c4e0957"
