@@ -394,7 +394,6 @@ class DGet(object):
         self,
         ax: "matplotlib.axes.Axes",
         mass_range: Tuple[float, float] | str = "targets",  # noqa: F821
-        color_probabilities: bool = False,
     ) -> None:
         """Plot spectra over mass spectra on `ax`.
 
@@ -405,7 +404,6 @@ class DGet(object):
         Args:
             ax: matplotlib axes to plot on
             mass_range: range to plot
-            color_probabilities: use a colour for each probability
         """
         targets = self.targets
 
@@ -421,47 +419,49 @@ class DGet(object):
         x, y = self.x[start:end], self.y[start:end]
 
         # Data
-        ax.plot(x, y, color="black")
+        ax.plot(x, y, color="black", zorder=0)
 
         if self.deuteration_probabilites.size == 0:
             return
 
-        if color_probabilities:
-            ys = np.zeros(
-                (
-                    self.deuteration_probabilites.size,
-                    self.deuteration_probabilites.size,
-                )
-            )
-            np.fill_diagonal(ys.T, self.deuteration_probabilites)
-            ys = np.apply_along_axis(np.convolve, 0, ys, self.psf, mode="full")
-            ys = scale_to_match(x, y, targets, ys, width=self.mass_width)
+        # Scaled prediction
+        ys = np.convolve(self.deuteration_probabilites, self.psf, mode="full")
+        scaled_ys = scale_to_match(x, y, targets, ys, width=self.mass_width)
 
-            kws = [{"colors": f"C{i}"} for i in range(ys.shape[1])]
+        used = self.deuteration_states
+        used = np.append(used, np.arange(used[-1] + 1, targets.size))
+        not_used = np.flatnonzero(~np.in1d(np.arange(targets.size), used))
 
-            stacked_stem(ax, targets, ys, stack_kws=kws)
-        else:
-            # Scaled prediction
-            ys = np.convolve(self.deuteration_probabilites, self.psf, mode="full")
-            ax.stem(
-                targets,
-                scale_to_match(x, y, targets, ys, width=self.mass_width),
-                markerfmt=" ",
-                basefmt=" ",
-                linefmt="C1-",
-                label="Deconvolved Spectra",
+        color = np.full(targets.size, "#8aa29e")
+        color[self.deuteration_states] = "#db5461"
+        color[self.deuteration_states.max() :] = "#db5461"
+
+        ax.scatter(
+            targets[used], scaled_ys[used], c="#db5461", s=24, label="Deconvolution"
+        )
+        if not_used.size > 0:
+            ax.scatter(
+                targets[not_used],
+                scaled_ys[not_used],
+                c="#8aa29e",
+                s=24,
+                label="Deconvolution (Not included)",
             )
 
         # Scaled PSF
         masses = np.array([i.mz for i in self.spectrum.values()])
-        ax.stem(
+        scaled_psf = (scale_to_match(x, y, masses, self.psf, width=self.mass_width),)
+        ax.scatter(
             masses,
-            scale_to_match(x, y, masses, self.psf, width=self.mass_width),
-            markerfmt=" ",
-            basefmt=" ",
-            linefmt="--",
-            label="Adduct Spectra",
+            scaled_psf,
+            c="none",
+            edgecolors="#364699",
+            linewidths=2,
+            s=48,
+            label="Isotope Spectra",
         )
+
+        # Labels
         ax.set_title(f"{self.base_name} {self.adduct.adduct}")
         ax.set_xlabel("M/Z")
         ax.set_ylabel("Signal")
