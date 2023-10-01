@@ -195,6 +195,17 @@ class DGet(object):
         return fractions / fractions.sum()
 
     @property
+    def residual_error(self) -> float | None:
+        """The normalised (0.0 - 1.0) sum of deonvolution residuals.
+
+        A high residual error is indicitive of a poor fit between the data and
+        isotopic spectra. This can result from an incorrect formula or contaminants
+        in the mass spectra."""
+        if self._deconv_residuals is None:
+            return None
+        return np.sum(self._deconv_residuals) / np.sum(self.target_signals)
+
+    @property
     def spectrum(self) -> Spectrum:
         """The adduct spectrum."""
         return self.formula.spectrum(min_fraction=DGet.min_fraction_for_spectra)
@@ -479,9 +490,6 @@ class DGet(object):
         print(f"M/Z              : {self.adduct.base.isotope.mz:.4f}", file=file)
         print(f"Adduct M/Z       : {self.formula.isotope.mz:.4f}", file=file)
         print(f"Deuteration      : {pd * 100.0:5.2f} %", file=file)
-        if self._deconv_residuals is not None:
-            sum_res = np.sum(self._deconv_residuals) / np.sum(self.target_signals)
-            print(f"Fit Error        : {sum_res * 100.0:5.2f} %", file=file)
         print(file=file)
         print("Deuteration Ratio Spectra", file=file)
         for s, p in zip(states, prob):
