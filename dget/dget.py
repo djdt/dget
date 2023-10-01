@@ -9,7 +9,7 @@ from molmass import Formula, Spectrum
 from dget.adduct import Adduct
 from dget.convolve import deconvolve
 from dget.formula import spectra_mz_spread
-from dget.plot import scale_to_match, stacked_stem
+from dget.plot import scale_to_match
 
 
 class DGet(object):
