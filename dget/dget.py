@@ -80,7 +80,7 @@ class DGet(object):
         self._target_masses: np.ndarray | None = None
         self._target_signals: np.ndarray | None = None
         self._probabilities: np.ndarray | None = None
-        self._probability_remainders: np.ndarray | None = None
+        self._deconv_residuals: np.ndarray | None = None
 
         self.adduct = Adduct(deuterated_formula, adduct)
 
@@ -141,21 +141,6 @@ class DGet(object):
         return np.sum(prob * states) / self.deuterium_count
 
     @property
-    def deuteration_error(self) -> float:
-        """Estimation the error of the deconvolution.
-
-        Provides an estimate of the accuracy of the deuterations calculation,
-        based on the deconvolution residuals.
-        """
-        states = self.deuteration_states
-        prob = self.deuteration_probabilites[states].sum()
-        prob += self.deuteration_probabilites[states.max() + 1 :].sum()
-        assert self._probability_remainders is not None
-        err = np.abs(self._probability_remainders[states]).sum()
-        err += np.abs(self._probability_remainders[states.max() + 1 :]).sum()
-        return err / prob
-
-    @property
     def deuteration_probabilites(self) -> np.ndarray:
         """The deuteration fraction of each possible deuteration.
 
@@ -166,7 +151,7 @@ class DGet(object):
             if self.signal_mode == "raw":  # Skip deconvolution
                 self._probabilities = self.target_signals[: -self.psf.size + 1]
             else:
-                self._probabilities, self._probability_remainders = deconvolve(
+                self._probabilities, self._deconv_residuals = deconvolve(
                     self.target_signals, self.psf
                 )
                 # Remove negative probabilities
@@ -485,16 +470,18 @@ class DGet(object):
             file: file to print to, or sys.stdout if None
         """
         pd = self.deuteration  # ensure calculated
-        err = self.deuteration_error
         states = self.deuteration_states
         prob = self.deuteration_probabilites[states]
         prob = prob / prob.sum()
+
+        sum_res = np.sum(self._deconv_residuals) / np.sum(self.target_signals)
 
         print(f"Formula          : {self.base_name}", file=file)
         print(f"Adduct           : {self.adduct.adduct}", file=file)
         print(f"M/Z              : {self.adduct.base.isotope.mz:.4f}", file=file)
         print(f"Adduct M/Z       : {self.formula.isotope.mz:.4f}", file=file)
-        print(f"%Deuteration     : {pd * 100.0:.2f} ± {err * 100.0:.2f} %", file=file)
+        print(f"Deuteration      : {pd * 100.0:.2f} %", file=file)
+        print(f"Fit Error        : {sum_res * 100:.2f} %", file=file)
         print(file=file)
         print("Deuteration Ratio Spectra", file=file)
         for s, p in zip(states, prob):
