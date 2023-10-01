@@ -297,9 +297,11 @@ def test_targets():
     dget = DGet("C20D6", tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])))
     formulas = ["C20H6", "C20H5D", "C20H4D2", "C20H3D3", "C20H2D4", "C20HD5", "C20D6"]
 
-    assert np.allclose(dget.targets[:7], [Formula(f).isotope.mz for f in formulas])
     assert np.allclose(
-        dget.targets[-4:],
+        dget.target_masses[:7], [Formula(f).isotope.mz for f in formulas]
+    )
+    assert np.allclose(
+        dget.target_masses[-4:],
         [
             s.mz
             for s in dget.formula.spectrum(

@@ -76,7 +76,9 @@ class DGet(object):
         if loadtxt_kws is not None:
             _loadtxt_kws.update(loadtxt_kws)
 
-        self._targets: np.ndarray | None = None
+        # Parameters generated on first use
+        self._target_masses: np.ndarray | None = None
+        self._target_signals: np.ndarray | None = None
         self._probabilities: np.ndarray | None = None
         self._probability_remainders: np.ndarray | None = None
 
@@ -161,38 +163,16 @@ class DGet(object):
         deuterium in the original molecular formula. Probabilities will sum to 1.0.
         """
         if self._probabilities is None:
-            starts = np.searchsorted(self.x, self.targets - self.mass_width / 2.0)
-            ends = np.searchsorted(self.x, self.targets + self.mass_width / 2.0)
-
-            valid = (starts < ends) & (ends < self.x.size - 1)
-            if np.any(~valid):
-                print("warning: some m/z targets fall outside of mass spectrum")
-
-            counts = np.zeros(self.targets.size)
-
-            if self.signal_mode == "peak area":
-                counts[valid] = [
-                    np.trapz(self.y[s:e], x=self.x[s:e])
-                    for s, e in zip(starts[valid], ends[valid])
-                ]
-            elif self.signal_mode in ["peak height", "raw"]:
-                counts[valid] = np.maximum.reduceat(
-                    self.y, np.stack((starts[valid], ends[valid]), axis=1).flat
-                )[::2]
-            else:  # pragma: no cover, exception
-                raise ValueError(
-                    "DGet.signal_mode must be 'peak area', 'peak height', 'raw'"
-                )
-            counts = counts / counts.sum()
             if self.signal_mode == "raw":  # Skip deconvolution
-                self._probabilities = counts
+                self._probabilities = self.target_signals[: -self.psf.size + 1]
             else:
                 self._probabilities, self._probability_remainders = deconvolve(
-                    counts, self.psf
+                    self.target_signals, self.psf
                 )
-                # Remove negative probabilities and normalise
+                # Remove negative probabilities
                 self._probabilities[self._probabilities < 0.0] = 0.0
-                self._probabilities = self._probabilities / self._probabilities.sum()
+            # Normalise
+            self._probabilities = self._probabilities / self._probabilities.sum()
 
         return self._probabilities  # type: ignore
 
@@ -213,7 +193,7 @@ class DGet(object):
         elif isinstance(self.deuteration_cutoff, str):
             cutoff = int(self.deuteration_cutoff[1:])
         else:  # is float
-            cutoff = np.searchsorted(self.targets, self.deuteration_cutoff)
+            cutoff = np.searchsorted(self.target_masses, self.deuteration_cutoff)
         return np.arange(max(cutoff, 0), self.deuterium_count + 1)
 
     @property
@@ -235,15 +215,46 @@ class DGet(object):
         return self.formula.spectrum(min_fraction=DGet.min_fraction_for_spectra)
 
     @property
-    def targets(self) -> np.ndarray:
+    def target_masses(self) -> np.ndarray:
         """The m/z of every possible spectrum.
 
         A new spectrum is created by combining the spectra of every possible
         deuteration state."""
-        if self._targets is None:
+        if self._target_masses is None:
             spectra = list(self.spectra())
-            self._targets = spectra_mz_spread(spectra)
-        return self._targets
+            self._target_masses = spectra_mz_spread(spectra)
+        return self._target_masses
+
+    @property
+    def target_signals(self) -> np.ndarray:
+        """The signal for every m/z in the possible spectrum.
+
+        The ``mass_width`` area around each of the ``target_masses`` is integrated or
+        searched for the maximum peak height, depending on the current ``signal_mode``.
+        """
+        if self._target_signals is None:
+            starts = np.searchsorted(self.x, self.target_masses - self.mass_width / 2.0)
+            ends = np.searchsorted(self.x, self.target_masses + self.mass_width / 2.0)
+            valid = (starts < ends) & (ends < self.x.size - 1)
+            if np.any(~valid):
+                print("warning: some target m/z fall outside of mass spectrum")
+
+            self._target_signals = np.zeros(self.target_masses.size)
+
+            if self.signal_mode == "peak area":
+                self._target_signals[valid] = [
+                    np.trapz(self.y[s:e], x=self.x[s:e])
+                    for s, e in zip(starts[valid], ends[valid])
+                ]
+            elif self.signal_mode in ["peak height", "raw"]:
+                self._target_signals[valid] = np.maximum.reduceat(
+                    self.y, np.stack((starts[valid], ends[valid]), axis=1).flat
+                )[::2]
+            else:  # pragma: no cover, exception
+                raise ValueError(
+                    "DGet.signal_mode must be 'peak area', 'peak height', 'raw'"
+                )
+        return self._target_signals
 
     def __str__(self) -> str:  # pragma: no cover, debug
         return f"DGet({self.adduct})"
@@ -392,8 +403,8 @@ class DGet(object):
 
     def plot_predicted_spectra(
         self,
-        ax: "matplotlib.axes.Axes",
-        mass_range: Tuple[float, float] | str = "targets",  # noqa: F821
+        ax: "matplotlib.axes.Axes",  # noqa: F821
+        mass_range: Tuple[float, float] | str = "targets",
     ) -> None:
         """Plot spectra over mass spectra on `ax`.
 
@@ -405,7 +416,7 @@ class DGet(object):
             ax: matplotlib axes to plot on
             mass_range: range to plot
         """
-        targets = self.targets
+        targets = self.target_masses
 
         if isinstance(mass_range, str):
             if mass_range == "full":
