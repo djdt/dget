@@ -18,7 +18,7 @@ This will print the deuteration of the base molecule ``%Deuteration`` and the pr
     Adduct           : [M-H]-
     M/Z              : 175.1237
     Adduct M/Z       : 174.1164
-    %Deuteration     : 93.73 ± 5.30 %
+    Deuteration      : 93.73 %
 
     Deuteration Ratio Spectra
     D0               :  0.07 %
