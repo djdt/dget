@@ -11,7 +11,7 @@ from dget.adduct import Adduct
 from dget.io import shimadzu, text
 from dget.plot import scale_to_match
 
-__web_version__ = "0.25.2"
+__web_version__ = "0.26.1"
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "dev56179e7461961afa552021c4e0957"
@@ -114,7 +114,6 @@ def report():
         mz=result["m/z"],
         adduct_mz=result["adduct m/z"],
         deuteration=result["deuteration"] * 100.0,
-        error=result["error"] * 100.0,
         ratios={
             s: p * 100.0 for s, p in zip(result["states"], result["probabilities"])
         },
@@ -264,7 +263,6 @@ def calculate():
             "m/z": dget.adduct.base.isotope.mz,
             "adduct m/z": dget.formula.isotope.mz,
             "deuteration": dget.deuteration,
-            "error": dget.deuteration_error,
             "states": dget.deuteration_states.tolist(),
             "probabilities": probabilities.tolist(),
         },

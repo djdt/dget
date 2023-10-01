@@ -299,8 +299,6 @@ def test_targets():
 def test_output_results():
     dget = DGet("C2H2D4", tofdata=(np.array([0.0, 999.0]), np.array([0.0, 0.0])))
     dget._probabilities = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
-    dget._target_signals = np.array([1.0, 2.0, 1.0, 3.0, 5.0, 3.0, 2.0])
-    dget._deconv_residuals = np.array([0.1, 0.2, 0.1, 0.3, 0.5, 0.3, 0.2])
 
     results = StringIO()
     dget.print_results(file=results)
@@ -310,7 +308,6 @@ def test_output_results():
         "M/Z              : 34.0721\n"
         "Adduct M/Z       : 34.0715\n"
         "Deuteration      : 75.00 %\n"
-        "Fit Error        : 10.00 %\n"
         "\n"
         "Deuteration Ratio Spectra\n"
         "D0               :  0.00 %\n"
