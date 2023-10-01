@@ -478,10 +478,10 @@ class DGet(object):
         print(f"Adduct           : {self.adduct.adduct}", file=file)
         print(f"M/Z              : {self.adduct.base.isotope.mz:.4f}", file=file)
         print(f"Adduct M/Z       : {self.formula.isotope.mz:.4f}", file=file)
-        print(f"Deuteration      : {pd * 100.0:.2f} %", file=file)
+        print(f"Deuteration      : {pd * 100.0:5.2f} %", file=file)
         if self._deconv_residuals is not None:
             sum_res = np.sum(self._deconv_residuals) / np.sum(self.target_signals)
-            print(f"Fit Error        : {sum_res * 100.0:.2f} %", file=file)
+            print(f"Fit Error        : {sum_res * 100.0:5.2f} %", file=file)
         print(file=file)
         print("Deuteration Ratio Spectra", file=file)
         for s, p in zip(states, prob):
