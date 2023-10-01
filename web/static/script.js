@@ -46,7 +46,7 @@ function updateOutputs(result) {
         Adduct: ${result["adduct"]}<br>
         m/z: ${result["m/z"].toFixed(4)}<br>
         Adduct m/z: ${result["adduct m/z"].toFixed(4)}<br>
-        %Deuteration: ${(result["deuteration"] * 100.0).toFixed(2)} %<br>
+        Deuteration: ${(result["deuteration"] * 100.0).toFixed(2)} %<br>
         <br>
         Deuteration Ratio Spectra<br>
         `

@@ -49,7 +49,7 @@ def get_chart_results(dget: DGet, start: int, end: int) -> dict:
     y = dget.y[start:end]
 
     # The deconv prediction
-    pred_X = dget.targets
+    pred_X = dget.target_masses
     pred_y = np.convolve(dget.deuteration_probabilites, dget.psf, mode="full")
     pred_y = scale_to_match(x, y, pred_X, pred_y, dget.mass_width)
 
@@ -234,7 +234,9 @@ def calculate():
     except Exception as e:
         abort(500, description=f"Processing error: {e}")
 
-    start, end = np.searchsorted(dget.x, (dget.targets[0], dget.targets[-1]))
+    start, end = np.searchsorted(
+        dget.x, (dget.target_masses[0], dget.target_masses[-1])
+    )
     start, end = np.clip((start, end), 0, dget.x.size)
     if start == end:
         abort(500, description="Entire spectra falls outside of m/z range.")
