@@ -9,9 +9,8 @@ from molmass import Formula, FormulaError
 from dget import DGet, __version__
 from dget.adduct import Adduct
 from dget.io import shimadzu, text
-from dget.plot import scale_to_match
 
-__web_version__ = "0.26.1"
+__web_version__ = "0.27.1"
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "dev56179e7461961afa552021c4e0957"
@@ -49,9 +48,11 @@ def get_chart_results(dget: DGet, start: int, end: int) -> dict:
     y = dget.y[start:end]
 
     # The deconv prediction
-    pred_X = dget.target_masses
-    pred_y = np.convolve(dget.deuteration_probabilites, dget.psf, mode="full")
-    pred_y = scale_to_match(x, y, pred_X, pred_y, dget.mass_width)
+    pred_x = dget.target_masses
+    pred_y = dget.target_signals
+    if dget._deconv_residuals is not None:
+        pred_y -= dget._deconv_residuals
+    pred_y[pred_y < 0.0] = 0.0
 
     # Generate labels D0-Dmax, Dmax + 1-X
     labels = [f"D{i}" for i in range(0, dget.deuterium_count + 1)] + [
@@ -61,12 +62,12 @@ def get_chart_results(dget: DGet, start: int, end: int) -> dict:
     # Get the isotopic spectra
     spec_x = np.array([i.mz for i in dget.spectrum.values()])
     spec_y = dget.psf
-    spec_y = spec_y / spec_y[0] * pred_y[dget.deuterium_count]
+    spec_y = spec_y * pred_y[dget.deuterium_count] / spec_y[0]
 
     return {
         "x": x.tolist(),
         "y": y.tolist(),
-        "pred x": pred_X.tolist(),
+        "pred x": pred_x.tolist(),
         "pred y": pred_y.tolist(),
         "pred labels": labels,
         "spec x": spec_x.tolist(),

@@ -9,7 +9,6 @@ from molmass import Formula, Spectrum
 from dget.adduct import Adduct
 from dget.convolve import deconvolve
 from dget.formula import spectra_mz_spread
-from dget.plot import scale_to_match
 
 
 class DGet(object):
@@ -313,35 +312,6 @@ class DGet(object):
         self.x += offset
         return offset
 
-    def subtract_baseline(
-        self, mass_range: Tuple[float, float] | None = None, percentile: float = 25.0
-    ) -> float:
-        """Subtracts baseline of region.
-
-        Calculates the ``percentile`` percentile of the designated mass region and
-        subtracts it from the mass spec signals.
-
-        Args:
-            mass_range: region to find baseline
-            percentile: percentile to use
-
-        Returns:
-            amount subtracted from baseline
-        """
-        if mass_range is not None:
-            idx = np.searchsorted(self.x, mass_range)
-            start, end = np.clip(idx, 0, self.x.size)
-        else:
-            start, end = 0, self.x.size
-        if start == end:  # pragma: no cover, Exception
-            raise ValueError(
-                "unable to subtract baseline, entire m/z range falls outside spectra"
-            )
-
-        baseline = np.percentile(self.y[start:end], percentile)
-        self.y -= baseline
-        return baseline
-
     def guess_adduct_from_base_peak(
         self,
         adducts: List[Formula] | None = None,
@@ -412,13 +382,17 @@ class DGet(object):
             ax: matplotlib axes to plot on
             mass_range: range to plot
         """
-        targets = self.target_masses
+        xs = self.target_masses
+        ys = self.target_signals
+        if self._deconv_residuals is not None:
+            ys -= self._deconv_residuals
+        ys[ys < 0.0] = 0.0
 
         if isinstance(mass_range, str):
             if mass_range == "full":
                 mass_range = self.x.min(), self.x.max()
             elif mass_range == "targets":
-                mass_range = targets.min() - 5.0, targets.max() + 5.0
+                mass_range = xs.min() - 5.0, xs.max() + 5.0
             else:
                 raise ValueError("'mass_range' must be one of 'full', 'targets'.")
 
@@ -431,25 +405,19 @@ class DGet(object):
         if self.deuteration_probabilites.size == 0:
             return
 
-        # Scaled prediction
-        ys = np.convolve(self.deuteration_probabilites, self.psf, mode="full")
-        scaled_ys = scale_to_match(x, y, targets, ys, width=self.mass_width)
-
         used = self.deuteration_states
-        used = np.append(used, np.arange(used[-1] + 1, targets.size))
-        not_used = np.flatnonzero(~np.in1d(np.arange(targets.size), used))
+        used = np.append(used, np.arange(used[-1] + 1, xs.size))
+        not_used = np.flatnonzero(~np.in1d(np.arange(xs.size), used))
 
-        color = np.full(targets.size, "#8aa29e")
+        color = np.full(xs.size, "#8aa29e")
         color[self.deuteration_states] = "#db5461"
         color[self.deuteration_states.max() :] = "#db5461"
 
-        ax.scatter(
-            targets[used], scaled_ys[used], c="#db5461", s=24, label="Deconvolution"
-        )
+        ax.scatter(xs[used], ys[used], c="#db5461", s=24, label="Deconvolution")
         if not_used.size > 0:
             ax.scatter(
-                targets[not_used],
-                scaled_ys[not_used],
+                xs[not_used],
+                ys[not_used],
                 c="#8aa29e",
                 s=24,
                 label="Deconvolution (Not included)",
@@ -457,10 +425,9 @@ class DGet(object):
 
         # Scaled PSF
         masses = np.array([i.mz for i in self.spectrum.values()])
-        scaled_psf = (scale_to_match(x, y, masses, self.psf, width=self.mass_width),)
         ax.scatter(
             masses,
-            scaled_psf,
+            self.psf * ys[self.deuterium_count] / self.psf[0],
             c="none",
             edgecolors="#364699",
             linewidths=2,
@@ -508,3 +475,32 @@ class DGet(object):
                 **spectra_kws
             )
         yield self.formula.spectrum(**spectra_kws)
+
+    def subtract_baseline(
+        self, mass_range: Tuple[float, float] | None = None, percentile: float = 25.0
+    ) -> float:
+        """Subtracts baseline of region.
+
+        Calculates the ``percentile`` percentile of the designated mass region and
+        subtracts it from the mass spec signals.
+
+        Args:
+            mass_range: region to find baseline
+            percentile: percentile to use
+
+        Returns:
+            amount subtracted from baseline
+        """
+        if mass_range is not None:
+            idx = np.searchsorted(self.x, mass_range)
+            start, end = np.clip(idx, 0, self.x.size)
+        else:
+            start, end = 0, self.x.size
+        if start == end:  # pragma: no cover, Exception
+            raise ValueError(
+                "unable to subtract baseline, entire m/z range falls outside spectra"
+            )
+
+        baseline = np.percentile(self.y[start:end], percentile)
+        self.y -= baseline
+        return baseline

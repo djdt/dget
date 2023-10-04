@@ -1,3 +1,3 @@
 from .dget import DGet
 
-__version__ = "0.26"
+__version__ = "0.27"
