@@ -95,7 +95,7 @@ def test_dget_ndf_data():
     # Adduct at M+Na, peak at M, cut off before
     dget = DGet(
         "C48H18D78NO8P",
-        data_path.joinpath("C48H18D78NO8P.txt"),
+        path.joinpath("NDF-E-005.txt"),
         adduct="[M+Na]+",
         loadtxt_kws={"delimiter": "\t"},
     )
