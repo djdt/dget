@@ -99,7 +99,7 @@ def test_dget_ndf_data():
 def test_dget_cholesterol():
     dget = DGet(
         "C27HD45O",
-        data_path.joinpath("Cholesterol D.txt"),
+        data_path.joinpath("Cholesterol D45.txt"),
         adduct="[M+H-H2O]-",
         loadtxt_kws={"delimiter": "\t"},
     )
