@@ -84,14 +84,6 @@ def test_dget_ndf_data():
         # This test is too lenient, but best we can do with the data we have
         assert np.isclose(dget.deuteration * 100.0, cmp["pd"], atol=1.2)
 
-    # Known previous error
-    dget = DGet(
-        "C20D24O6",
-        data_path.joinpath("C20D24O6.txt"),
-        adduct="[M+Na]+",
-        loadtxt_kws={"delimiter": "\t"},
-    )
-    assert dget.deuteration_states.size > 1
     # Adduct at M+Na, peak at M, cut off before
     dget = DGet(
         "C48H18D78NO8P",
@@ -102,6 +94,16 @@ def test_dget_ndf_data():
     assert np.all(
         dget.deuteration_states == [67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78]
     )
+
+
+def test_dget_cholesterol():
+    dget = DGet(
+        "C27HD45O",
+        data_path.joinpath("Cholesterol D.txt"),
+        adduct="[M+H-H2O]-",
+        loadtxt_kws={"delimiter": "\t"},
+    )
+    assert np.isclose(dget.deuteration * 100.0, 81.5, atol=0.1)
 
 
 def test_dget_auto_adduct():
@@ -292,6 +294,15 @@ def test_cutoff():
     assert np.all(dget.deuteration_states == [0, 1, 2, 3, 4, 5])
     dget._probabilities = np.array([0.0, 0.0, 0.95, 0.0, 0.0, 0.05])
     assert np.all(dget.deuteration_states == [1, 2, 3, 4, 5])
+
+    # Known previous error
+    dget = DGet(
+        "C20D24O6",
+        data_path.joinpath("C20D24O6.txt"),
+        adduct="[M+Na]+",
+        loadtxt_kws={"delimiter": "\t"},
+    )
+    assert dget.deuteration_states.size > 1
 
 
 def test_targets():
