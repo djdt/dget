@@ -82,7 +82,7 @@ def test_dget_ndf_data():
         )
         dget.align_tof_with_spectra()
         # This test is too lenient, but best we can do with the data we have
-        assert np.isclose(dget.deuteration * 100.0, cmp["pd"], atol=2.0)
+        assert np.isclose(dget.deuteration * 100.0, cmp["pd"], atol=1.2)
 
     # Known previous error
     dget = DGet(
