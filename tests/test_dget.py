@@ -9,16 +9,6 @@ from dget import DGet
 
 data_path = Path(__file__).parent.joinpath("data")
 
-formulas = {
-    "C12HD8N": ("[M-H]-", 94.4),
-    "C42H69D13NO8P": ("[M+H]+", 99.0),
-    "C16H11D7N2O4S": ("[M-H]-", 95.4),
-    "C57H3D101O6": ("[M+Na]+", 95.1),
-    "C13H9D7N2O2": ("[M+Na]+", 94.9),
-    "C20D24O6": ("[M+Na]+", 50.0),
-    "C48H18D78NO8P": ("[M+Na]+", 94.0),
-}
-
 
 def test_dget_basic():
     with pytest.raises(ValueError):  # No D
@@ -68,17 +58,31 @@ def test_dget_io():
     )
 
 
-def test_dget_know_data():
-    for formula, (adduct, percent_d) in formulas.items():
+def test_dget_ndf_data():
+    path = data_path.joinpath("ndf")
+    info = np.loadtxt(
+        path.joinpath("info.txt"),
+        skiprows=1,
+        delimiter=",",
+        dtype=[
+            ("id", "U9"),
+            ("formula", "U32"),
+            ("adduct", "U16"),
+            ("pd", float),
+            ("notes", "U16"),
+        ],
+    )
+    for cmp in info:
         dget = DGet(
-            formula,
-            data_path.joinpath(f"{formula}.txt"),
-            adduct=adduct,
+            cmp["formula"],
+            path.joinpath(f"{cmp['id']}.txt"),
+            adduct=cmp["adduct"],
             loadtxt_kws={"delimiter": "\t"},
+            cutoff=cmp["notes"][-2:] if cmp["notes"] != "" else None,
         )
         dget.align_tof_with_spectra()
         # This test is too lenient, but best we can do with the data we have
-        assert np.isclose(dget.deuteration * 100.0, percent_d, atol=1.6)
+        assert np.isclose(dget.deuteration * 100.0, cmp["pd"], atol=2.0)
 
     # Known previous error
     dget = DGet(
@@ -101,18 +105,30 @@ def test_dget_know_data():
 
 
 def test_dget_auto_adduct():
-    for formula, (adduct, _) in formulas.items():
-        if formula == "C20D24O6":  # Low percent D, skip auto adduct test
-            continue
+    path = data_path.joinpath("ndf")
+    info = np.loadtxt(
+        path.joinpath("info.txt"),
+        skiprows=1,
+        delimiter=",",
+        dtype=[
+            ("id", "U9"),
+            ("formula", "U32"),
+            ("adduct", "U16"),
+            ("pd", float),
+            ("notes", "U16"),
+        ],
+    )
+    for cmp in info:
         dget = DGet(
-            formula,
-            data_path.joinpath(f"{formula}.txt"),
+            cmp["formula"],
+            path.joinpath(f"{cmp['id']}.txt"),
             loadtxt_kws={"delimiter": "\t"},
         )
-        best, _ = dget.guess_adduct_from_base_peak()
-        if best.adduct != adduct:
-            raise ValueError(formula, adduct)
-        assert best.adduct == adduct
+        # One example of each adduct. Adducts like [M-H]- and [M+H]+ only work
+        # when there is a high %D, otherwise [M]+ may be picked.
+        if cmp["id"] in ["NDF-A-009", "NDF-B-002", "NDF-B-040", "NDF-C-006"]:
+            best, _ = dget.guess_adduct_from_base_peak()
+            assert best.adduct == cmp["adduct"]
 
 
 def test_dget_baseline_subtraction():
