@@ -87,4 +87,4 @@ Documentation is available at `<https://dget.readthedocs.io>`_.
 Publication
 ===========
 
-If using DGet! for published results please cite `Lockwood and Angeloski (2024) <https://doi.org/10.1186/s13321-024-00828-x>`.
+If using DGet! for published results please cite `Lockwood, T.E., Angeloski, A. DGet! An open source deuteration calculator for mass spectrometry data. J Cheminform 16, 36 (2024) <https://doi.org/10.1186/s13321-024-00828-x>`.
