@@ -20,3 +20,9 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+
+Publication
+===========
+
+If using DGet! for published results please cite `Lockwood and Angeloski (2024) <https://doi.org/10.1186/s13321-024-00828-x>`.

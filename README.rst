@@ -1,14 +1,14 @@
 Usage
 =====
 
-DGet is a command line tool for calculating molecule deuteration. To see a full list of CLI options, run the help::
+DGet! is a command line tool for calculating molecule deuteration. To see a full list of CLI options, run the help::
 
     $ dget --help
 
 Basic Usage
 -----------
 
-To use DGet pass a molecular formula, mass spectra text file and optionally the adduct formed::
+To use DGet! pass a molecular formula, mass spectra text file and optionally the adduct formed::
 
     $ dget C12HD8N <path-to-ms-file.csv> --adduct "[M-H]-"
 
@@ -48,7 +48,7 @@ Plotting depends on `matplotlib <https://matplotlib.org>`_.
 Web App
 -------
 
-A web application of DGet is available at `<https://dget.app>`_.
+A web application of DGet! is available at `<https://dget.app>`_.
 
 Details on its usage can be found on the `Help <https://dget.app/help>`_ page.
 
@@ -56,7 +56,7 @@ Details on its usage can be found on the `Help <https://dget.app/help>`_ page.
 Installation
 ============
 
-DGet is available on PyPI and can be installed via ``pip``::
+DGet! is available on PyPI and can be installed via ``pip``::
 
     $ pip install dget
 
@@ -82,3 +82,9 @@ Documentation
 =============
 
 Documentation is available at `<https://dget.readthedocs.io>`_.
+
+
+Publication
+===========
+
+If using DGet! for published results please cite `Lockwood and Angeloski (2024) <https://doi.org/10.1186/s13321-024-00828-x>`.
