@@ -10,7 +10,7 @@ from dget import DGet, __version__
 from dget.adduct import Adduct
 from dget.io import shimadzu, text
 
-__web_version__ = "0.27.1"
+__web_version__ = "0.27.2"
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "dev56179e7461961afa552021c4e0957"
