@@ -42,7 +42,10 @@ function getFormData() {
 }
 
 function updateOutputs(result) {
-    var html = `<p>Formula: ${result["formula"]}<br>
+    var html = `<p>Calculated using DGet!<br>
+        doi:10.1186/s13321-024-00828-x<br>
+        <br>
+        Formula: ${result["formula"]}<br>
         Adduct: ${result["adduct"]}<br>
         m/z: ${result["m/z"].toFixed(4)}<br>
         Adduct m/z: ${result["adduct m/z"].toFixed(4)}<br>

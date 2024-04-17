@@ -114,6 +114,11 @@ function createChart(canvas) {
                         },
                     }
                 },
+                subtitle: {
+                    display: true,
+                    position: "right",
+                    text: "DGet! (doi:10.1186/s13321-024-00828-x)"
+                },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
