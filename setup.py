@@ -29,6 +29,6 @@ setup(
         "Web App": "https://djdt.github.io/dget",
     },
     install_requires=["numpy>=1.22", "molmass"],
-    extras_require={"tests": ["pytest"]},
+    extras_require={"tests": ["pytest"], "gui": ["PySide6"]},
     entry_points={"console_scripts": ["dget=dget.__main__:main"]},
 )
