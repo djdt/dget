@@ -1,5 +1,7 @@
 import logging
+import re
 import sys
+from pathlib import Path
 from types import TracebackType
 
 import numpy as np
@@ -7,24 +9,198 @@ import pyqtgraph
 from PySide6 import QtCore, QtGui, QtWidgets
 from spcal.gui.log import LoggingDialog
 
+import dget.io.shimadzu
+import dget.io.text
+from dget import DGet
+
 logger = logging.getLogger(__name__)
 
 
+class DGetFormulaValidator(QtGui.QValidator):
+    element_symbols = [
+        "H",
+        "D",
+        "He",
+        "Li",
+        "Be",
+        "B",
+        "C",
+        "N",
+        "O",
+        "F",
+        "Ne",
+        "Na",
+        "Mg",
+        "Al",
+        "Si",
+        "P",
+        "S",
+        "Cl",
+        "Ar",
+        "K",
+        "Ca",
+        "Sc",
+        "Ti",
+        "V",
+        "Cr",
+        "Mn",
+        "Fe",
+        "Co",
+        "Ni",
+        "Cu",
+        "Zn",
+        "Ga",
+        "Ge",
+        "As",
+        "Se",
+        "Br",
+        "Kr",
+        "Rb",
+        "Sr",
+        "Y",
+        "Zr",
+        "Nb",
+        "Mo",
+        "Tc",
+        "Ru",
+        "Rh",
+        "Pd",
+        "Ag",
+        "Cd",
+        "In",
+        "Sn",
+        "Sb",
+        "Te",
+        "I",
+        "Xe",
+        "Cs",
+        "Ba",
+        "La",
+        "Ce",
+        "Pr",
+        "Nd",
+        "Pm",
+        "Sm",
+        "Eu",
+        "Gd",
+        "Tb",
+        "Dy",
+        "Ho",
+        "Er",
+        "Tm",
+        "Yb",
+        "Lu",
+        "Hf",
+        "Ta",
+        "W",
+        "Re",
+        "Os",
+        "Ir",
+        "Pt",
+        "Au",
+        "Hg",
+        "Tl",
+        "Pb",
+        "Bi",
+        "Po",
+        "At",
+        "Rn",
+        "Fr",
+        "Ra",
+        "Ac",
+        "Th",
+        "Pa",
+        "U",
+        "Np",
+        "Pu",
+        "Am",
+        "Cm",
+        "Bk",
+        "Cf",
+        "Es",
+        "Fm",
+        "Md",
+        "No",
+        "Lr",
+        "Rf",
+        "Db",
+        "Sg",
+        "Bh",
+        "Hs",
+        "Mt",
+        "Ds",
+        "Rg",
+        "Cn",
+        "Nh",
+        "Fl",
+        "Mc",
+        "Lv",
+        "Ts",
+        "Og",
+    ]
+    re_token = re.compile(r"(\[\d+)?([a-zA-Z][a-z]?)\]?\d*")
+
+    def __init__(self, le: QtWidgets.QLineEdit, parent: QtCore.QObject | None = None):
+        super().__init__(parent)
+        self.le = le
+
+    def validate(self, input: str, pos: int) -> QtGui.QValidator.State:
+        if "D" not in input:
+            return QtGui.QValidator.State.Intermediate
+        tokens = self.re_token.findall(input)
+        for _, token in tokens:
+            if token not in self.element_symbols:
+                return QtGui.QValidator.State.Intermediate
+        return QtGui.QValidator.State.Acceptable
+
+    def fixup(self, input: str) -> None:
+        upper_idx = []
+        for m in self.re_token.finditer(input):
+            token = m.group(2)
+            if token not in self.element_symbols:
+                if token.capitalize() in self.element_symbols:
+                    upper_idx.append(m.start(2))
+                elif (
+                    len(token) == 2
+                    and token[0].upper() in self.element_symbols
+                    and token[1].upper() in self.element_symbols
+                ):
+                    upper_idx.append(m.start(2))
+                    upper_idx.append(m.start(2) + 1)
+
+        if len(upper_idx) > 0:
+            new_input = "".join(
+                x.upper() if i in upper_idx else x for i, x in enumerate(input)
+            )
+            self.le.setText(new_input)
+
+
 class DGetControls(QtWidgets.QDockWidget):
+    delimiter_names = {"Comma": ",", "Semicolon": ";", "Tab": "\t", "Space": " "}
+
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__("Controls", parent)
 
         self.dockLocationChanged.connect(self.changeLayout)
 
         self.formula = QtWidgets.QLineEdit()
-        self.adduct = QtWidgets.QComboBox()
+        self.formula.setValidator(DGetFormulaValidator(self.formula))
 
-        self.ms_button_open = QtWidgets.QPushButton("Open")
+        self.adduct = QtWidgets.QComboBox()
+        self.adduct.addItems(DGet.common_adducts)
+        self.adduct.setEditable(True)
 
         self.ms_delimiter = QtWidgets.QComboBox()
+        self.ms_delimiter.addItems(list(self.delimiter_names.keys()))
         self.ms_skiprows = QtWidgets.QSpinBox()
+        self.ms_skiprows.setRange(0, 99)
+        self.ms_skiprows.setValue(0)
         self.ms_mass_col = QtWidgets.QSpinBox()
+        self.ms_mass_col.setRange(1, 99)
+        self.ms_mass_col.setValue(1)
         self.ms_signal_col = QtWidgets.QSpinBox()
+        self.ms_signal_col.setRange(1, 99)
+        self.ms_signal_col.setValue(2)
 
         self.realign = QtWidgets.QCheckBox("Re-align HRMS data")
         self.subtract_bg = QtWidgets.QCheckBox("Subtract HRMS baseline")
@@ -47,7 +223,6 @@ class DGetControls(QtWidgets.QDockWidget):
         layout_formula = QtWidgets.QFormLayout()
         layout_formula.addRow("Formula", self.formula)
         layout_formula.addRow("Adduct", self.adduct)
-        layout_formula.addRow("HRMS Data", self.ms_button_open)
 
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.addLayout(layout_formula)
@@ -59,6 +234,20 @@ class DGetControls(QtWidgets.QDockWidget):
         widget.setLayout(self.layout)
 
         self.setWidget(widget)
+
+    def setMSOptionsEnabled(self, enabled: bool) -> None:
+        self.ms_delimiter.setEnabled(enabled)
+        self.ms_skiprows.setEnabled(enabled)
+        self.ms_mass_col.setEnabled(enabled)
+        self.ms_signal_col.setEnabled(enabled)
+
+    @property
+    def ms_loadtxt_kws(self) -> dict:
+        return {
+            "delimiter": self.delimiter_names[self.ms_delimiter.currentText()],
+            "skiprows": self.ms_skiprows.value(),
+            "usecols": (self.ms_mass_col.value() - 1, self.ms_signal_col.value() - 1),
+        }
 
     def changeLayout(self, area: QtCore.Qt.DockWidgetArea) -> None:
         if area in [
@@ -164,14 +353,16 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("DGet!")
         self.resize(1280, 800)
 
+        self.dget = None
+
         self.log = LoggingDialog()
         self.log.setWindowTitle("SPCal Log")
 
-        data = np.loadtxt("/home/tom/Downloads/1.txt")
+        data = np.loadtxt("/home/tom/Downloads/NDF-A-009.txt")
         self.controls = DGetControls()
         self.results = DGetResults()
         self.graph = DGetMSGraph()
-        # self.graph.drawMSData(data[:, 0], data[:, 1])
+        self.graph.drawMSData(data[:, 0], data[:, 1])
 
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self.controls)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.results)
@@ -184,8 +375,20 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             self, "Open HRMS data", path, "CSV Documents,*.csv;All files,*"
         )
         if ok:
-            # loadfile
-            pass
+            if dget.io.shimadzu.is_shimadzu_file(file):
+                kws = dget.io.shimadzu.get_loadtxt_kws(file)
+                self.controls.setMSOptionsEnabled(False)
+            else:
+                kws = dget.io.text.guess_loadtxt_kws(
+                    file, kws=self.controls.ms_loadtxt_kws
+                )
+                self.controls.setMSOptionsEnabled(True)
+            self.controls.ms_loadtxt_kws = kws
+
+    def loadFile(self, file: Path | str) -> None:
+        x, y = np.loadtxt(
+            file, unpack=True, dtype=np.float32, **self.controls.ms_loadtxt_kws
+        )
 
     def toggleControls(self, checked: bool) -> None:
         print(self.controls.isVisible())
