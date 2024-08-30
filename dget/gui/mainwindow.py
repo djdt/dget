@@ -5,13 +5,15 @@ from pathlib import Path
 from types import TracebackType
 
 import numpy as np
+from molmass import Formula
 from PySide6 import QtCore, QtGui, QtWidgets
 from spcal.gui.log import LoggingDialog
-from dget.gui.graphs import DGetMSGraph
 
 import dget.io.shimadzu
 import dget.io.text
 from dget import DGet
+from dget.adduct import Adduct
+from dget.gui.graphs import DGetMSGraph
 
 logger = logging.getLogger(__name__)
 
@@ -183,12 +185,12 @@ class DGetControls(QtWidgets.QDockWidget):
 
         self.dockLocationChanged.connect(self.changeLayout)
 
-        self.formula = QtWidgets.QLineEdit()
-        self.formula.setValidator(DGetFormulaValidator(self.formula))
+        self.le_formula = QtWidgets.QLineEdit()
+        self.le_formula.setValidator(DGetFormulaValidator(self.le_formula))
 
-        self.adduct = QtWidgets.QComboBox()
-        self.adduct.addItems(DGet.common_adducts)
-        self.adduct.setEditable(True)
+        self.cb_adduct = QtWidgets.QComboBox()
+        self.cb_adduct.addItems(DGet.common_adducts)
+        self.cb_adduct.setEditable(True)
 
         self.ms_delimiter = QtWidgets.QComboBox()
         self.ms_delimiter.addItems(list(self.delimiter_names.keys()))
@@ -242,12 +244,36 @@ class DGetControls(QtWidgets.QDockWidget):
         self.ms_signal_col.setEnabled(enabled)
 
     @property
+    def formula(self) -> Formula | None:
+        if not self.le_formula.hasAcceptableInput():
+            return None
+        try:
+            formula = Formula(self.le_formula.text())
+            formula.monoisotopic_mass
+        except ValueError:
+            return None
+        return formula
+
+    @property
     def ms_loadtxt_kws(self) -> dict:
         return {
             "delimiter": self.delimiter_names[self.ms_delimiter.currentText()],
             "skiprows": self.ms_skiprows.value(),
             "usecols": (self.ms_mass_col.value() - 1, self.ms_signal_col.value() - 1),
         }
+
+    @ms_loadtxt_kws.setter
+    def ms_loadtxt_kws(self, kws: dict) -> None:
+        if "delimiter" in kws:
+            delimiter = next(
+                k for k, v in self.delimiter_names.items() if v == kws["delimiter"]
+            )
+            self.ms_delimiter.setCurrentText(delimiter)
+        if "skiprows" in kws:
+            self.ms_skiprows.setValue(kws["skiprows"])
+        if "usecols" in kws:
+            self.ms_mass_col.setValue(kws["usecols"][0] + 1)
+            self.ms_signal_col.setValue(kws["usecols"][1] + 1)
 
     def changeLayout(self, area: QtCore.Qt.DockWidgetArea) -> None:
         if area in [
@@ -270,51 +296,114 @@ class DGetResults(QtWidgets.QDockWidget):
 
 
 class DGetMainWindow(QtWidgets.QMainWindow):
+    dataLoaded = QtCore.Signal(np.ndarray, np.ndarray)
+
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle("DGet!")
         self.resize(1280, 800)
 
-        self.dget = None
+        # self.dataLoaded.connect(self.updateMSGraph)
+
+        self.dget: DGet | None = None
+        self.hrms_file: Path | None = None
+        self.hrms_data: tuple[np.ndarray, np.ndarray] | None = None
 
         self.log = LoggingDialog()
         self.log.setWindowTitle("SPCal Log")
 
-        data = np.loadtxt("/home/tom/Downloads/NDF-A-009.txt")
         self.controls = DGetControls()
         self.results = DGetResults()
 
         self.graph = DGetMSGraph()
-        self.graph.drawMSData(data[:, 0], data[:, 1])
 
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self.controls)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.results)
         self.setCentralWidget(self.graph)
 
         self.createMenus()
+        self.loadFile("/home/tom/Downloads/NDF-A-009.txt")
 
-    def startHRMSBrowser(self, path: str | None = None) -> None:
-        file, ok = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Open HRMS data", path, "CSV Documents,*.csv;All files,*"
+    def startHRMSBrowser(self) -> None:
+        ok, file = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Open HRMS data", "", "CSV Documents (*.csv *.txt);;All files (*)"
         )
         if ok:
-            if dget.io.shimadzu.is_shimadzu_file(file):
-                kws = dget.io.shimadzu.get_loadtxt_kws(file)
-                self.controls.setMSOptionsEnabled(False)
-            else:
-                kws = dget.io.text.guess_loadtxt_kws(
-                    file, kws=self.controls.ms_loadtxt_kws
-                )
-                self.controls.setMSOptionsEnabled(True)
-            self.controls.ms_loadtxt_kws = kws
+            self.loadFile(file)
 
     def loadFile(self, file: Path | str) -> None:
-        x, y = np.loadtxt(
-            file, unpack=True, dtype=np.float32, **self.controls.ms_loadtxt_kws
-        )
+        if isinstance(file, str):
+            file = Path(file)
 
-    def toggleControls(self, checked: bool) -> None:
-        print(self.controls.isVisible())
+        if dget.io.shimadzu.is_shimadzu_file(file):
+            loadtxt_kws = dget.io.shimadzu.get_loadtxt_kws(file)
+            self.controls.setMSOptionsEnabled(False)
+        else:
+            loadtxt_kws = dget.io.text.guess_loadtxt_kws(
+                file, loadtxt_kws=self.controls.ms_loadtxt_kws
+            )
+            self.controls.setMSOptionsEnabled(True)
+        self.controls.ms_loadtxt_kws = loadtxt_kws
+
+        self.hrms_file = file
+
+        x, y = np.loadtxt(file, unpack=True, dtype=np.float32, **loadtxt_kws)
+        self.hrms_data = (x, y)
+        self.dataLoaded.emit(x, y)
+
+    def onDataLoaded(self, x: np.ndarray, y: np.ndarray) -> None:
+        self.graph.drawMSData(x, y)
+
+    def onFormulaChanged(self, formula: str) -> None:
+        # self.results.
+
+    def drawAdductMasses(self) -> None:
+        if self.hrms_data is None:
+            return
+        if not self.controls.formula.hasAcceptableInput():
+            return
+
+        if not self.controls.adduct.hasAcceptableInput():
+            return  # draw this if allowed
+        
+        adducts = DGet.common_adducts
+
+        formulas = []
+        for adduct in adducts:
+            try:
+                formulas.append(Adduct(self.controls.formula, adduct))
+            except ValueError:
+                pass
+
+        masses = np.array([f.formula.isotope.mz for f in formulas])
+        ranges = np.stack(
+            [f.mz_range(min_fraction=DGet.min_fraction_for_spectra) for f in formulas],
+            axis=0,
+        )
+        ranges += np.stack(
+            [-masses * 0.01, masses * 0.01], axis=1
+        )  # Expand by 1% of mass
+
+        # idx of start - end of each range
+        idx = np.searchsorted(self.x, ranges)
+        idx = np.clip(idx, 0, self.x.size - 1)
+
+        # max intensity for each adduct
+        intensities = np.maximum.reduceat(self.y, idx.flat)[::2]
+        max_intenstites = np.flatnonzero(intensities == intensities.max())
+
+    # def updateDGet(self) -> None:
+    #     if self.hrms_data is None:
+    #         return
+    #
+    #     self.dget = DGet(
+    #         self.controls.formula.text(),
+    #         tofdata=self.hrms_data,
+    #         adduct=self.controls.adduct.currentText(),
+    #         cutoff=self.controls.cutoff.text(),
+    #         signal_mode=self.signal_mode,
+    #         signal_mass_width=self.signal_mass_width,
+    #     )
 
     def createMenus(self) -> None:
         self.action_open = QtGui.QAction(
@@ -328,14 +417,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         )
         self.action_quit.setStatusTip("Quit DGet!")
         self.action_quit.triggered.connect(self.close)
-
-        # view
-        self.action_toggle_controls = QtGui.QAction(
-            QtGui.QIcon.fromTheme("show"), "Show/hide controls"
-        )
-        self.action_toggle_controls.setCheckable(True)
-        self.action_toggle_controls.setChecked(True)
-        self.action_toggle_controls.triggered.connect(self.toggleControls)
 
         menu_file = QtWidgets.QMenu("File")
         menu_file.addAction(self.action_open)
