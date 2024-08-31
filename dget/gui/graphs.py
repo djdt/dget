@@ -1,6 +1,8 @@
+import numpy as np
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtWidgets
-import numpy as np
+
+from dget.adduct import Adduct
 
 
 class LimitBoundViewBox(pyqtgraph.ViewBox):
@@ -74,8 +76,14 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         )
         self.plot.addItem(self.ms_series)
 
+        self.adduct_label = pyqtgraph.LabelItem("", parent=self.yaxis)
+        self.adduct_label.anchor(itemPos=(0,0), parentPos=(1,0), offset=(10, 10))
+
         self.setCentralWidget(self.plot)
 
     def drawMSData(self, x: np.ndarray, y: np.ndarray) -> None:
         self.ms_series.setData(x=x, y=y)
         self.plot.setLimits(xMin=x.min(), xMax=x.max(), yMin=0.0, yMax=y.max() * 1.2)
+
+    def drawAdduct(self, adduct: Adduct) -> None:
+        self.adduct_label.setText(f"{adduct}\nm/z={adduct.formula.monoisotopic_mass:.4f}")

@@ -5,7 +5,8 @@ from pathlib import Path
 from types import TracebackType
 
 import numpy as np
-from molmass import Formula
+from molmass import Formula, FormulaError
+from molmass.elements import ELEMENTS
 from PySide6 import QtCore, QtGui, QtWidgets
 from spcal.gui.log import LoggingDialog
 
@@ -19,139 +20,20 @@ logger = logging.getLogger(__name__)
 
 
 class DGetFormulaValidator(QtGui.QValidator):
-    element_symbols = [
-        "H",
-        "D",
-        "He",
-        "Li",
-        "Be",
-        "B",
-        "C",
-        "N",
-        "O",
-        "F",
-        "Ne",
-        "Na",
-        "Mg",
-        "Al",
-        "Si",
-        "P",
-        "S",
-        "Cl",
-        "Ar",
-        "K",
-        "Ca",
-        "Sc",
-        "Ti",
-        "V",
-        "Cr",
-        "Mn",
-        "Fe",
-        "Co",
-        "Ni",
-        "Cu",
-        "Zn",
-        "Ga",
-        "Ge",
-        "As",
-        "Se",
-        "Br",
-        "Kr",
-        "Rb",
-        "Sr",
-        "Y",
-        "Zr",
-        "Nb",
-        "Mo",
-        "Tc",
-        "Ru",
-        "Rh",
-        "Pd",
-        "Ag",
-        "Cd",
-        "In",
-        "Sn",
-        "Sb",
-        "Te",
-        "I",
-        "Xe",
-        "Cs",
-        "Ba",
-        "La",
-        "Ce",
-        "Pr",
-        "Nd",
-        "Pm",
-        "Sm",
-        "Eu",
-        "Gd",
-        "Tb",
-        "Dy",
-        "Ho",
-        "Er",
-        "Tm",
-        "Yb",
-        "Lu",
-        "Hf",
-        "Ta",
-        "W",
-        "Re",
-        "Os",
-        "Ir",
-        "Pt",
-        "Au",
-        "Hg",
-        "Tl",
-        "Pb",
-        "Bi",
-        "Po",
-        "At",
-        "Rn",
-        "Fr",
-        "Ra",
-        "Ac",
-        "Th",
-        "Pa",
-        "U",
-        "Np",
-        "Pu",
-        "Am",
-        "Cm",
-        "Bk",
-        "Cf",
-        "Es",
-        "Fm",
-        "Md",
-        "No",
-        "Lr",
-        "Rf",
-        "Db",
-        "Sg",
-        "Bh",
-        "Hs",
-        "Mt",
-        "Ds",
-        "Rg",
-        "Cn",
-        "Nh",
-        "Fl",
-        "Mc",
-        "Lv",
-        "Ts",
-        "Og",
-    ]
     re_token = re.compile(r"(\[\d+)?([a-zA-Z][a-z]?)\]?\d*")
 
     def __init__(self, le: QtWidgets.QLineEdit, parent: QtCore.QObject | None = None):
         super().__init__(parent)
         self.le = le
+        self.symbols = [element.symbol for element in ELEMENTS]
+        self.symbols.append("D")
 
     def validate(self, input: str, pos: int) -> QtGui.QValidator.State:
-        if "D" not in input:
+        if "D" not in input or "[2H]" not in input:
             return QtGui.QValidator.State.Intermediate
         tokens = self.re_token.findall(input)
         for _, token in tokens:
-            if token not in self.element_symbols:
+            if token not in self.symbols:
                 return QtGui.QValidator.State.Intermediate
         return QtGui.QValidator.State.Acceptable
 
@@ -159,13 +41,13 @@ class DGetFormulaValidator(QtGui.QValidator):
         upper_idx = []
         for m in self.re_token.finditer(input):
             token = m.group(2)
-            if token not in self.element_symbols:
-                if token.capitalize() in self.element_symbols:
+            if token not in self.symbols:
+                if token.capitalize() in self.symbols:
                     upper_idx.append(m.start(2))
                 elif (
                     len(token) == 2
-                    and token[0].upper() in self.element_symbols
-                    and token[1].upper() in self.element_symbols
+                    and token[0].upper() in self.symbols
+                    and token[1].upper() in self.symbols
                 ):
                     upper_idx.append(m.start(2))
                     upper_idx.append(m.start(2) + 1)
@@ -179,6 +61,7 @@ class DGetFormulaValidator(QtGui.QValidator):
 
 class DGetControls(QtWidgets.QDockWidget):
     delimiter_names = {"Comma": ",", "Semicolon": ";", "Tab": "\t", "Space": " "}
+    adductChanged = QtCore.Signal(Adduct)
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__("Controls", parent)
@@ -187,10 +70,13 @@ class DGetControls(QtWidgets.QDockWidget):
 
         self.le_formula = QtWidgets.QLineEdit()
         self.le_formula.setValidator(DGetFormulaValidator(self.le_formula))
+        self.le_formula.textChanged.connect(self.onFormulaChange)
 
         self.cb_adduct = QtWidgets.QComboBox()
         self.cb_adduct.addItems(DGet.common_adducts)
         self.cb_adduct.setEditable(True)
+        self.cb_adduct.currentTextChanged.connect(self.onFormulaChange)
+        self.cb_adduct.editTextChanged.connect(self.onFormulaChange)
 
         self.ms_delimiter = QtWidgets.QComboBox()
         self.ms_delimiter.addItems(list(self.delimiter_names.keys()))
@@ -223,8 +109,8 @@ class DGetControls(QtWidgets.QDockWidget):
         gbox_proc.layout().addRow("Calc. cutoff", self.cutoff)
 
         layout_formula = QtWidgets.QFormLayout()
-        layout_formula.addRow("Formula", self.formula)
-        layout_formula.addRow("Adduct", self.adduct)
+        layout_formula.addRow("Formula", self.le_formula)
+        layout_formula.addRow("Adduct", self.cb_adduct)
 
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.addLayout(layout_formula)
@@ -243,16 +129,31 @@ class DGetControls(QtWidgets.QDockWidget):
         self.ms_mass_col.setEnabled(enabled)
         self.ms_signal_col.setEnabled(enabled)
 
-    @property
-    def formula(self) -> Formula | None:
-        if not self.le_formula.hasAcceptableInput():
-            return None
+    def onFormulaChange(self) -> None:
+        formula = self.le_formula.text()
+        adduct = self.cb_adduct.currentText()
+        formula = Formula(self.le_formula.text())
         try:
-            formula = Formula(self.le_formula.text())
             formula.monoisotopic_mass
+        except FormulaError:
+            return
+        try:
+            adduct = Adduct(formula, adduct)
         except ValueError:
-            return None
-        return formula
+            return
+        print('emitting adduct', adduct)
+        self.adductChanged.emit(adduct)
+
+    # @property
+    # def formula(self) -> Formula | None:
+    #     if not self.le_formula.hasAcceptableInput():
+    #         return None
+    #     try:
+    #         formula = Formula(self.le_formula.text())
+    #         formula.monoisotopic_mass
+    #     except ValueError:
+    #         return None
+    #     return formula
 
     @property
     def ms_loadtxt_kws(self) -> dict:
@@ -313,9 +214,13 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.log.setWindowTitle("SPCal Log")
 
         self.controls = DGetControls()
+        self.controls.setEnabled(False)
+
         self.results = DGetResults()
 
         self.graph = DGetMSGraph()
+
+        self.controls.adductChanged.connect(self.graph.drawAdduct)
 
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self.controls)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.results)
@@ -351,10 +256,11 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.hrms_data = (x, y)
         self.dataLoaded.emit(x, y)
 
-    def onDataLoaded(self, x: np.ndarray, y: np.ndarray) -> None:
+        self.controls.setEnabled(True)
         self.graph.drawMSData(x, y)
 
     def onFormulaChanged(self, formula: str) -> None:
+        pass
         # self.results.
 
     def drawAdductMasses(self) -> None:
@@ -365,7 +271,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
         if not self.controls.adduct.hasAcceptableInput():
             return  # draw this if allowed
-        
+
         adducts = DGet.common_adducts
 
         formulas = []
