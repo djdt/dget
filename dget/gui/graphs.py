@@ -76,8 +76,7 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         )
         self.plot.addItem(self.ms_series)
 
-        self.adduct_label = pyqtgraph.LabelItem("", parent=self.yaxis)
-        self.adduct_label.anchor(itemPos=(0,0), parentPos=(1,0), offset=(10, 10))
+        self.adduct_labels: list[pyqtgraph.TextItem] = []
 
         self.setCentralWidget(self.plot)
 
@@ -85,5 +84,25 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         self.ms_series.setData(x=x, y=y)
         self.plot.setLimits(xMin=x.min(), xMax=x.max(), yMin=0.0, yMax=y.max() * 1.2)
 
-    def drawAdduct(self, adduct: Adduct) -> None:
-        self.adduct_label.setText(f"{adduct}\nm/z={adduct.formula.monoisotopic_mass:.4f}")
+    def labelAdducts(self, adducts: list[Adduct]) -> None:
+        # clear any existing
+        for label in self.adduct_labels:
+            self.plot.removeItem(label)
+        self.adduct_labels.clear()
+
+        min_signal = np.percentile(self.ms_series.yData, 50)
+        for adduct in adducts:
+            idx = np.searchsorted(
+                self.ms_series.xData, adduct.formula.monoisotopic_mass
+            )
+            if idx == 0 or idx == self.ms_series.xData.size:  # under/oversize
+                continue
+            if self.ms_series.yData[idx] > min_signal:
+                label = pyqtgraph.TextItem(adduct.adduct, anchor=(0.5, 1))
+                label.setPos(
+                    adduct.formula.monoisotopic_mass, self.ms_series.yData[idx]
+                )
+                self.plot.addItem(label)
+                self.adduct_labels.append(label)
+
+    # def labelPossibleAdducts(self, adducts: list[Adduct]) -> None:

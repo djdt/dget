@@ -141,7 +141,7 @@ class DGetControls(QtWidgets.QDockWidget):
             adduct = Adduct(formula, adduct)
         except ValueError:
             return
-        print('emitting adduct', adduct)
+        print("emitting adduct", adduct)
         self.adductChanged.emit(adduct)
 
     # @property
@@ -220,7 +220,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
         self.graph = DGetMSGraph()
 
-        self.controls.adductChanged.connect(self.graph.drawAdduct)
+        self.controls.adductChanged.connect(self.onAdductChanged)
 
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self.controls)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.results)
@@ -259,44 +259,17 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.controls.setEnabled(True)
         self.graph.drawMSData(x, y)
 
-    def onFormulaChanged(self, formula: str) -> None:
-        pass
-        # self.results.
-
-    def drawAdductMasses(self) -> None:
-        if self.hrms_data is None:
-            return
-        if not self.controls.formula.hasAcceptableInput():
-            return
-
-        if not self.controls.adduct.hasAcceptableInput():
-            return  # draw this if allowed
-
-        adducts = DGet.common_adducts
-
-        formulas = []
-        for adduct in adducts:
+    def onAdductChanged(self, adduct: Adduct) -> None:
+        self.graph.plot.setTitle(
+            f"{adduct.base.formula} {adduct.adduct} \nm/z={adduct.formula.monoisotopic_mass:.4f}"
+        )
+        adducts = []
+        for ad in DGet.common_adducts:
             try:
-                formulas.append(Adduct(self.controls.formula, adduct))
+                adducts.append(Adduct(adduct.base, ad))
             except ValueError:
                 pass
-
-        masses = np.array([f.formula.isotope.mz for f in formulas])
-        ranges = np.stack(
-            [f.mz_range(min_fraction=DGet.min_fraction_for_spectra) for f in formulas],
-            axis=0,
-        )
-        ranges += np.stack(
-            [-masses * 0.01, masses * 0.01], axis=1
-        )  # Expand by 1% of mass
-
-        # idx of start - end of each range
-        idx = np.searchsorted(self.x, ranges)
-        idx = np.clip(idx, 0, self.x.size - 1)
-
-        # max intensity for each adduct
-        intensities = np.maximum.reduceat(self.y, idx.flat)[::2]
-        max_intenstites = np.flatnonzero(intensities == intensities.max())
+        self.graph.labelAdducts(adducts)
 
     # def updateDGet(self) -> None:
     #     if self.hrms_data is None:
