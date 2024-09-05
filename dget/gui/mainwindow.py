@@ -27,6 +27,7 @@ class DGetFormulaValidator(QtGui.QValidator):
         self.acceptable_tokens = [element.symbol for element in ELEMENTS]
         self.acceptable_tokens.extend([k for k in GROUPS.keys()])
         self.acceptable_tokens.append("D")
+        self.acceptable_tokens.sort(key=lambda s: -len(s))
 
     def validate(self, input: str, pos: int) -> QtGui.QValidator.State:
         if "D" not in input or "[2H]" not in input:
@@ -49,11 +50,17 @@ class DGetFormulaValidator(QtGui.QValidator):
 
             found = False
             for token in self.acceptable_tokens:
-                if input[pos:].startswith(token.lower()):
-                    print("accepted token", token)
+                if input[pos:].startswith(token):
                     new_input += token
                     found = True
                     break
+            if not found:
+                for token in self.acceptable_tokens:
+                    if input[pos:].lower().startswith(token.lower()):
+                        print("accepted token", token)
+                        new_input += token
+                        found = True
+                        break
             if not found:
                 bad_chars.append(pos)
                 new_input += input[pos]
@@ -80,29 +87,9 @@ class DGetControls(QtWidgets.QDockWidget):
         self.cb_adduct.currentTextChanged.connect(self.onFormulaChange)
         self.cb_adduct.editTextChanged.connect(self.onFormulaChange)
 
-        self.ms_delimiter = QtWidgets.QComboBox()
-        self.ms_delimiter.addItems(list(self.delimiter_names.keys()))
-        self.ms_skiprows = QtWidgets.QSpinBox()
-        self.ms_skiprows.setRange(0, 99)
-        self.ms_skiprows.setValue(0)
-        self.ms_mass_col = QtWidgets.QSpinBox()
-        self.ms_mass_col.setRange(1, 99)
-        self.ms_mass_col.setValue(1)
-        self.ms_signal_col = QtWidgets.QSpinBox()
-        self.ms_signal_col.setRange(1, 99)
-        self.ms_signal_col.setValue(2)
-
         self.realign = QtWidgets.QCheckBox("Re-align HRMS data")
         self.subtract_bg = QtWidgets.QCheckBox("Subtract HRMS baseline")
         self.cutoff = QtWidgets.QLineEdit()
-
-        gbox_ms = QtWidgets.QGroupBox("HRMS options")
-        gbox_ms.setLayout(QtWidgets.QFormLayout())
-        # gbox_ms.layout().addWidget(self.ms_button_open)
-        gbox_ms.layout().addRow("Delimiter", self.ms_delimiter)
-        gbox_ms.layout().addRow("Skip rows", self.ms_skiprows)
-        gbox_ms.layout().addRow("Mass column", self.ms_mass_col)
-        gbox_ms.layout().addRow("Signal column", self.ms_signal_col)
 
         gbox_proc = QtWidgets.QGroupBox("Proccessing options")
         gbox_proc.setLayout(QtWidgets.QFormLayout())
@@ -116,7 +103,6 @@ class DGetControls(QtWidgets.QDockWidget):
 
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.addLayout(layout_formula)
-        self.layout.addWidget(gbox_ms)
         self.layout.addWidget(gbox_proc)
         self.layout.addStretch(1)
 
@@ -156,27 +142,6 @@ class DGetControls(QtWidgets.QDockWidget):
     #     except ValueError:
     #         return None
     #     return formula
-
-    @property
-    def ms_loadtxt_kws(self) -> dict:
-        return {
-            "delimiter": self.delimiter_names[self.ms_delimiter.currentText()],
-            "skiprows": self.ms_skiprows.value(),
-            "usecols": (self.ms_mass_col.value() - 1, self.ms_signal_col.value() - 1),
-        }
-
-    @ms_loadtxt_kws.setter
-    def ms_loadtxt_kws(self, kws: dict) -> None:
-        if "delimiter" in kws:
-            delimiter = next(
-                k for k, v in self.delimiter_names.items() if v == kws["delimiter"]
-            )
-            self.ms_delimiter.setCurrentText(delimiter)
-        if "skiprows" in kws:
-            self.ms_skiprows.setValue(kws["skiprows"])
-        if "usecols" in kws:
-            self.ms_mass_col.setValue(kws["usecols"][0] + 1)
-            self.ms_signal_col.setValue(kws["usecols"][1] + 1)
 
     def changeLayout(self, area: QtCore.Qt.DockWidgetArea) -> None:
         if area in [
