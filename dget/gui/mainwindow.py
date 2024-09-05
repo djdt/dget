@@ -5,7 +5,7 @@ from pathlib import Path
 from types import TracebackType
 
 import numpy as np
-from molmass import Formula, FormulaError
+from molmass import GROUPS, Formula, FormulaError
 from molmass.elements import ELEMENTS
 from PySide6 import QtCore, QtGui, QtWidgets
 from spcal.gui.log import LoggingDialog
@@ -14,7 +14,7 @@ import dget.io.shimadzu
 import dget.io.text
 from dget import DGet
 from dget.adduct import Adduct
-from dget.gui.graphs import DGetMSGraph
+from dget.gui.graphs import DGetMSGraph, DGetSpectraGraph
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +26,6 @@ class DGetFormulaValidator(QtGui.QValidator):
         self.acceptable_tokens = [element.symbol for element in ELEMENTS]
         self.acceptable_tokens.extend([k for k in GROUPS.keys()])
         self.acceptable_tokens.append("D")
-        # self.symbols = [element.symbol for element in ELEMENTS]
-        # self.symbols.append("D")
 
     def validate(self, input: str, pos: int) -> QtGui.QValidator.State:
         if "D" not in input or "[2H]" not in input:
@@ -199,6 +197,18 @@ class DGetResults(QtWidgets.QDockWidget):
         self.setWidget(self.text)
 
 
+class DGetGraphToolbar(QtWidgets.QToolBar):
+    def __init__(self, graph: DGetMSGraph, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+        self.graph_ms = graph
+
+        self.action_zoom_reset = QtGui.QAction(
+            QtGui.QIcon.fromTheme("zoom-reset"), "Reset Zoom"
+        )
+        self.action_zoom_reset.triggered.connect(self.graph_ms.resetZoom)
+        self.addAction(self.action_zoom_reset)
+
+
 class DGetMainWindow(QtWidgets.QMainWindow):
     dataLoaded = QtCore.Signal(np.ndarray, np.ndarray)
 
@@ -221,22 +231,37 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
         self.results = DGetResults()
 
-        self.graph = DGetMSGraph()
+        self.graph_ms = DGetMSGraph()
+        # self.graph_ms_toolbar = DGetGraphToolbar(self.graph_ms)
+        dock = QtWidgets.QDockWidget("Spectra")
+        self.graph_spectra = DGetSpectraGraph()
+        dock.setWidget(self.graph_spectra)
 
         self.controls.adductChanged.connect(self.onAdductChanged)
 
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self.controls)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.results)
-        self.setCentralWidget(self.graph)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, dock)
+        #
+        # widget = QtWidgets.QWidget()
+        # widget.setLayout(QtWidgets.QVBoxLayout())
+        # widget.layout().addWidget(self.graph_ms, 1)
+        # widget.layout().addWidget(self.graph_ms_toolbar, 0)
+
+        self.setCentralWidget(self.graph_ms)
 
         self.createMenus()
+        self.createToolBar()
         self.loadFile("/home/tom/Downloads/NDF-A-009.txt")
 
     def startHRMSBrowser(self) -> None:
-        ok, file = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Open HRMS data", "", "CSV Documents (*.csv *.txt);;All files (*)"
+        file, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self,
+            "Open HRMS data",
+            "",
+            "CSV Documents (*.csv *.text *.txt);;All files (*)",
         )
-        if ok:
+        if file != "":
             self.loadFile(file)
 
     def loadFile(self, file: Path | str) -> None:
@@ -260,19 +285,25 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.dataLoaded.emit(x, y)
 
         self.controls.setEnabled(True)
-        self.graph.drawMSData(x, y)
+        self.graph_ms.setData(x, y)
+        self.graph_ms.plot.setTitle(file.stem)
 
     def onAdductChanged(self, adduct: Adduct) -> None:
-        self.graph.plot.setTitle(
-            f"{adduct.base.formula} {adduct.adduct} \nm/z={adduct.formula.monoisotopic_mass:.4f}"
-        )
+        self.graph_ms.setAdductLabel(adduct)
         adducts = []
         for ad in DGet.common_adducts:
             try:
                 adducts.append(Adduct(adduct.base, ad))
             except ValueError:
                 pass
-        self.graph.labelAdducts(adducts)
+        self.graph_ms.labelAdducts(adducts)
+
+        spectra = adduct.formula.spectrum(min_fraction=DGet.min_fraction_for_spectra)
+
+        x = np.array([s.mz for s in spectra.values()])
+        y = np.array([s.fraction for s in spectra.values()])
+        y = y / y.max()
+        self.graph_spectra.setData(x, y)
 
     # def updateDGet(self) -> None:
     #     if self.hrms_data is None:
@@ -287,7 +318,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
     #         signal_mass_width=self.signal_mass_width,
     #     )
     def createToolBar(self) -> None:
-        self.toolbar = self.addToolBar("Toolbar")
+        self.toolbar = self.addToolBar("MS Graph")
 
         self.action_zoom_reset = QtGui.QAction(
             QtGui.QIcon.fromTheme("zoom-reset"), "Reset Zoom"
