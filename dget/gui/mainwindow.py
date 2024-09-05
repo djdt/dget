@@ -15,6 +15,7 @@ import dget.io.text
 from dget import DGet
 from dget.adduct import Adduct
 from dget.gui.graphs import DGetMSGraph, DGetSpectraGraph
+from dget.gui.importdialog import TextImportDialog
 
 logger = logging.getLogger(__name__)
 
@@ -240,41 +241,26 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
         self.createMenus()
         self.createToolBar()
-        self.loadFile("/home/tom/Downloads/NDF-A-009.txt")
+        self.startHRMSBrowser("/home/tom/Downloads/NDF-A-009.txt")
 
-    def startHRMSBrowser(self) -> None:
-        file, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self,
-            "Open HRMS data",
-            "",
-            "CSV Documents (*.csv *.text *.txt);;All files (*)",
-        )
-        if file != "":
-            self.loadFile(file)
-
-    def loadFile(self, file: Path | str) -> None:
-        if isinstance(file, str):
-            file = Path(file)
-
-        if dget.io.shimadzu.is_shimadzu_file(file):
-            loadtxt_kws = dget.io.shimadzu.get_loadtxt_kws(file)
-            self.controls.setMSOptionsEnabled(False)
-        else:
-            loadtxt_kws = dget.io.text.guess_loadtxt_kws(
-                file, loadtxt_kws=self.controls.ms_loadtxt_kws
+    def startHRMSBrowser(self, file: str | Path | None = None) -> None:
+        if file is None:
+            file, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self,
+                "Open HRMS data",
+                "",
+                "CSV Documents (*.csv *.text *.txt);;All files (*)",
             )
-            self.controls.setMSOptionsEnabled(True)
-        self.controls.ms_loadtxt_kws = loadtxt_kws
+        if file != "":
+            dlg = TextImportDialog(file)
+            dlg.dataImported.connect(self.loadData)
+            dlg.exec()
 
-        self.hrms_file = file
-
-        x, y = np.loadtxt(file, unpack=True, dtype=np.float32, **loadtxt_kws)
+    def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:
         self.hrms_data = (x, y)
-        self.dataLoaded.emit(x, y)
-
         self.controls.setEnabled(True)
         self.graph_ms.setData(x, y)
-        self.graph_ms.plot.setTitle(file.stem)
+        self.graph_ms.plot.setTitle(path.stem)
 
     def onAdductChanged(self, adduct: Adduct) -> None:
         self.graph_ms.setAdductLabel(adduct)
