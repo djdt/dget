@@ -20,42 +20,45 @@ logger = logging.getLogger(__name__)
 
 
 class DGetFormulaValidator(QtGui.QValidator):
-    re_token = re.compile(r"(\[\d+)?([a-zA-Z][a-z]?)\]?\d*")
-
     def __init__(self, le: QtWidgets.QLineEdit, parent: QtCore.QObject | None = None):
         super().__init__(parent)
         self.le = le
-        self.symbols = [element.symbol for element in ELEMENTS]
-        self.symbols.append("D")
+        self.acceptable_tokens = [element.symbol for element in ELEMENTS]
+        self.acceptable_tokens.extend([k for k in GROUPS.keys()])
+        self.acceptable_tokens.append("D")
+        # self.symbols = [element.symbol for element in ELEMENTS]
+        # self.symbols.append("D")
 
     def validate(self, input: str, pos: int) -> QtGui.QValidator.State:
         if "D" not in input or "[2H]" not in input:
             return QtGui.QValidator.State.Intermediate
-        tokens = self.re_token.findall(input)
-        for _, token in tokens:
-            if token not in self.symbols:
-                return QtGui.QValidator.State.Intermediate
+        formula = Formula(input, parse_oligos=False)
+        try:
+            formula.formula
+        except FormulaError:
+            return QtGui.QValidator.State.Intermediate
         return QtGui.QValidator.State.Acceptable
 
     def fixup(self, input: str) -> None:
-        upper_idx = []
-        for m in self.re_token.finditer(input):
-            token = m.group(2)
-            if token not in self.symbols:
-                if token.capitalize() in self.symbols:
-                    upper_idx.append(m.start(2))
-                elif (
-                    len(token) == 2
-                    and token[0].upper() in self.symbols
-                    and token[1].upper() in self.symbols
-                ):
-                    upper_idx.append(m.start(2))
-                    upper_idx.append(m.start(2) + 1)
+        bad_chars = []
+        new_input = ""
+        while len(new_input) < len(input):
+            pos = len(new_input)
+            if not input[pos].isalpha():
+                new_input += input[pos]
+                continue
 
-        if len(upper_idx) > 0:
-            new_input = "".join(
-                x.upper() if i in upper_idx else x for i, x in enumerate(input)
-            )
+            found = False
+            for token in self.acceptable_tokens:
+                if input[pos:].startswith(token.lower()):
+                    print("accepted token", token)
+                    new_input += token
+                    found = True
+                    break
+            if not found:
+                bad_chars.append(pos)
+                new_input += input[pos]
+        if input != new_input:
             self.le.setText(new_input)
 
 
