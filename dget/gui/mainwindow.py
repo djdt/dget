@@ -197,18 +197,6 @@ class DGetResults(QtWidgets.QDockWidget):
         self.setWidget(self.text)
 
 
-class DGetGraphToolbar(QtWidgets.QToolBar):
-    def __init__(self, graph: DGetMSGraph, parent: QtWidgets.QWidget | None = None):
-        super().__init__(parent)
-        self.graph_ms = graph
-
-        self.action_zoom_reset = QtGui.QAction(
-            QtGui.QIcon.fromTheme("zoom-reset"), "Reset Zoom"
-        )
-        self.action_zoom_reset.triggered.connect(self.graph_ms.resetZoom)
-        self.addAction(self.action_zoom_reset)
-
-
 class DGetMainWindow(QtWidgets.QMainWindow):
     dataLoaded = QtCore.Signal(np.ndarray, np.ndarray)
 
@@ -318,7 +306,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
     #         signal_mass_width=self.signal_mass_width,
     #     )
     def createToolBar(self) -> None:
-        self.toolbar = self.addToolBar("MS Graph")
+        self.toolbar = self.addToolBar("Toolbar")
 
         self.action_zoom_reset = QtGui.QAction(
             QtGui.QIcon.fromTheme("zoom-reset"), "Reset Zoom"
