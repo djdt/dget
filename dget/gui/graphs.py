@@ -76,6 +76,9 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         )
         self.plot.addItem(self.ms_series)
 
+        self.d_series = pyqtgraph.ScatterPlotItem(pxMode=True, size=10)
+        self.plot.addItem(self.d_series)
+
         self.adduct_label = pyqtgraph.LabelItem("", parent=self.yaxis)
         self.adduct_label.anchor(itemPos=(0, 0), parentPos=(1, 0), offset=(10, 10))
 
@@ -86,6 +89,14 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
     def setData(self, x: np.ndarray, y: np.ndarray) -> None:
         self.ms_series.setData(x=x, y=y)
         self.plot.setLimits(xMin=x.min(), xMax=x.max(), yMin=0.0, yMax=y.max() * 1.2)
+
+    def setDeuterationData(
+        self, x: np.ndarray, y: np.ndarray, used: np.ndarray
+    ) -> None:
+        brush_used = QtGui.QBrush(QtGui.QColor.fromString("#DB5461"))
+        brush_unused = QtGui.QBrush(QtGui.QColor.fromString("#8AA29E"))
+        brushes = [brush_used if i in used else brush_unused for i in range(x.size)]
+        self.d_series.setData(x=x, y=y, brush=brushes)
 
     def setAdductLabel(self, adduct: Adduct) -> None:
         self.adduct_label.setText(
@@ -107,7 +118,7 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
             if idx == 0 or idx == self.ms_series.xData.size:  # under/oversize
                 continue
             if self.ms_series.yData[idx] > min_signal:
-                label = pyqtgraph.TextItem(adduct.adduct, anchor=(0.5, 1))
+                label = pyqtgraph.TextItem(adduct.adduct, anchor=(0.5, 1.5))
                 label.setPos(
                     adduct.formula.monoisotopic_mass, self.ms_series.yData[idx]
                 )
@@ -150,8 +161,10 @@ class DGetSpectraGraph(pyqtgraph.GraphicsView):
         self.setCentralWidget(self.plot)
 
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
-        #make a menu
-        action_zoom_reset = QtGui.QAction(QtGui.QIcon.fromTheme("zoom-reset"), "Reset Zoom")
+        # make a menu
+        action_zoom_reset = QtGui.QAction(
+            QtGui.QIcon.fromTheme("zoom-reset"), "Reset Zoom"
+        )
         action_zoom_reset.triggered.connect(self.resetZoom)
 
         menu = QtWidgets.QMenu()
