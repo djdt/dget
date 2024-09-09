@@ -1,152 +1,21 @@
+import datetime
 import logging
 import sys
 from pathlib import Path
 from types import TracebackType
 
 import numpy as np
-from molmass import GROUPS, Formula, FormulaError
-from molmass.elements import ELEMENTS
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtPrintSupport, QtWidgets
 from spcal.gui.log import LoggingDialog
 
-from dget import DGet
+from dget import DGet, __version__
 from dget.adduct import Adduct
+from dget.gui.controls import DGetControls
 from dget.gui.graphs import DGetMSGraph, DGetSpectraGraph
 from dget.gui.importdialog import TextImportDialog
+from dget.gui.report import DGetReportDialog
 
 logger = logging.getLogger(__name__)
-
-
-class DGetFormulaValidator(QtGui.QValidator):
-    def __init__(self, le: QtWidgets.QLineEdit, parent: QtCore.QObject | None = None):
-        super().__init__(parent)
-        self.le = le
-        self.acceptable_tokens = [element.symbol for element in ELEMENTS]
-        self.acceptable_tokens.extend([k for k in GROUPS.keys()])
-        self.acceptable_tokens.append("D")
-        self.acceptable_tokens.sort(key=lambda s: -len(s))
-
-    def validate(self, input: str, pos: int) -> QtGui.QValidator.State:
-        if "D" not in input or "[2H]" not in input:
-            return QtGui.QValidator.State.Intermediate
-        formula = Formula(input, parse_oligos=False)
-        try:
-            formula.formula
-        except FormulaError:
-            return QtGui.QValidator.State.Intermediate
-        return QtGui.QValidator.State.Acceptable
-
-    def fixup(self, input: str) -> None:
-        bad_chars = []
-        new_input = ""
-        while len(new_input) < len(input):
-            pos = len(new_input)
-            if not input[pos].isalpha():
-                new_input += input[pos]
-                continue
-
-            found = False
-            for token in self.acceptable_tokens:
-                if input[pos:].startswith(token):
-                    new_input += token
-                    found = True
-                    break
-            if not found:
-                for token in self.acceptable_tokens:
-                    if input[pos:].lower().startswith(token.lower()):
-                        print("accepted token", token)
-                        new_input += token
-                        found = True
-                        break
-            if not found:
-                bad_chars.append(pos)
-                new_input += input[pos]
-        if input != new_input:
-            self.le.setText(new_input)
-
-
-class DGetControls(QtWidgets.QDockWidget):
-    delimiter_names = {"Comma": ",", "Semicolon": ";", "Tab": "\t", "Space": " "}
-    adductChanged = QtCore.Signal(Adduct)
-
-    def __init__(self, parent: QtWidgets.QWidget | None = None):
-        super().__init__("Controls", parent)
-
-        self.dockLocationChanged.connect(self.changeLayout)
-
-        self.le_formula = QtWidgets.QLineEdit()
-        self.le_formula.setValidator(DGetFormulaValidator(self.le_formula))
-        self.le_formula.textChanged.connect(self.onFormulaChange)
-
-        self.cb_adduct = QtWidgets.QComboBox()
-        self.cb_adduct.addItems(DGet.common_adducts)
-        self.cb_adduct.setEditable(True)
-        self.cb_adduct.currentTextChanged.connect(self.onFormulaChange)
-        self.cb_adduct.editTextChanged.connect(self.onFormulaChange)
-
-        self.realign = QtWidgets.QCheckBox("Re-align HRMS data")
-        self.subtract_bg = QtWidgets.QCheckBox("Subtract HRMS baseline")
-        self.cutoff = QtWidgets.QLineEdit()
-
-        gbox_proc = QtWidgets.QGroupBox("Proccessing options")
-        gbox_proc.setLayout(QtWidgets.QFormLayout())
-        gbox_proc.layout().addWidget(self.realign)
-        gbox_proc.layout().addWidget(self.subtract_bg)
-        gbox_proc.layout().addRow("Calc. cutoff", self.cutoff)
-
-        layout_formula = QtWidgets.QFormLayout()
-        layout_formula.addRow("Formula", self.le_formula)
-        layout_formula.addRow("Adduct", self.cb_adduct)
-
-        self.layout = QtWidgets.QVBoxLayout()
-        self.layout.addLayout(layout_formula)
-        self.layout.addWidget(gbox_proc)
-        self.layout.addStretch(1)
-
-        widget = QtWidgets.QWidget()
-        widget.setLayout(self.layout)
-
-        self.setWidget(widget)
-
-    def setMSOptionsEnabled(self, enabled: bool) -> None:
-        self.ms_delimiter.setEnabled(enabled)
-        self.ms_skiprows.setEnabled(enabled)
-        self.ms_mass_col.setEnabled(enabled)
-        self.ms_signal_col.setEnabled(enabled)
-
-    def onFormulaChange(self) -> None:
-        formula = self.le_formula.text()
-        adduct = self.cb_adduct.currentText()
-        formula = Formula(self.le_formula.text())
-        try:
-            formula.monoisotopic_mass
-        except FormulaError:
-            return
-        try:
-            adduct = Adduct(formula, adduct)
-        except ValueError:
-            return
-        self.adductChanged.emit(adduct)
-
-    # @property
-    # def formula(self) -> Formula | None:
-    #     if not self.le_formula.hasAcceptableInput():
-    #         return None
-    #     try:
-    #         formula = Formula(self.le_formula.text())
-    #         formula.monoisotopic_mass
-    #     except ValueError:
-    #         return None
-    #     return formula
-
-    def changeLayout(self, area: QtCore.Qt.DockWidgetArea) -> None:
-        if area in [
-            QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
-            QtCore.Qt.DockWidgetArea.RightDockWidgetArea,
-        ]:
-            self.layout.setDirection(QtWidgets.QBoxLayout.Direction.TopToBottom)
-        else:
-            self.layout.setDirection(QtWidgets.QBoxLayout.Direction.LeftToRight)
 
 
 class DGetResults(QtWidgets.QDockWidget):
@@ -217,6 +86,10 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             dlg = TextImportDialog(file)
             dlg.dataImported.connect(self.loadData)
             dlg.exec()
+
+    def startReportDialog(self) -> None:
+        dlg = DGetReportDialog(self.dget)
+        dlg.printReport("/home/tom/Downloads/test_report.pdf")
 
     def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:
         self.controls.setEnabled(True)
@@ -295,6 +168,14 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.action_open.setStatusTip("Open an HRMS data file of a deuterated compound")
         self.action_open.triggered.connect(self.startHRMSBrowser)
 
+        self.action_report = QtGui.QAction(
+            QtGui.QIcon.fromTheme("office-report"), "Generate report"
+        )
+        self.action_report.setStatusTip(
+            "Generate a PDF report for the current compound"
+        )
+        self.action_report.triggered.connect(self.startReportDialog)
+
         self.action_quit = QtGui.QAction(
             QtGui.QIcon.fromTheme("application-exit"), "Exit"
         )
@@ -303,6 +184,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
         menu_file = QtWidgets.QMenu("File")
         menu_file.addAction(self.action_open)
+        menu_file.addAction(self.action_report)
         menu_file.addAction(self.action_quit)
 
         menu_view = QtWidgets.QMenu("View")
