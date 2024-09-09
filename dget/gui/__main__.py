@@ -19,6 +19,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         description="Qt GUI for DGet!, an HRMS deuteration calculator",
     )
     parser.add_argument(
+        "--formula", help="molecular formula of the compound, see molmass"
+    )
+    parser.add_argument("--adduct", help="type of adduct in form [xM<+-><adduct>]x<+->")
+    parser.add_argument("--msdata", help="path to mass spec data file")
+
+    parser.add_argument(
         "--nohook", action="store_true", help="don't install the exception hook"
     )
     parser.add_argument("--version", action="version", version=__gui_version__)
@@ -51,6 +57,13 @@ def main(argv: list[str] | None = None) -> int:
     timer = QtCore.QTimer()
     timer.timeout.connect(lambda: None)
     timer.start(100)
+
+    if args.msdata is not None:
+        window.startHRMSBrowser(args.msdata)
+    if args.formula is not None:
+        window.controls.le_formula.setText(args.formula)
+    if args.adduct is not None:
+        window.controls.cb_adduct.setCurrentText(args.adduct)
 
     return app.exec_()
 
