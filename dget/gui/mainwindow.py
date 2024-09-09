@@ -1,5 +1,4 @@
 import logging
-import re
 import sys
 from pathlib import Path
 from types import TracebackType
@@ -10,8 +9,6 @@ from molmass.elements import ELEMENTS
 from PySide6 import QtCore, QtGui, QtWidgets
 from spcal.gui.log import LoggingDialog
 
-import dget.io.shimadzu
-import dget.io.text
 from dget import DGet
 from dget.adduct import Adduct
 from dget.gui.graphs import DGetMSGraph, DGetSpectraGraph
@@ -129,7 +126,6 @@ class DGetControls(QtWidgets.QDockWidget):
             adduct = Adduct(formula, adduct)
         except ValueError:
             return
-        print("emitting adduct", adduct)
         self.adductChanged.emit(adduct)
 
     # @property
@@ -177,7 +173,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
         self.dget: DGet | None = None
         self.hrms_file: Path | None = None
-        self.hrms_data: tuple[np.ndarray, np.ndarray] | None = None
 
         self.log = LoggingDialog()
         self.log.setWindowTitle("SPCal Log")
@@ -192,12 +187,13 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         dock = QtWidgets.QDockWidget("Formula Spectra")
         self.graph_spectra = DGetSpectraGraph()
         dock.setWidget(self.graph_spectra)
+        dock.setShortcutAutoRepeat
 
         self.controls.adductChanged.connect(self.onAdductChanged)
 
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self.controls)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.results)
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, dock)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, dock)
         #
         # widget = QtWidgets.QWidget()
         # widget.setLayout(QtWidgets.QVBoxLayout())
@@ -208,7 +204,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
         self.createMenus()
         self.createToolBar()
-        self.startHRMSBrowser("/home/tom/Downloads/NDF-A-009.txt")
 
     def startHRMSBrowser(self, file: str | Path | None = None) -> None:
         if file is None:
@@ -224,7 +219,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             dlg.exec()
 
     def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:
-        self.hrms_data = (x, y)
         self.controls.setEnabled(True)
         self.graph_ms.setData(x, y)
         self.graph_ms.plot.setTitle(path.stem)
@@ -250,19 +244,17 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.updateDGet(adduct)
 
     def updateDGet(self, adduct: Adduct) -> None:
-        if self.hrms_data is None:
-            return
         try:
             cutoff = self.controls.cutoff.text()
             self.dget = DGet(
                 adduct.base,
-                tofdata=self.hrms_data,
+                tofdata=self.graph_ms.ms_series.getData(),
                 adduct=adduct.adduct,
                 cutoff=cutoff if len(cutoff) > 0 else None,
                 signal_mode=self.signal_mode,
                 signal_mass_width=self.signal_mass_width,
             )
-        except ValueError as e:
+        except ValueError:
             self.dget = None
             return
 
@@ -284,10 +276,16 @@ class DGetMainWindow(QtWidgets.QMainWindow):
     def createToolBar(self) -> None:
         self.toolbar = self.addToolBar("Toolbar")
 
+        self.action_zoom_data = QtGui.QAction(
+            QtGui.QIcon.fromTheme("zoom-2-to-1"), "Zoom To D"
+        )
+        self.action_zoom_data.triggered.connect(self.graph_ms.zoomToData)
+
         self.action_zoom_reset = QtGui.QAction(
             QtGui.QIcon.fromTheme("zoom-reset"), "Reset Zoom"
         )
-        self.action_zoom_reset.triggered.connect(self.graph_ms.resetZoom)
+        self.action_zoom_reset.triggered.connect(self.graph_ms.zoomReset)
+        self.toolbar.addAction(self.action_zoom_data)
         self.toolbar.addAction(self.action_zoom_reset)
 
     def createMenus(self) -> None:

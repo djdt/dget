@@ -126,8 +126,18 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
                 self.adduct_labels.append(label)
 
     # def labelPossibleAdducts(self, adducts: list[Adduct]) -> None:
-    def resetZoom(self) -> None:
+    def zoomReset(self) -> None:
         self.plot.getViewBox().enableAutoRange()
+
+    def zoomToData(self) -> None:
+        if self.d_series is None:
+            return
+        x, y = self.d_series.getData()
+        dx = x.max() - x.min()
+        self.plot.getViewBox().setRange(
+            xRange=(x.min() - dx * 0.05, x.max() + dx * 0.05),
+            yRange=(0.0, y.max() * 1.05),
+        )
 
 
 class DGetSpectraGraph(pyqtgraph.GraphicsView):
@@ -159,6 +169,9 @@ class DGetSpectraGraph(pyqtgraph.GraphicsView):
         self.plot.setLimits(yMin=0.0, yMax=1.2)
 
         self.setCentralWidget(self.plot)
+
+    def sizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(100, 200)
 
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
         # make a menu
