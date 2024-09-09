@@ -42,6 +42,7 @@ class DGetReportDialog(QtWidgets.QDialog):
         self.doc = QtGui.QTextDocument()
         self.doc.setDefaultFont(QtGui.QFont("Courier", pointSize=12))
         self.doc.setUndoRedoEnabled(False)
+        # self.doc.setDocumentMargin(0.0)
 
         if dget is not None:
             self.generate(dget)
@@ -49,7 +50,6 @@ class DGetReportDialog(QtWidgets.QDialog):
     def _addHeader(self) -> None:
         cursor = QtGui.QTextCursor(self.doc)
         cursor.movePosition(cursor.MoveOperation.End, cursor.MoveMode.MoveAnchor)
-        cursor.insertBlock()
         update_cursor_style(
             cursor,
             align=QtCore.Qt.AlignmentFlag.AlignRight,
@@ -58,7 +58,9 @@ class DGetReportDialog(QtWidgets.QDialog):
         )
         cursor.insertText(f"Report generated using the DGet ({__version__})")
 
-    def _addTable(self, title: str, contents: dict) -> None:
+    def _addTable(
+        self, title: str, contents: list[tuple[str, ...]]
+    ) -> QtGui.QTextTable:
         cursor = QtGui.QTextCursor(self.doc)
         cursor.movePosition(cursor.MoveOperation.End, cursor.MoveMode.MoveAnchor)
         cursor.insertBlock()
@@ -79,31 +81,38 @@ class DGetReportDialog(QtWidgets.QDialog):
             QtGui.QFontMetrics(cursor.charFormat().font()).lineSpacing()
         )
 
-        table = cursor.insertTable(len(contents), 2, table_format)
-        for i, (k, v) in enumerate(contents.items()):
-            table.cellAt(i, 0).firstCursorPosition().insertText(k + ":")
-            table.cellAt(i, 1).firstCursorPosition().insertText(str(v))
-        cursor.movePosition(cursor.MoveOperation.End, cursor.MoveMode.MoveAnchor)
+        table = cursor.insertTable(len(contents), len(contents[0]), table_format)
+        for i in range(len(contents)):
+            for j, text in enumerate(contents[i]):
+                table.cellAt(i, j).firstCursorPosition().insertHtml(text)
+        # cursor.movePosition(cursor.MoveOperation.End, cursor.MoveMode.MoveAnchor)
+        return table
 
     def generate(self, dget: DGet) -> None:
+        self.doc.clear()
         self._addHeader()
-        self._addTable(
-            "Report Information",
-            {
-                "Date": datetime.datetime.now().isoformat(sep=" ", timespec="minutes"),
-                "User": "",
-            },
-        )
-        self._addTable(
-            "Compound Information",
-            {
-                "Name / ID": "",
-                "Formula": dget.adduct.base.formula,
-                "m/z": dget.adduct.base.mz,
-                "Adduct": dget.adduct.adduct,
-                "Adduct m/z": dget.adduct.formula.mz,
-            },
-        )
+        info = [
+            ("Date", datetime.datetime.now().isoformat(sep=" ", timespec="minutes")),
+            ("User", ""),
+        ]
+        self._addTable("Report Information", info)
+        cinfo = [
+            ("Name / ID", ""),
+            ("Formula", dget.adduct.base.formula),
+            ("m/z", f"{dget.adduct.base.mz:.4f}"),
+            ("Adduct", dget.adduct.adduct),
+            ("Adduct m/z", f"{dget.adduct.formula.mz:.4f}"),
+        ]
+        self._addTable("Compound Information", cinfo)
+        results = [
+            ("Deuteration", f"<b>{dget.deuteration * 100:.2f} %</b>"),
+            ("Deuteration Ratio Spectra", ""),
+        ]
+        probs = dget.deuteration_probabilites[dget.deuteration_states]
+        probs = probs / probs.sum() * 100.0
+        for state, prob in zip(dget.deuteration_states, probs):
+            results.append((f"D{state}", f"{prob:.2f} %"))
+        self._addTable("Results", results)
 
         # table.cellAt(0, 1).firstCursorPosition().insertText(
         #     f"{datetime.datetime.now().isoformat(sep=' ', timespec='minutes')}"
@@ -159,9 +168,14 @@ class DGetReportDialog(QtWidgets.QDialog):
 
     def printReport(self, path: str) -> None:
         printer = QtPrintSupport.QPrinter(
-            QtPrintSupport.QPrinter.PrinterMode.PrinterResolution
+            QtPrintSupport.QPrinter.PrinterMode.ScreenResolution
         )
+        printer.setResolution(96)
         printer.setOutputFormat(QtPrintSupport.QPrinter.OutputFormat.PdfFormat)
+        printer.setPageMargins(
+            QtCore.QMarginsF(15.0, 5.0, 15.0, 10.0), QtGui.QPageLayout.Unit.Millimeter
+        )
         printer.setPageSize(QtGui.QPageSize.PageSizeId.A4)
         printer.setOutputFileName(path)
+        self.doc.setPageSize(QtCore.QSizeF(printer.width(), printer.height()))
         self.doc.print_(printer)
