@@ -4,6 +4,7 @@ from PySide6 import QtCore, QtGui, QtPrintSupport, QtWidgets
 
 from dget import __version__
 from dget.dget import DGet
+from dget.gui.graphs import DGetMSGraph
 
 
 def update_cursor_style(
@@ -47,9 +48,9 @@ class DGetReportDialog(QtWidgets.QDialog):
         if dget is not None:
             self.generate(dget)
 
-    def _addHeader(self) -> None:
-        cursor = QtGui.QTextCursor(self.doc)
-        cursor.movePosition(cursor.MoveOperation.End, cursor.MoveMode.MoveAnchor)
+    def _addHeader(self, cursor: QtGui.QTextCursor) -> None:
+        # cursor = QtGui.QTextCursor(self.doc)
+        # cursor.movePosition(cursor.MoveOperation.End, cursor.MoveMode.MoveAnchor)
         update_cursor_style(
             cursor,
             align=QtCore.Qt.AlignmentFlag.AlignRight,
@@ -59,10 +60,8 @@ class DGetReportDialog(QtWidgets.QDialog):
         cursor.insertText(f"Report generated using the DGet ({__version__})")
 
     def _addTable(
-        self, title: str, contents: list[tuple[str, ...]]
+        self, cursor: QtGui.QTextCursor, title: str, contents: list[tuple[str, ...]]
     ) -> QtGui.QTextTable:
-        cursor = QtGui.QTextCursor(self.doc)
-        cursor.movePosition(cursor.MoveOperation.End, cursor.MoveMode.MoveAnchor)
         cursor.insertBlock()
         update_cursor_style(
             cursor,
@@ -75,27 +74,42 @@ class DGetReportDialog(QtWidgets.QDialog):
         cursor.insertBlock()
         update_cursor_style(cursor, font_size=12, weight=QtGui.QFont.Weight.Normal)
 
+        fm = QtGui.QFontMetrics(cursor.charFormat().font())
+
         table_format = QtGui.QTextTableFormat()
-        table_format.setBorderStyle(QtGui.QTextFrameFormat.BorderStyle.BorderStyle_None)
-        table_format.setBottomMargin(
-            QtGui.QFontMetrics(cursor.charFormat().font()).lineSpacing()
+        # table_format.setBorderStyle(QtGui.QTextFrameFormat.BorderStyle.BorderStyle_None)
+        # table_format.setCellSpacing(fm.averageCharWidth()*2)
+        table_format.setWidth(
+            QtGui.QTextLength(QtGui.QTextLength.Type.PercentageLength, 50.0)
         )
+        table_format.setBottomMargin(fm.lineSpacing())
 
         table = cursor.insertTable(len(contents), len(contents[0]), table_format)
         for i in range(len(contents)):
             for j, text in enumerate(contents[i]):
                 table.cellAt(i, j).firstCursorPosition().insertHtml(text)
-        # cursor.movePosition(cursor.MoveOperation.End, cursor.MoveMode.MoveAnchor)
         return table
 
     def generate(self, dget: DGet) -> None:
         self.doc.clear()
-        self._addHeader()
+
+        cursor = QtGui.QTextCursor(self.doc)
+        self._addHeader(cursor)
         info = [
             ("Date", datetime.datetime.now().isoformat(sep=" ", timespec="minutes")),
             ("User", ""),
         ]
-        self._addTable("Report Information", info)
+
+        table_format = QtGui.QTextTableFormat()
+        table_format.setBorderStyle(QtGui.QTextFrameFormat.BorderStyle.BorderStyle_None)
+        table_format.setWidth(
+            QtGui.QTextLength(QtGui.QTextLength.Type.PercentageLength, 100.0)
+        )
+        # table_format.setPadding
+        columns = cursor.insertTable(1, 2, table_format)
+
+        cursor = columns.cellAt(0, 0).lastCursorPosition()
+        self._addTable(cursor, "Report Information", info)
         cinfo = [
             ("Name / ID", ""),
             ("Formula", dget.adduct.base.formula),
@@ -103,7 +117,8 @@ class DGetReportDialog(QtWidgets.QDialog):
             ("Adduct", dget.adduct.adduct),
             ("Adduct m/z", f"{dget.adduct.formula.mz:.4f}"),
         ]
-        self._addTable("Compound Information", cinfo)
+        cursor = columns.cellAt(0, 0).lastCursorPosition()
+        self._addTable(cursor, "Compound Information", cinfo)
         results = [
             ("Deuteration", f"<b>{dget.deuteration * 100:.2f} %</b>"),
             ("Deuteration Ratio Spectra", ""),
@@ -112,7 +127,30 @@ class DGetReportDialog(QtWidgets.QDialog):
         probs = probs / probs.sum() * 100.0
         for state, prob in zip(dget.deuteration_states, probs):
             results.append((f"D{state}", f"{prob:.2f} %"))
-        self._addTable("Results", results)
+        cursor = columns.cellAt(0, 0).lastCursorPosition()
+        self._addTable(cursor, "Results", results)
+
+        graph = DGetMSGraph()
+        graph.resize(1280, 960)
+        graph.setData(dget.x, dget.y)
+        graph.setDeuterationData(
+            dget.target_masses, dget.target_signals, dget.deuteration_states
+        )
+        graph.zoomToData()
+
+        pixmap = QtGui.QPixmap(QtCore.QSize(1280, 960))
+        painter = QtGui.QPainter(pixmap)
+        graph.render(painter)
+        painter.end()
+
+        self.doc.addResource(self.doc.ResourceType.ImageResource, "ms_graph", pixmap)
+
+        cursor = columns.cellAt(0, 1).lastCursorPosition()
+        image_format = QtGui.QTextImageFormat()
+        image_format.setWidth(320)
+        image_format.setHeight(240)
+        image_format.setName("ms_graph")
+        cursor.insertImage(image_format, QtGui.QTextFrameFormat.Position.FloatRight)
 
         # table.cellAt(0, 1).firstCursorPosition().insertText(
         #     f"{datetime.datetime.now().isoformat(sep=' ', timespec='minutes')}"
