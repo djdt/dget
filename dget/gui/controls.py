@@ -56,6 +56,7 @@ class DGetFormulaValidator(QtGui.QValidator):
 class DGetControls(QtWidgets.QDockWidget):
     delimiter_names = {"Comma": ",", "Semicolon": ";", "Tab": "\t", "Space": " "}
     adductChanged = QtCore.Signal(Adduct)
+    processOptionsChanged = QtCore.Signal()
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__("Controls", parent)
@@ -75,12 +76,16 @@ class DGetControls(QtWidgets.QDockWidget):
         # self.realign = QtWidgets.QCheckBox("Re-align HRMS data")
         # self.subtract_bg = QtWidgets.QCheckBox("Subtract HRMS baseline")
         self.cutoff = QtWidgets.QLineEdit()
+        self.cutoff.setToolTip(
+            "Deuteration calculation cutoff as a m/z (e.g., 123.4) or state (e.g., D10)"
+        )
+        self.cutoff.editingFinished.connect(self.processOptionsChanged)
 
         gbox_proc = QtWidgets.QGroupBox("Proccessing options")
         gbox_proc.setLayout(QtWidgets.QFormLayout())
         # gbox_proc.layout().addWidget(self.realign)
         # gbox_proc.layout().addWidget(self.subtract_bg)
-        gbox_proc.layout().addRow("Calc. cutoff", self.cutoff)
+        gbox_proc.layout().addRow("Cutoff", self.cutoff)
 
         layout_formula = QtWidgets.QFormLayout()
         layout_formula.addRow("Formula", self.le_formula)

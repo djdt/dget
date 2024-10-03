@@ -41,7 +41,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.signal_mass_width = 0.3
 
         self.dget: DGet | None = None
-        self.hrms_file: Path | None = None
 
         self.log = LoggingDialog()
         self.log.setWindowTitle("SPCal Log")
@@ -59,6 +58,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         dock.setShortcutAutoRepeat
 
         self.controls.adductChanged.connect(self.onAdductChanged)
+        self.controls.processOptionsChanged.connect(self.updateDGet)
 
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self.controls)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.results)
@@ -116,25 +116,39 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
         self.updateDGet(adduct)
 
-    def updateDGet(self, adduct: Adduct) -> None:
+    def updateDGet(self, adduct: Adduct | None = None) -> None:
+        if adduct is None:
+            if self.dget is not None:
+                adduct = self.dget.adduct
+            else:
+                return
+
         try:
             cutoff = self.controls.cutoff.text()
+            try:
+                cutoff = float(cutoff)
+            except ValueError:
+                if len(cutoff) == 0 or cutoff[0] != "D":
+                    cutoff = None
+
             self.dget = DGet(
                 adduct.base,
                 tofdata=self.graph_ms.ms_series.getData(),
                 adduct=adduct.adduct,
-                cutoff=cutoff if len(cutoff) > 0 else None,
+                cutoff=cutoff,
                 signal_mode=self.signal_mode,
                 signal_mass_width=self.signal_mass_width,
             )
+
+            x = self.dget.target_masses
+            y = self.dget.target_signals
+            used = self.dget.deuteration_states
+
+            self.graph_ms.setDeuterationData(x, y, used)
+
         except ValueError:
-            self.dget = None
             return
 
-        x = self.dget.target_masses
-        y = self.dget.target_signals
-
-        used = self.dget.deuteration_states
         # used = np.append(used, np.arange(used[-1] + 1, x.size))
         # not_used = np.flatnonzero(~np.in1d(np.arange(x.size), used))
 
@@ -143,8 +157,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         # if self._deconv_residuals is not None:
         #     ys -= self._deconv_residuals
         # ys[ys < 0.0] = 0.0
-
-        self.graph_ms.setDeuterationData(x, y, used)
 
     def createToolBar(self) -> None:
         self.toolbar = self.addToolBar("Toolbar")
