@@ -76,8 +76,17 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         )
         self.plot.addItem(self.ms_series)
 
-        self.d_series = pyqtgraph.ScatterPlotItem(pxMode=True, size=10)
+        self.d_series = pyqtgraph.ScatterPlotItem(
+            pxMode=True, size=10, hoverable=True, tip=None
+        )
+        self.d_series.sigHovered.connect(self.updateHoverText)
         self.plot.addItem(self.d_series)
+
+        self.hover_text = pyqtgraph.TextItem(
+            "", color=QtGui.QColor.fromRgb(0, 0, 0), anchor=(0.5, 1.0)
+        )
+        self.hover_text.setVisible(False)
+        self.plot.addItem(self.hover_text)
 
         self.adduct_label = pyqtgraph.LabelItem("", parent=self.yaxis)
         self.adduct_label.anchor(itemPos=(0, 0), parentPos=(1, 0), offset=(10, 10))
@@ -93,10 +102,11 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
     def setDeuterationData(
         self, x: np.ndarray, y: np.ndarray, used: np.ndarray
     ) -> None:
+        dstate = np.arange(x.size)
         brush_used = QtGui.QBrush(QtGui.QColor.fromString("#DB5461"))
         brush_unused = QtGui.QBrush(QtGui.QColor.fromString("#8AA29E"))
-        brushes = [brush_used if i in used else brush_unused for i in range(x.size)]
-        self.d_series.setData(x=x, y=y, brush=brushes)
+        brushes = [brush_used if i in used else brush_unused for i in dstate]
+        self.d_series.setData(x=x, y=y, brush=brushes, data=dstate)
 
     def setAdductLabel(self, adduct: Adduct) -> None:
         self.adduct_label.setText(
@@ -125,7 +135,20 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
                 self.plot.addItem(label)
                 self.adduct_labels.append(label)
 
-    # def labelPossibleAdducts(self, adducts: list[Adduct]) -> None:
+    def updateHoverText(
+        self,
+        scatter: pyqtgraph.ScatterPlotItem,
+        points: list[pyqtgraph.SpotItem],
+        event: QtWidgets.QGraphicsSceneHoverEvent,
+    ) -> None:
+        if len(points) == 0:
+            self.hover_text.setVisible(False)
+        else:
+            pos = points[0].pos()
+            self.hover_text.setPos(pos)
+            self.hover_text.setText("D{}".format(points[0].data()))
+            self.hover_text.setVisible(True)
+
     def zoomReset(self) -> None:
         self.plot.getViewBox().enableAutoRange()
 
