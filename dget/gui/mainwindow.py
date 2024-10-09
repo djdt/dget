@@ -11,7 +11,7 @@ from spcal.gui.log import LoggingDialog
 from dget import DGet, __version__
 from dget.adduct import Adduct
 from dget.gui.controls import DGetControls
-from dget.gui.graphs import DGetMSGraph, DGetSpectraGraph
+from dget.gui.graphs import DGetDeuterationGraph, DGetMSGraph, DGetSpectraGraph
 from dget.gui.importdialog import TextImportDialog
 from dget.gui.report import DGetReportDialog
 
@@ -24,8 +24,22 @@ class DGetResults(QtWidgets.QDockWidget):
         self.setWindowTitle("Results")
 
         self.text = QtWidgets.QTextBrowser()
+        self.text.setFont("courier")
+
+        # self.graph = DGetDeuterationGraph()
 
         self.setWidget(self.text)
+
+    def updateText(
+        self, deuteration: float, states: np.ndarray, probabilities: np.ndarray
+    ) -> None:
+        html = f"<p><b>Deuteration: {deuteration * 100.0:.2f} %</b></p>"
+        html += "<p>States</p>"
+        html += "<table>"
+        for state, prob in zip(states, probabilities):
+            html += f"<tr><td>D{state}</td><td>{prob*100.0:.2f} %</td></tr>"
+        html += "</table>"
+        self.text.setHtml(html)
 
 
 class DGetMainWindow(QtWidgets.QMainWindow):
@@ -145,6 +159,11 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             used = self.dget.deuteration_states
 
             self.graph_ms.setDeuterationData(x, y, used)
+
+            probs = self.dget.deuteration_probabilites
+
+            self.results.updateText(self.dget.deuteration, used, probs)
+            # self.results.graph.setData(used, probs[used])
 
         except ValueError:
             return

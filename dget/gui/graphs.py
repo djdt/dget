@@ -213,3 +213,54 @@ class DGetSpectraGraph(pyqtgraph.GraphicsView):
 
     def resetZoom(self) -> None:
         self.plot.getViewBox().enableAutoRange()
+
+class DGetDeuterationGraph(pyqtgraph.GraphicsView):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
+        super().__init__(background="white", parent=parent)
+
+        pen = QtGui.QPen(QtCore.Qt.black, 1.0)
+        pen.setCosmetic(True)
+
+        self.xaxis = pyqtgraph.AxisItem("bottom", pen=pen, textPen=pen, tick_pen=pen)
+        self.xaxis.setLabel("State")
+
+        self.yaxis = pyqtgraph.AxisItem("left", pen=pen, textPen=pen, tick_pen=pen)
+        self.yaxis.setLabel("Relative Abundance")
+
+        self.plot = pyqtgraph.PlotItem(
+            # title=title,
+            name="central_plot",
+            axisItems={"bottom": self.xaxis, "left": self.yaxis},
+            viewBox=ViewBoxForceScaleAtZero(),
+            parent=parent,
+        )
+        # Common options
+        self.plot.setMenuEnabled(False)
+        self.plot.hideButtons()
+
+        self.series = pyqtgraph.BarGraphItem(x=0, height=0, width=0.2)
+        self.plot.addItem(self.series)
+        self.plot.setLimits(yMin=0.0, yMax=1.2)
+
+        self.setCentralWidget(self.plot)
+
+    def sizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(100, 200)
+
+    def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
+        # make a menu
+        action_zoom_reset = QtGui.QAction(
+            QtGui.QIcon.fromTheme("zoom-reset"), "Reset Zoom"
+        )
+        action_zoom_reset.triggered.connect(self.resetZoom)
+
+        menu = QtWidgets.QMenu()
+        menu.addAction(action_zoom_reset)
+        menu.exec(event.globalPos())
+
+    def setData(self, x: np.ndarray, y: np.ndarray) -> None:
+        self.series.setOpts(x=x, height=y)
+        self.plot.setLimits(xMin=x.min() - 1.0, xMax=x.max() + 1.0, yMin=0.0, yMax=1.2)
+
+    def resetZoom(self) -> None:
+        self.plot.getViewBox().enableAutoRange()
