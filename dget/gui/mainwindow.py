@@ -1,4 +1,3 @@
-import datetime
 import logging
 import sys
 from pathlib import Path
@@ -8,10 +7,10 @@ import numpy as np
 from PySide6 import QtCore, QtGui, QtPrintSupport, QtWidgets
 from spcal.gui.log import LoggingDialog
 
-from dget import DGet, __version__
+from dget import DGet
 from dget.adduct import Adduct
 from dget.gui.controls import DGetControls
-from dget.gui.graphs import DGetDeuterationGraph, DGetMSGraph, DGetSpectraGraph
+from dget.gui.graphs import DGetBarGraph, DGetMSGraph
 from dget.gui.importdialog import TextImportDialog
 from dget.gui.report import DGetReportDialog
 
@@ -45,8 +44,7 @@ class DGetResultsGraph(QtWidgets.QDockWidget):
         super().__init__(parent)
         self.setWindowTitle("Deuteration States")
 
-        self.graph = DGetDeuterationGraph()
-
+        self.graph = DGetBarGraph("State", "Percent Abundance")
         self.setWidget(self.graph)
 
 
@@ -76,7 +74,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.graph_ms = DGetMSGraph()
         # self.graph_ms_toolbar = DGetGraphToolbar(self.graph_ms)
         dock = QtWidgets.QDockWidget("Formula Spectra")
-        self.graph_spectra = DGetSpectraGraph()
+        self.graph_spectra = DGetBarGraph("m/z", "Relative Abundance")
         dock.setWidget(self.graph_spectra)
         dock.setShortcutAutoRepeat
 
@@ -91,11 +89,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.results_graph
         )
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, dock)
-        #
-        # widget = QtWidgets.QWidget()
-        # widget.setLayout(QtWidgets.QVBoxLayout())
-        # widget.layout().addWidget(self.graph_ms, 1)
-        # widget.layout().addWidget(self.graph_ms_toolbar, 0)
 
         self.setCentralWidget(self.graph_ms)
 
