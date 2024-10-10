@@ -18,15 +18,13 @@ from dget.gui.report import DGetReportDialog
 logger = logging.getLogger(__name__)
 
 
-class DGetResults(QtWidgets.QDockWidget):
+class DGetResultsText(QtWidgets.QDockWidget):
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle("Results")
 
         self.text = QtWidgets.QTextBrowser()
         self.text.setFont("courier")
-
-        # self.graph = DGetDeuterationGraph()
 
         self.setWidget(self.text)
 
@@ -40,6 +38,16 @@ class DGetResults(QtWidgets.QDockWidget):
             html += f"<tr><td>D{state}</td><td>{prob*100.0:.2f} %</td></tr>"
         html += "</table>"
         self.text.setHtml(html)
+
+
+class DGetResultsGraph(QtWidgets.QDockWidget):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+        self.setWindowTitle("Deuteration States")
+
+        self.graph = DGetDeuterationGraph()
+
+        self.setWidget(self.graph)
 
 
 class DGetMainWindow(QtWidgets.QMainWindow):
@@ -62,7 +70,8 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.controls = DGetControls()
         self.controls.setEnabled(False)
 
-        self.results = DGetResults()
+        self.results_text = DGetResultsText()
+        self.results_graph = DGetResultsGraph()
 
         self.graph_ms = DGetMSGraph()
         # self.graph_ms_toolbar = DGetGraphToolbar(self.graph_ms)
@@ -75,7 +84,12 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.controls.processOptionsChanged.connect(self.updateDGet)
 
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self.controls)
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.results)
+        self.addDockWidget(
+            QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.results_text
+        )
+        self.addDockWidget(
+            QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, self.results_graph
+        )
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, dock)
         #
         # widget = QtWidgets.QWidget()
@@ -162,20 +176,11 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
             probs = self.dget.deuteration_probabilites
 
-            self.results.updateText(self.dget.deuteration, used, probs)
-            # self.results.graph.setData(used, probs[used])
+            self.results_text.updateText(self.dget.deuteration, used, probs)
+            self.results_graph.graph.setData(used, probs[used] * 100.0)
 
         except ValueError:
             return
-
-        # used = np.append(used, np.arange(used[-1] + 1, x.size))
-        # not_used = np.flatnonzero(~np.in1d(np.arange(x.size), used))
-
-        # xs = self.target_masses
-        # ys = self.target_signals
-        # if self._deconv_residuals is not None:
-        #     ys -= self._deconv_residuals
-        # ys[ys < 0.0] = 0.0
 
     def createToolBar(self) -> None:
         self.toolbar = self.addToolBar("Toolbar")

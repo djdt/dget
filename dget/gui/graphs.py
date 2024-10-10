@@ -214,6 +214,7 @@ class DGetSpectraGraph(pyqtgraph.GraphicsView):
     def resetZoom(self) -> None:
         self.plot.getViewBox().enableAutoRange()
 
+
 class DGetDeuterationGraph(pyqtgraph.GraphicsView):
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(background="white", parent=parent)
@@ -225,7 +226,7 @@ class DGetDeuterationGraph(pyqtgraph.GraphicsView):
         self.xaxis.setLabel("State")
 
         self.yaxis = pyqtgraph.AxisItem("left", pen=pen, textPen=pen, tick_pen=pen)
-        self.yaxis.setLabel("Relative Abundance")
+        self.yaxis.setLabel("Percent Abundance")
 
         self.plot = pyqtgraph.PlotItem(
             # title=title,
@@ -260,7 +261,7 @@ class DGetDeuterationGraph(pyqtgraph.GraphicsView):
 
     def setData(self, x: np.ndarray, y: np.ndarray) -> None:
         self.series.setOpts(x=x, height=y)
-        self.plot.setLimits(xMin=x.min() - 1.0, xMax=x.max() + 1.0, yMin=0.0, yMax=1.2)
+        self.plot.setLimits(xMin=x.min() - 1.0, xMax=x.max() + 1.0, yMin=0.0, yMax=y.max() * 1.2)
 
     def resetZoom(self) -> None:
         self.plot.getViewBox().enableAutoRange()
