@@ -63,7 +63,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.dget: DGet | None = None
 
         self.log = LoggingDialog()
-        self.log.setWindowTitle("SPCal Log")
+        self.log.setWindowTitle("DGet! Log")
 
         self.controls = DGetControls()
         self.controls.setEnabled(False)
