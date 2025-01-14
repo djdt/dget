@@ -187,8 +187,25 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             QtGui.QIcon.fromTheme("zoom-reset"), "Reset Zoom"
         )
         self.action_zoom_reset.triggered.connect(self.graph_ms.zoomReset)
+
+        self.spinbox_mass_shift = QtWidgets.QDoubleSpinBox()
+        self.spinbox_mass_shift.setWindowIcon
+        self.spinbox_mass_shift.setRange(-100.0, 100.0)
+        self.spinbox_mass_shift.setDecimals(4)
+        self.spinbox_mass_shift.setValue(0.000)
+        self.spinbox_mass_shift.setSuffix(" m/z")
+        self.spinbox_mass_shift.setStepType(
+            QtWidgets.QDoubleSpinBox.StepType.AdaptiveDecimalStepType
+        )
+        self.spinbox_mass_shift.valueChanged.connect(self.graph_ms.setShift)
+        self.spinbox_mass_shift.editingFinished.connect(self.updateDGet)
         self.toolbar.addAction(self.action_zoom_data)
         self.toolbar.addAction(self.action_zoom_reset)
+        self.action_mass_shift = self.toolbar.addWidget(self.spinbox_mass_shift)
+        self.action_mass_shift.setText("m/z shift")
+        self.action_mass_shift.setIcon(
+            QtGui.QIcon.fromTheme("transform-move-horizontal")
+        )
 
     def createMenus(self) -> None:
         self.action_open = QtGui.QAction(

@@ -71,6 +71,7 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         self.plot.setMenuEnabled(False)
         self.plot.hideButtons()
 
+        self.ms_shift = 0.0
         self.ms_series = pyqtgraph.PlotCurveItem(
             pen=pen, connect="all", skipFiniteCheck=True
         )
@@ -95,7 +96,14 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
 
         self.setCentralWidget(self.plot)
 
+    def setShift(self, mz_shift: float) -> None:
+        x, y = self.ms_series.getData()
+        x = x - self.ms_shift + mz_shift
+        self.ms_series.setData(x, y)
+        self.ms_shift = mz_shift
+
     def setData(self, x: np.ndarray, y: np.ndarray) -> None:
+        self.ms_shift = 0.0
         self.ms_series.setData(x=x, y=y)
         self.plot.setLimits(xMin=x.min(), xMax=x.max(), yMin=0.0, yMax=y.max() * 1.2)
 
