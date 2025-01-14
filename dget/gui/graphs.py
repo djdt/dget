@@ -65,7 +65,6 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
             name="central_plot",
             axisItems={"bottom": self.xaxis, "left": self.yaxis},
             viewBox=ViewBoxForceScaleAtZero(),
-            parent=parent,
         )
         # Common options
         self.plot.setMenuEnabled(False)
