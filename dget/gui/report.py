@@ -53,8 +53,8 @@ class DGetReportDialog(QtWidgets.QDialog):
         self.edit.setMinimumSize(794, 1123 // 2)
 
         self.button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.StandardButton.Save |
-            QtWidgets.QDialogButtonBox.StandardButton.Close,
+            QtWidgets.QDialogButtonBox.StandardButton.Save
+            | QtWidgets.QDialogButtonBox.StandardButton.Close,
         )
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
@@ -174,6 +174,7 @@ class DGetReportDialog(QtWidgets.QDialog):
         painter = QtGui.QPainter(pixmap)
         graph.render(painter)
         painter.end()
+        graph.show()  # required to prevent show crashes
 
         self.doc.addResource(self.doc.ResourceType.ImageResource, "ms_graph", pixmap)
 
