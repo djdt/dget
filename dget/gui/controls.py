@@ -81,11 +81,19 @@ class DGetControls(QtWidgets.QDockWidget):
         )
         self.cutoff.editingFinished.connect(self.processOptionsChanged)
 
+        self.mass_shift = QtWidgets.QDoubleSpinBox()
+        self.mass_shift.setRange(-100.0, 100.0)
+        self.mass_shift.setDecimals(4)
+        self.mass_shift.setSuffix(" m/z")
+        self.mass_shift.setSingleStep(0.01)
+        self.mass_shift.valueChanged.connect(self.processOptionsChanged)
+
         gbox_proc = QtWidgets.QGroupBox("Proccessing options")
         gbox_proc.setLayout(QtWidgets.QFormLayout())
         # gbox_proc.layout().addWidget(self.realign)
         # gbox_proc.layout().addWidget(self.subtract_bg)
         gbox_proc.layout().addRow("Cutoff", self.cutoff)
+        gbox_proc.layout().addRow("Mass shift", self.mass_shift)
 
         layout_formula = QtWidgets.QFormLayout()
         layout_formula.addRow("Formula", self.le_formula)

@@ -152,6 +152,8 @@ class DGetMainWindow(QtWidgets.QMainWindow):
                 if len(cutoff) == 0 or cutoff[0] != "D":
                     cutoff = None
 
+            self.graph_ms.setShift(self.controls.mass_shift.value())
+
             self.dget = DGet(
                 adduct.base,
                 tofdata=self.graph_ms.ms_series.getData(),
@@ -191,24 +193,8 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         )
         self.action_zoom_reset.triggered.connect(self.graph_ms.zoomReset)
 
-        self.spinbox_mass_shift = QtWidgets.QDoubleSpinBox()
-        self.spinbox_mass_shift.setWindowIcon
-        self.spinbox_mass_shift.setRange(-100.0, 100.0)
-        self.spinbox_mass_shift.setDecimals(4)
-        self.spinbox_mass_shift.setValue(0.000)
-        self.spinbox_mass_shift.setSuffix(" m/z")
-        self.spinbox_mass_shift.setStepType(
-            QtWidgets.QDoubleSpinBox.StepType.AdaptiveDecimalStepType
-        )
-        self.spinbox_mass_shift.valueChanged.connect(self.graph_ms.setShift)
-        self.spinbox_mass_shift.editingFinished.connect(self.updateDGet)
         self.toolbar.addAction(self.action_zoom_data)
         self.toolbar.addAction(self.action_zoom_reset)
-        self.action_mass_shift = self.toolbar.addWidget(self.spinbox_mass_shift)
-        self.action_mass_shift.setText("m/z shift")
-        self.action_mass_shift.setIcon(
-            QtGui.QIcon.fromTheme("transform-move-horizontal")
-        )
 
     def createMenus(self) -> None:
         self.action_open = QtGui.QAction(
