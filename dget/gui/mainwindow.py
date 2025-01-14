@@ -110,7 +110,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
     def startReportDialog(self) -> None:
         dlg = DGetReportDialog(self.dget)
-        dlg.printReport("/home/tom/Downloads/test_report.pdf")
+        dlg.exec()
 
     def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:
         self.controls.setEnabled(True)

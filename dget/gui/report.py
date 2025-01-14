@@ -46,8 +46,36 @@ class DGetReportDialog(QtWidgets.QDialog):
         self.doc.setUndoRedoEnabled(False)
         # self.doc.setDocumentMargin(0.0)
 
+        self.edit = QtWidgets.QTextEdit()
+        self.edit.setReadOnly(True)
+        self.edit.setDocument(self.doc)
+        self.edit.setBaseSize(794, 1123)
+        self.edit.setMinimumSize(794, 1123 // 2)
+
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.StandardButton.Save |
+            QtWidgets.QDialogButtonBox.StandardButton.Close,
+        )
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
         if dget is not None:
             self.generate(dget)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.edit, 1)
+        layout.addWidget(self.button_box, 0)
+        self.setLayout(layout)
+
+    def accept(self) -> None:
+        # todo: check for last used report dialog
+        path, ok = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Save Report", "", "PDF Documents (*.pdf)", None
+        )
+        if not ok:
+            return
+        self.printReport(path)
+        super().accept()
 
     def _addHeader(self, cursor: QtGui.QTextCursor) -> None:
         # cursor = QtGui.QTextCursor(self.doc)
