@@ -35,6 +35,15 @@ def update_cursor_style(
     cursor.setBlockFormat(block)
 
 
+class TextEditNoZoom(QtWidgets.QTextEdit):
+    def wheelEvent(self, event: QtGui.QWheelEvent) -> None:
+        # remove the control modifier (used for zoom in / out)
+        event.setModifiers(
+            event.modifiers() & ~QtCore.Qt.KeyboardModifier.ControlModifier
+        )
+        super().wheelEvent(event)
+
+
 class DGetReportDialog(QtWidgets.QDialog):
     def __init__(
         self, dget: DGet | None = None, parent: QtWidgets.QWidget | None = None
@@ -46,7 +55,7 @@ class DGetReportDialog(QtWidgets.QDialog):
         self.doc.setUndoRedoEnabled(False)
         # self.doc.setDocumentMargin(0.0)
 
-        self.edit = QtWidgets.QTextEdit()
+        self.edit = TextEditNoZoom()
         self.edit.setReadOnly(True)
         self.edit.setDocument(self.doc)
         self.edit.setBaseSize(794, 1123)
