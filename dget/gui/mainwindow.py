@@ -198,18 +198,24 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
     def createMenus(self) -> None:
         self.action_open = QtGui.QAction(
-            QtGui.QIcon.fromTheme("document-open"), "Open HRMS data file"
+            QtGui.QIcon.fromTheme("document-open"), "&Open HRMS data file"
         )
         self.action_open.setStatusTip("Open an HRMS data file of a deuterated compound")
         self.action_open.triggered.connect(self.startHRMSBrowser)
 
         self.action_report = QtGui.QAction(
-            QtGui.QIcon.fromTheme("office-report"), "Generate report"
+            QtGui.QIcon.fromTheme("office-report"), "Generate &report"
         )
         self.action_report.setStatusTip(
             "Generate a PDF report for the current compound"
         )
         self.action_report.triggered.connect(self.startReportDialog)
+
+        self.action_log = QtGui.QAction(
+            QtGui.QIcon.fromTheme("dialog-information"), "Show &Log"
+        )
+        self.action_log.setStatusTip("Open the error log.")
+        self.action_log.triggered.connect(self.log.open)
 
         self.action_quit = QtGui.QAction(
             QtGui.QIcon.fromTheme("application-exit"), "Exit"
