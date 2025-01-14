@@ -161,13 +161,15 @@ class DGetMainWindow(QtWidgets.QMainWindow):
                 signal_mass_width=self.signal_mass_width,
             )
 
-            x = self.dget.target_masses
-            y = self.dget.target_signals
             used = self.dget.deuteration_states
-
-            self.graph_ms.setDeuterationData(x, y, used, self.dget.deuterium_count)
-
             probs = self.dget.deuteration_probabilites
+
+            self.graph_ms.setDeuterationData(
+                self.dget.target_masses,
+                self.dget.target_signals,
+                used,
+                self.dget.deuterium_count,
+            )
 
             self.results_text.updateText(self.dget.deuteration, used, probs)
             self.results_graph.graph.setData(used, probs[used] * 100.0)
