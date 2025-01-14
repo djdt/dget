@@ -77,6 +77,7 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         )
         self.plot.addItem(self.ms_series)
 
+        self.d_count = 0
         self.d_series = pyqtgraph.ScatterPlotItem(
             pxMode=True, size=10, hoverable=True, tip=None
         )
@@ -108,12 +109,13 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         self.plot.setLimits(xMin=x.min(), xMax=x.max(), yMin=0.0, yMax=y.max() * 1.2)
 
     def setDeuterationData(
-        self, x: np.ndarray, y: np.ndarray, used: np.ndarray
+        self, x: np.ndarray, y: np.ndarray, used: np.ndarray, dcount: int
     ) -> None:
-        dstate = np.arange(x.size)
+        self.d_count = dcount
         brush_used = QtGui.QBrush(QtGui.QColor.fromString("#DB5461"))
         brush_unused = QtGui.QBrush(QtGui.QColor.fromString("#8AA29E"))
-        brushes = [brush_used if i in used else brush_unused for i in dstate]
+        brushes = [brush_used if i in used else brush_unused for i in range(x.size)]
+        dstate = np.arange(x.size)
         self.d_series.setData(x=x, y=y, brush=brushes, data=dstate)
 
     def setAdductLabel(self, adduct: Adduct) -> None:
@@ -154,7 +156,11 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         else:
             pos = points[0].pos()
             self.hover_text.setPos(pos)
-            self.hover_text.setText("D{}".format(points[0].data()))
+            dstate = points[0].data()
+            if dstate <= self.d_count:
+                self.hover_text.setText(f"D{dstate}")
+            else:
+                self.hover_text.setText(f"D{self.d_count}+{dstate-self.d_count}")
             self.hover_text.setVisible(True)
 
     def zoomReset(self) -> None:
