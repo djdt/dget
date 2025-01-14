@@ -1,12 +1,11 @@
 import datetime
+from typing import Sequence
 
 from PySide6 import QtCore, QtGui, QtPrintSupport, QtWidgets
 
 from dget import __version__
 from dget.dget import DGet
 from dget.gui.graphs import DGetMSGraph
-
-from typing import Sequence
 
 
 def update_cursor_style(
@@ -136,7 +135,10 @@ class DGetReportDialog(QtWidgets.QDialog):
         graph.resize(1280, 960)
         graph.setData(dget.x, dget.y)
         graph.setDeuterationData(
-            dget.target_masses, dget.target_signals, dget.deuteration_states
+            dget.target_masses,
+            dget.target_signals,
+            dget.deuteration_states,
+            dget.deuterium_count,
         )
         graph.zoomToData()
 
