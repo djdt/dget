@@ -61,6 +61,14 @@ class DGetReportDialog(QtWidgets.QDialog):
         self.edit.setBaseSize(794, 1123)
         self.edit.setMinimumSize(794, 1123 // 2)
 
+        self.user = QtWidgets.QLineEdit()
+        self.name_id = QtWidgets.QLineEdit()
+
+        gbox_inputs = QtWidgets.QGroupBox("Inputs")
+        gbox_inputs.setLayout(QtWidgets.QFormLayout())
+        gbox_inputs.layout().addRow("User:", self.user)
+        gbox_inputs.layout().addRow("Name / ID:", self.name_id)
+
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.StandardButton.Save
             | QtWidgets.QDialogButtonBox.StandardButton.Close,
@@ -73,6 +81,7 @@ class DGetReportDialog(QtWidgets.QDialog):
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.edit, 1)
+        layout.addWidget(gbox_inputs, 0)
         layout.addWidget(self.button_box, 0)
         self.setLayout(layout)
 
