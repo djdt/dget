@@ -35,13 +35,80 @@ def update_cursor_style(
     cursor.setBlockFormat(block)
 
 
-class TextEditNoZoom(QtWidgets.QTextEdit):
+class TextEditPartialReadOnly(QtWidgets.QTextEdit):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+        self.setReadOnly(True)
+
+        # must implement firstCursorPosition and lastCursorPoisition
+        self.editable_regions: list[QtGui.QTextTableCell] = []
+
+        self.cursorPositionChanged.connect(self.updateReadOnly)
+        self.selectionChanged.connect(self.updateReadOnly)
+
+    def addEditableRegion(self, region: QtGui.QTextTableCell) -> None:
+        format = region.format()
+        format = format.toTableCellFormat()
+        # format.setBackground(QtCore.Qt.GlobalColor.lightGray)
+        format.setBorder(1.0)
+        region.setFormat(format)
+        self.editable_regions.append(region)
+
+    def updateReadOnly(self) -> None:
+        if not self.isVisible():
+            self.setReadOnly(True)
+            return
+
+        cursor = self.textCursor()
+        if cursor.hasSelection():
+            start, end = cursor.selectionStart(), cursor.selectionEnd()
+        else:
+            start = end = cursor.position()
+
+        for region in self.editable_regions:
+            if (
+                start >= region.firstCursorPosition().position()
+                and end <= region.lastCursorPosition().position()
+            ):
+                self.setReadOnly(False)
+                return
+        self.setReadOnly(True)
+
     def wheelEvent(self, event: QtGui.QWheelEvent) -> None:
         # remove the control modifier (used for zoom in / out)
         event.setModifiers(
             event.modifiers() & ~QtCore.Qt.KeyboardModifier.ControlModifier
         )
         super().wheelEvent(event)
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        # make Tab and Shift+Tab cycle through editable regions
+        if (
+            event.key() == QtCore.Qt.Key.Key_Tab
+            or event.key() == QtCore.Qt.Key.Key_Backtab
+        ):
+            cursor = self.textCursor()
+            pos = cursor.position()
+            if event.key() == QtCore.Qt.Key.Key_Tab:
+                for region in self.editable_regions:
+                    if region.firstCursorPosition().position() > pos:
+                        pos = region.firstCursorPosition().position()
+                        break
+                if pos == cursor.position():
+                    pos = self.editable_regions[0].firstCursorPosition().position()
+            else:
+                for region in self.editable_regions:
+                    if region.lastCursorPosition().position() < pos:
+                        pos = region.firstCursorPosition().position()
+                        break
+                if pos == cursor.position():
+                    pos = self.editable_regions[-1].firstCursorPosition().position()
+            cursor.setPosition(pos)
+            cursor.select(QtGui.QTextCursor.SelectionType.LineUnderCursor)
+            self.setTextCursor(cursor)
+            event.accept()
+        else:
+            super().keyPressEvent(event)
 
 
 class DGetReportDialog(QtWidgets.QDialog):
@@ -55,19 +122,10 @@ class DGetReportDialog(QtWidgets.QDialog):
         self.doc.setUndoRedoEnabled(False)
         # self.doc.setDocumentMargin(0.0)
 
-        self.edit = TextEditNoZoom()
-        self.edit.setReadOnly(True)
+        self.edit = TextEditPartialReadOnly()
         self.edit.setDocument(self.doc)
         self.edit.setBaseSize(794, 1123)
         self.edit.setMinimumSize(794, 1123 // 2)
-
-        self.user = QtWidgets.QLineEdit()
-        self.name_id = QtWidgets.QLineEdit()
-
-        gbox_inputs = QtWidgets.QGroupBox("Inputs")
-        gbox_inputs.setLayout(QtWidgets.QFormLayout())
-        gbox_inputs.layout().addRow("User:", self.user)
-        gbox_inputs.layout().addRow("Name / ID:", self.name_id)
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.StandardButton.Save
@@ -81,7 +139,6 @@ class DGetReportDialog(QtWidgets.QDialog):
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.edit, 1)
-        layout.addWidget(gbox_inputs, 0)
         layout.addWidget(self.button_box, 0)
         self.setLayout(layout)
 
@@ -142,7 +199,7 @@ class DGetReportDialog(QtWidgets.QDialog):
         self._addHeader(cursor)
         info = [
             ("Date", datetime.datetime.now().isoformat(sep=" ", timespec="minutes")),
-            ("User", ""),
+            ("User", "---"),
         ]
 
         table_format = QtGui.QTextTableFormat()
@@ -154,9 +211,11 @@ class DGetReportDialog(QtWidgets.QDialog):
         columns = cursor.insertTable(1, 2, table_format)
 
         cursor = columns.cellAt(0, 0).lastCursorPosition()
-        self._addTable(cursor, "Report Information", info)
+        table = self._addTable(cursor, "Report Information", info)
+        self.edit.addEditableRegion(table.cellAt(1, 1))
+
         cinfo = [
-            ("Name / ID", ""),
+            ("Name / ID", "---"),
             ("Formula", dget.adduct.base.formula),
             ("m/z", f"{dget.adduct.base.mz:.4f}"),
             ("Adduct", dget.adduct.adduct),
@@ -164,7 +223,9 @@ class DGetReportDialog(QtWidgets.QDialog):
         ]
 
         cursor = columns.cellAt(0, 0).lastCursorPosition()
-        self._addTable(cursor, "Compound Information", cinfo)
+        table = self._addTable(cursor, "Compound Information", cinfo)
+        self.edit.addEditableRegion(table.cellAt(0, 1))
+
         results = [
             ("Deuteration", f"<b>{dget.deuteration * 100:.2f} %</b>"),
             ("Deuteration Ratio Spectra", ""),
