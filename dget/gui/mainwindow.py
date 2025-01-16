@@ -234,6 +234,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             menu_view.addAction(dock.toggleViewAction())
 
         menu_help = QtWidgets.QMenu("Help")
+        menu_help.addAction(self.action_log)
 
         self.menuBar().addMenu(menu_file)
         self.menuBar().addMenu(menu_view)
