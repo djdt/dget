@@ -49,7 +49,6 @@ class TextEditPartialReadOnly(QtWidgets.QTextEdit):
     def addEditableRegion(self, region: QtGui.QTextTableCell) -> None:
         format = region.format()
         format = format.toTableCellFormat()
-        # format.setBackground(QtCore.Qt.GlobalColor.lightGray)
         format.setBorder(1.0)
         region.setFormat(format)
         self.editable_regions.append(region)
@@ -267,6 +266,13 @@ class DGetReportDialog(QtWidgets.QDialog):
         cursor.insertImage(image_format, QtGui.QTextFrameFormat.Position.FloatRight)
 
     def printReport(self, path: str) -> None:
+        # get rid of editable region boxes
+        for region in self.edit.editable_regions:
+            format = region.format()
+            format = format.toTableCellFormat()
+            format.setBorderStyle(QtGui.QTextFrameFormat.BorderStyle.BorderStyle_None)
+            region.setFormat(format)
+
         printer = QtPrintSupport.QPrinter(
             QtPrintSupport.QPrinter.PrinterMode.ScreenResolution
         )
