@@ -199,7 +199,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             QtGui.QIcon.fromTheme("document-open"), "&Open HRMS data file"
         )
         self.action_open.setStatusTip("Open an HRMS data file of a deuterated compound")
-        self.action_open.triggered.connect(self.startHRMSBrowser)
+        self.action_open.triggered.connect(lambda: self.startHRMSBrowser(None))
 
         self.action_report = QtGui.QAction(
             QtGui.QIcon.fromTheme("office-report"), "Generate &report"
