@@ -173,6 +173,8 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         if self.d_series is None:
             return
         x, y = self.d_series.getData()
+        if x.size == 0:
+            return
         dx = x.max() - x.min()
         self.plot.getViewBox().setRange(
             xRange=(x.min() - dx * 0.05, x.max() + dx * 0.05),
