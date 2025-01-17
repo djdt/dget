@@ -27,6 +27,9 @@ class DGetResultsText(QtWidgets.QDockWidget):
 
         self.setWidget(self.text)
 
+    def clear(self) -> None:
+        self.text.setHtml("")
+
     def updateText(
         self, deuteration: float, states: np.ndarray, probabilities: np.ndarray
     ) -> None:
@@ -114,10 +117,10 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
     def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:
         self.controls.setEnabled(True)
-        self.action_zoom_data.setEnabled(True)
 
         self.graph_ms.setData(x, y)
         self.graph_ms.plot.setTitle(path.stem)
+        self.updateDGet()
 
     def onAdductChanged(self, adduct: Adduct) -> None:
         self.graph_ms.setAdductLabel(adduct)
@@ -140,6 +143,11 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.updateDGet(adduct)
 
     def updateDGet(self, adduct: Adduct | None = None) -> None:
+        self.results_text.clear()
+        self.results_graph.graph.series.setOpts(x=[], height=0)
+        self.graph_ms.setDeuterationData(np.array([]), np.array([]), np.array([]), 0)
+        self.action_zoom_data.setEnabled(False)
+
         if adduct is None:
             if self.dget is not None:
                 adduct = self.dget.adduct
@@ -149,6 +157,8 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         if self.graph_ms.ms_series.yData.size == 0:
             return
 
+        self.graph_ms.setShift(self.controls.mass_shift.value())
+
         cutoff = self.controls.cutoff.text()
         try:
             cutoff = float(cutoff)
@@ -156,19 +166,23 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             if len(cutoff) == 0 or cutoff[0] != "D":
                 cutoff = None
 
-        self.graph_ms.setShift(self.controls.mass_shift.value())
-
-        self.dget = DGet(
-            adduct.base,
-            tofdata=self.graph_ms.ms_series.getData(),
-            adduct=adduct.adduct,
-            cutoff=cutoff,
-            signal_mode=self.signal_mode,
-            signal_mass_width=self.signal_mass_width,
-        )
+        try:
+            self.dget = DGet(
+                adduct.base,
+                tofdata=self.graph_ms.ms_series.getData(),
+                adduct=adduct.adduct,
+                cutoff=cutoff,
+                signal_mode=self.signal_mode,
+                signal_mass_width=self.signal_mass_width,
+            )
+        except ValueError:
+            return
 
         used = self.dget.deuteration_states
         probs = self.dget.deuteration_probabilites
+
+        if np.all(np.isnan(probs)):
+            return
 
         self.graph_ms.setDeuterationData(
             self.dget.target_masses,
@@ -179,6 +193,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
         self.results_text.updateText(self.dget.deuteration, used, probs)
         self.results_graph.graph.setData(used, probs[used] * 100.0)
+        self.action_zoom_data.setEnabled(True)
 
     def createToolBar(self) -> None:
         self.toolbar = self.addToolBar("Toolbar")
