@@ -114,6 +114,8 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
     def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:
         self.controls.setEnabled(True)
+        self.action_zoom_data.setEnabled(True)
+
         self.graph_ms.setData(x, y)
         self.graph_ms.plot.setTitle(path.stem)
 
@@ -185,6 +187,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             QtGui.QIcon.fromTheme("zoom-2-to-1"), "Zoom To D"
         )
         self.action_zoom_data.triggered.connect(self.graph_ms.zoomToData)
+        self.action_zoom_data.setEnabled(False)
 
         self.action_zoom_reset = QtGui.QAction(
             QtGui.QIcon.fromTheme("zoom-reset"), "Reset Zoom"
