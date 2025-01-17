@@ -144,41 +144,39 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             else:
                 return
 
-        try:
-            cutoff = self.controls.cutoff.text()
-            try:
-                cutoff = float(cutoff)
-            except ValueError:
-                if len(cutoff) == 0 or cutoff[0] != "D":
-                    cutoff = None
-
-            self.graph_ms.setShift(self.controls.mass_shift.value())
-
-            self.dget = DGet(
-                adduct.base,
-                tofdata=self.graph_ms.ms_series.getData(),
-                adduct=adduct.adduct,
-                cutoff=cutoff,
-                signal_mode=self.signal_mode,
-                signal_mass_width=self.signal_mass_width,
-            )
-
-            used = self.dget.deuteration_states
-            probs = self.dget.deuteration_probabilites
-
-            self.graph_ms.setDeuterationData(
-                self.dget.target_masses,
-                self.dget.target_signals,
-                used,
-                self.dget.deuterium_count,
-            )
-
-            self.results_text.updateText(self.dget.deuteration, used, probs)
-            self.results_graph.graph.setData(used, probs[used] * 100.0)
-
-        except ValueError as e:
-            print(e)
+        if self.graph_ms.ms_series.yData.size == 0:
             return
+
+        cutoff = self.controls.cutoff.text()
+        try:
+            cutoff = float(cutoff)
+        except ValueError:
+            if len(cutoff) == 0 or cutoff[0] != "D":
+                cutoff = None
+
+        self.graph_ms.setShift(self.controls.mass_shift.value())
+
+        self.dget = DGet(
+            adduct.base,
+            tofdata=self.graph_ms.ms_series.getData(),
+            adduct=adduct.adduct,
+            cutoff=cutoff,
+            signal_mode=self.signal_mode,
+            signal_mass_width=self.signal_mass_width,
+        )
+
+        used = self.dget.deuteration_states
+        probs = self.dget.deuteration_probabilites
+
+        self.graph_ms.setDeuterationData(
+            self.dget.target_masses,
+            self.dget.target_signals,
+            used,
+            self.dget.deuterium_count,
+        )
+
+        self.results_text.updateText(self.dget.deuteration, used, probs)
+        self.results_graph.graph.setData(used, probs[used] * 100.0)
 
     def createToolBar(self) -> None:
         self.toolbar = self.addToolBar("Toolbar")

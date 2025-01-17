@@ -129,6 +129,10 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
             self.plot.removeItem(label)
         self.adduct_labels.clear()
 
+        # no data
+        if self.ms_series.yData.size == 0:
+            return
+
         min_signal = np.percentile(self.ms_series.yData, 50)
         for adduct in adducts:
             idx = np.searchsorted(
