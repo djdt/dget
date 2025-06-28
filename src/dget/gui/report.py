@@ -4,6 +4,7 @@ from typing import Sequence
 
 from PySide6 import QtCore, QtGui, QtPrintSupport, QtWidgets
 
+from dget.dget import DGet
 from dget.gui.graphs import DGetMSGraph
 
 
