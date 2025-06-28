@@ -1,12 +1,11 @@
 import argparse
 import logging
 import sys
+from importlib.metadata import version
 
 from PySide6 import QtCore, QtWidgets
 
 from dget.gui.mainwindow import DGetMainWindow
-
-__gui_version__ = "0.1"
 
 logging.captureWarnings(True)
 logger = logging.getLogger("dget")
@@ -27,7 +26,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--nohook", action="store_true", help="don't install the exception hook"
     )
-    parser.add_argument("--version", action="version", version=__gui_version__)
+    parser.add_argument("--version", action="version", version=version("dget"))
     parser.add_argument(
         "qtargs", nargs=argparse.REMAINDER, help="arguments to pass to Qt"
     )
@@ -41,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
     app = QtWidgets.QApplication()
     app.setApplicationName("DGet!")
     app.setOrganizationName("DGet!")
-    app.setApplicationVersion(__gui_version__)
+    app.setApplicationVersion(version("dget"))
 
     window = DGetMainWindow()
 
