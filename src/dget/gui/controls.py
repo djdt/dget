@@ -119,12 +119,9 @@ class DGetControls(QtWidgets.QDockWidget):
         adduct = self.cb_adduct.currentText()
         formula = Formula(self.le_formula.text())
         try:
-            formula.monoisotopic_mass
-        except FormulaError:
-            return None
-        try:
-            adduct = Adduct(formula, adduct)
-        except ValueError:
+            _ = formula.monoisotopic_mass
+            return Adduct(formula, adduct)
+        except (FormulaError, ValueError):
             return None
 
     def changeLayout(self, area: QtCore.Qt.DockWidgetArea) -> None:

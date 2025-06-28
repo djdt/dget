@@ -131,7 +131,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
     def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:
         self.graph_ms.setData(x, y)
         self.graph_ms.plot.setTitle(path.stem)
-        self.updateDGet()
+        self.updateDGet(self.controls.adduct())
 
         self.updateRecentFiles(path)
 
@@ -157,6 +157,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.updateDGet(adduct)
 
     def updateDGet(self, adduct: Adduct | None = None) -> None:
+        print('updated', adduct)
         self.results_text.clear()
         self.results_graph.graph.series.setOpts(x=[], height=0)
         self.graph_ms.setDeuterationData(np.array([]), np.array([]), np.array([]), 0)
@@ -165,7 +166,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         if adduct is None:
             if self.dget is not None:
                 adduct = self.dget.adduct
-                print('dget not none')
             else:
                 return
 
