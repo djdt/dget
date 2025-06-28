@@ -1,7 +1,8 @@
 import argparse
 from pathlib import Path
+from importlib.metadata import version
 
-from dget import DGet, __version__
+from dget import DGet
 from dget.io import shimadzu, text
 
 
@@ -66,7 +67,7 @@ def generate_parser() -> argparse.ArgumentParser:
         help="Force alignment of MS data with predicted spectra, "
         "please just calibrate your MS.",
     )
-    parser.add_argument("--version", action="version", version=__version__)
+    parser.add_argument("--version", action="version", version=version("dget"))
 
     return parser
 

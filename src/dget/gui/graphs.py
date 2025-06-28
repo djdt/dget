@@ -48,6 +48,8 @@ class ViewBoxForceScaleAtZero(LimitBoundViewBox):
 
 
 class DGetMSGraph(pyqtgraph.GraphicsView):
+    adductLabelClicked = QtCore.Signal(str)
+
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(background="white", parent=parent)
 

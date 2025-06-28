@@ -1,3 +1,5 @@
+import importlib.metadata
+
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -5,14 +7,11 @@
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-from dget import __version__
 
 project = "DGet"
 copyright = "2023, djdt"
 author = "djdt"
-release = "2023"
-version = __version__
-release = version
+release = importlib.metadata.version("dget")
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

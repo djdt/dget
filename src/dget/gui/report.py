@@ -1,10 +1,9 @@
 import datetime
+from importlib.metadata import version
 from typing import Sequence
 
 from PySide6 import QtCore, QtGui, QtPrintSupport, QtWidgets
 
-from dget import __version__
-from dget.dget import DGet
 from dget.gui.graphs import DGetMSGraph
 
 
@@ -160,7 +159,7 @@ class DGetReportDialog(QtWidgets.QDialog):
             font_size=8,
             bottom_margin_lines=2,
         )
-        cursor.insertText(f"Report generated using the DGet ({__version__}) GUI")
+        cursor.insertText(f"Report generated using the DGet ({version('dget')}) GUI")
 
     def _addTable(
         self, cursor: QtGui.QTextCursor, title: str, contents: Sequence[tuple[str, ...]]

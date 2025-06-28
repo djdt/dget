@@ -1,12 +1,13 @@
 import datetime
 import secrets
+from importlib.metadata import version
 from pathlib import Path
 
 import numpy as np
 from flask import Flask, abort, json, render_template, request, session
 from molmass import Formula, FormulaError
 
-from dget import DGet, __version__
+from dget import DGet
 from dget.adduct import Adduct
 from dget.io import shimadzu, text
 
@@ -83,7 +84,7 @@ def handle_error(error):
 @app.route("/help")
 def help():
     return render_template(
-        "help.html", version=__version__, web_version=__web_version__
+        "help.html", version=version("dget"), web_version=__web_version__
     )
 
 
@@ -94,7 +95,7 @@ def index():
 
     return render_template(
         "index.html",
-        version=__version__,
+        version=version("dget"),
         web_version=__web_version__,
         adducts=adducts,
         delimiters=delimiters,
@@ -107,7 +108,7 @@ def report():
 
     return render_template(
         "report.html",
-        version=__version__,
+        version=version("dget"),
         web_version=__web_version__,
         date=datetime.date.today(),
         formula=result["formula"],
