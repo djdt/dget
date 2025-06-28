@@ -60,6 +60,7 @@ class DGetControls(QtWidgets.QDockWidget):
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__("Controls", parent)
+        self.setObjectName("dget-controls-dock")
 
         self.dockLocationChanged.connect(self.changeLayout)
 
@@ -99,35 +100,38 @@ class DGetControls(QtWidgets.QDockWidget):
         layout_formula.addRow("Formula", self.le_formula)
         layout_formula.addRow("Adduct", self.cb_adduct)
 
-        self.layout = QtWidgets.QVBoxLayout()
-        self.layout.addLayout(layout_formula)
-        self.layout.addWidget(gbox_proc)
-        self.layout.addStretch(1)
+        self.main_layout = QtWidgets.QVBoxLayout()
+        self.main_layout.addLayout(layout_formula)
+        self.main_layout.addWidget(gbox_proc)
+        self.main_layout.addStretch(1)
 
         widget = QtWidgets.QWidget()
-        widget.setLayout(self.layout)
+        widget.setLayout(self.main_layout)
 
         self.setWidget(widget)
 
     def onFormulaChange(self) -> None:
-        formula = self.le_formula.text()
+        adduct = self.adduct()
+        if adduct is not None:
+            self.adductChanged.emit(adduct)
+
+    def adduct(self) -> Adduct | None:
         adduct = self.cb_adduct.currentText()
         formula = Formula(self.le_formula.text())
         try:
             formula.monoisotopic_mass
         except FormulaError:
-            return
+            return None
         try:
             adduct = Adduct(formula, adduct)
         except ValueError:
-            return
-        self.adductChanged.emit(adduct)
+            return None
 
     def changeLayout(self, area: QtCore.Qt.DockWidgetArea) -> None:
         if area in [
             QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
             QtCore.Qt.DockWidgetArea.RightDockWidgetArea,
         ]:
-            self.layout.setDirection(QtWidgets.QBoxLayout.Direction.TopToBottom)
+            self.main_layout.setDirection(QtWidgets.QBoxLayout.Direction.TopToBottom)
         else:
-            self.layout.setDirection(QtWidgets.QBoxLayout.Direction.LeftToRight)
+            self.main_layout.setDirection(QtWidgets.QBoxLayout.Direction.LeftToRight)
