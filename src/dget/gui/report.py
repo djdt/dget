@@ -119,7 +119,6 @@ class DGetReportDialog(QtWidgets.QDialog):
         self.doc = QtGui.QTextDocument()
         self.doc.setDefaultFont(QtGui.QFont("Courier", pointSize=12))
         self.doc.setUndoRedoEnabled(False)
-        # self.doc.setDocumentMargin(0.0)
 
         self.edit = TextEditPartialReadOnly()
         self.edit.setDocument(self.doc)
@@ -142,18 +141,19 @@ class DGetReportDialog(QtWidgets.QDialog):
         self.setLayout(layout)
 
     def accept(self) -> None:
-        # todo: check for last used report dialog
-        path, ok = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save Report", "", "PDF Documents (*.pdf)", None
+        dir = str(QtCore.QSettings().value("RecentFiles/1/Path", ""))
+        if dir != "":
+            dir = str(Path(dir).parent)
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Save Report", dir, "PDF Documents (*.pdf)", ""
         )
-        if not ok:
+        if path == "":
             return
+
         self.printReport(path)
         super().accept()
 
     def _addHeader(self, cursor: QtGui.QTextCursor) -> None:
-        # cursor = QtGui.QTextCursor(self.doc)
-        # cursor.movePosition(cursor.MoveOperation.End, cursor.MoveMode.MoveAnchor)
         update_cursor_style(
             cursor,
             align=QtCore.Qt.AlignmentFlag.AlignRight,

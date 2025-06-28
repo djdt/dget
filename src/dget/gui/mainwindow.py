@@ -293,8 +293,9 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.menuBar().addMenu(menu_help)
 
     def openFile(self) -> None:
-        dir = QtCore.QSettings().value("RecentFiles/1/Path", None)
-        dir = str(Path(dir).parent) if dir is not None else ""
+        dir = str(QtCore.QSettings().value("RecentFiles/1/Path", ""))
+        if dir != "":
+            dir = str(Path(dir).parent)
         self.startHRMSBrowser(dir=dir)
 
     def openRecentFile(self, action: QtGui.QAction) -> None:
