@@ -72,7 +72,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("DGet!")
         self.resize(1280, 800)
 
-        # self.dataLoaded.connect(self.updateMSGraph)
         self.signal_mode = "peak height"
         self.signal_mass_width = 0.3
 
@@ -260,7 +259,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.action_log.triggered.connect(self.log.open)
 
         self.action_layout_default = QtGui.QAction(
-            QtGui.QIcon.fromTheme("window"), "Restore default layout"
+            QtGui.QIcon.fromTheme("view-group"), "Restore default layout"
         )
         self.action_layout_default.setStatusTip("Restore the default window layout.")
         self.action_layout_default.triggered.connect(self.defaultLayout)
