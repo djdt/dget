@@ -110,12 +110,12 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.restoreLayout()
         self.updateRecentFiles()
 
-    def startHRMSBrowser(self, file: str | Path | None = None) -> None:
+    def startHRMSBrowser(self, file: str | Path | None = None, dir: str = "") -> None:
         if file is None:
             file, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self,
                 "Open HRMS data",
-                "",
+                dir,
                 "CSV Documents (*.csv *.text *.txt);;All files (*)",
             )
         if file != "":
@@ -156,7 +156,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.updateDGet(adduct)
 
     def updateDGet(self, adduct: Adduct | None = None) -> None:
-        print('updated', adduct)
         self.results_text.clear()
         self.results_graph.graph.series.setOpts(x=[], height=0)
         self.graph_ms.setDeuterationData(np.array([]), np.array([]), np.array([]), 0)
@@ -237,7 +236,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         )
         self.action_open.setStatusTip("Open an HRMS data file of a deuterated compound")
         self.action_open.setShortcut(QtGui.QKeySequence.StandardKey.Open)
-        self.action_open.triggered.connect(lambda: self.startHRMSBrowser(None))
+        self.action_open.triggered.connect(self.openFile)
 
         self.action_open_recent = QtGui.QActionGroup(self)
         self.action_open_recent.triggered.connect(self.openRecentFile)
@@ -292,6 +291,11 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.menuBar().addMenu(menu_file)
         self.menuBar().addMenu(menu_view)
         self.menuBar().addMenu(menu_help)
+
+    def openFile(self) -> None:
+        dir = QtCore.QSettings().value("RecentFiles/1/Path", None)
+        dir = str(Path(dir).parent) if dir is not None else ""
+        self.startHRMSBrowser(dir=dir)
 
     def openRecentFile(self, action: QtGui.QAction) -> None:
         path = Path(re_strip_amp.sub("", action.text()))
