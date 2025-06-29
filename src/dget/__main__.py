@@ -1,8 +1,9 @@
 import argparse
-from pathlib import Path
 from importlib.metadata import version
+from pathlib import Path
 
 from dget import DGet
+from dget.gui.resources import icons  # noqa: F401
 from dget.io import shimadzu, text
 
 
