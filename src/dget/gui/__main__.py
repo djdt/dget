@@ -2,8 +2,9 @@ import argparse
 import logging
 import sys
 from importlib.metadata import version
+from importlib.resources import files
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from dget.gui.mainwindow import DGetMainWindow
 
@@ -41,6 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     app.setApplicationName("DGet!")
     app.setOrganizationName("DGet!")
     app.setApplicationVersion(version("dget"))
+    app.setWindowIcon(QtGui.QIcon(str(files("dget.gui.resources").joinpath("app.ico"))))
 
     window = DGetMainWindow()
 
