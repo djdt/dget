@@ -110,30 +110,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.restoreLayout()
         self.updateRecentFiles()
 
-    def startHRMSBrowser(self, file: str | Path | None = None, dir: str = "") -> None:
-        if file is None:
-            file, _ = QtWidgets.QFileDialog.getOpenFileName(
-                self,
-                "Open HRMS data",
-                dir,
-                "CSV Documents (*.csv *.text *.txt);;All files (*)",
-            )
-        if file != "":
-            dlg = TextImportDialog(file)
-            dlg.dataImported.connect(self.loadData)
-            dlg.exec()
-
-    def startReportDialog(self) -> None:
-        dlg = DGetReportDialog(self.dget)
-        dlg.exec()
-
-    def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:
-        self.graph_ms.setData(x, y)
-        self.graph_ms.plot.setTitle(path.stem)
-        self.updateDGet(self.controls.adduct())
-
-        self.updateRecentFiles(path)
-
     def onAdductChanged(self, adduct: Adduct) -> None:
         self.graph_ms.setAdductLabel(adduct)
         adducts = []
@@ -232,7 +208,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
     def createMenus(self) -> None:
         self.action_open = QtGui.QAction(
-            QtGui.QIcon.fromTheme("document-open"), "Open HRMS data file"
+            QtGui.QIcon.fromTheme("document-open"), "&Open HRMS Data File"
         )
         self.action_open.setStatusTip("Open an HRMS data file of a deuterated compound")
         self.action_open.setShortcut(QtGui.QKeySequence.StandardKey.Open)
@@ -242,7 +218,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.action_open_recent.triggered.connect(self.openRecentFile)
 
         self.action_report = QtGui.QAction(
-            QtGui.QIcon.fromTheme("office-report"), "Generate &report"
+            QtGui.QIcon.fromTheme("office-report"), "Generate &Report"
         )
         self.action_report.setStatusTip(
             "Generate a PDF report for the current compound"
@@ -251,28 +227,39 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.action_report.triggered.connect(self.startReportDialog)
         self.action_report.setEnabled(False)
 
-        self.action_log = QtGui.QAction(
-            QtGui.QIcon.fromTheme("dialog-information"), "Show &Log"
+        self.action_quit = QtGui.QAction(
+            QtGui.QIcon.fromTheme("application-exit"), "E&xit"
         )
-        self.action_log.setStatusTip("Open the error log.")
-        self.action_log.triggered.connect(self.log.open)
-
+        self.action_quit.setStatusTip("Quit DGet!")
+        self.action_quit.triggered.connect(self.close)
         self.action_layout_default = QtGui.QAction(
             QtGui.QIcon.fromTheme("view-group"), "Restore default layout"
         )
         self.action_layout_default.setStatusTip("Restore the default window layout.")
         self.action_layout_default.triggered.connect(self.defaultLayout)
 
-        self.action_quit = QtGui.QAction(
-            QtGui.QIcon.fromTheme("application-exit"), "Exit"
+        self.action_about = QtGui.QAction(
+            QtGui.QIcon.fromTheme("help-about"), "&About DGet!"
         )
-        self.action_quit.setStatusTip("Quit DGet!")
-        self.action_quit.triggered.connect(self.close)
+        self.action_about.setStatusTip("Show information about the DGet! GUI.")
+        self.action_about.triggered.connect(self.about)
+
+        self.action_help = QtGui.QAction(
+            QtGui.QIcon.fromTheme("documentation"), "Online &Documentation"
+        )
+        self.action_help.setStatusTip("Opens a link to the DGet! documentation.")
+        self.action_help.triggered.connect(self.linkToDocumentation)
+
+        self.action_log = QtGui.QAction(
+            QtGui.QIcon.fromTheme("dialog-information"), "Show &Log"
+        )
+        self.action_log.setStatusTip("Open the error log.")
+        self.action_log.triggered.connect(self.log.open)
 
         menu_file = QtWidgets.QMenu("File")
         menu_file.addAction(self.action_open)
 
-        self.menu_recent = menu_file.addMenu("Open Recent")
+        self.menu_recent = menu_file.addMenu("O&pen Recent")
         self.menu_recent.setIcon(QtGui.QIcon.fromTheme("document-open-recent"))
         self.menu_recent.setEnabled(False)
 
@@ -287,10 +274,34 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
         menu_help = QtWidgets.QMenu("Help")
         menu_help.addAction(self.action_log)
+        menu_help.addAction(self.action_help)
+        menu_help.addAction(self.action_about)
 
         self.menuBar().addMenu(menu_file)
         self.menuBar().addMenu(menu_view)
         self.menuBar().addMenu(menu_help)
+
+    def about(self) -> QtWidgets.QDialog:
+        dlg = QtWidgets.QMessageBox(
+            QtWidgets.QMessageBox.Icon.Information,
+            "About DGet!",
+            (
+                "DGet! is a deuteration calculator for HRMS data.\n"
+                f"Version {QtWidgets.QApplication.applicationVersion()}, using Qt {QtCore.qVersion()}.\n"
+                f"Developed by Thomas Lockwood at the University of Technology Sydney.\n"
+                "https://github.com/djdt/dget"
+            ),
+            parent=self,
+        )
+
+        if self.windowIcon() is not None:
+            dlg.setIconPixmap(self.windowIcon().pixmap(64, 64))
+        dlg.open()
+        return dlg
+
+    # Callbacks
+    def linkToDocumentation(self) -> None:
+        QtGui.QDesktopServices.openUrl("https://dget.readthedocs.io")
 
     def openFile(self) -> None:
         dir = str(QtCore.QSettings().value("RecentFiles/1/Path", ""))
@@ -301,6 +312,30 @@ class DGetMainWindow(QtWidgets.QMainWindow):
     def openRecentFile(self, action: QtGui.QAction) -> None:
         path = Path(re_strip_amp.sub("", action.text()))
         self.startHRMSBrowser(path)
+
+    def startHRMSBrowser(self, file: str | Path | None = None, dir: str = "") -> None:
+        if file is None:
+            file, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self,
+                "Open HRMS data",
+                dir,
+                "CSV Documents (*.csv *.text *.txt);;All files (*)",
+            )
+        if file != "":
+            dlg = TextImportDialog(file)
+            dlg.dataImported.connect(self.loadData)
+            dlg.exec()
+
+    def startReportDialog(self) -> None:
+        dlg = DGetReportDialog(self.dget)
+        dlg.exec()
+
+    def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:
+        self.graph_ms.setData(x, y)
+        self.graph_ms.plot.setTitle(path.stem)
+        self.updateDGet(self.controls.adduct())
+
+        self.updateRecentFiles(path)
 
     def updateRecentFiles(self, new_path: Path | None = None) -> None:
         settings = QtCore.QSettings()
@@ -335,12 +370,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             action = QtGui.QAction(str(path), self)
             self.action_open_recent.addAction(action)
             self.menu_recent.addAction(action)
-
-    def restoreLayout(self) -> None:
-        settings = QtCore.QSettings()
-        self.restoreGeometry(settings.value("window/geometry"))
-        self.restoreState(settings.value("window/state"))
-
     def defaultLayout(self) -> None:
         self.addToolBar(QtCore.Qt.ToolBarArea.RightToolBarArea, self.toolbar)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self.controls)
@@ -368,6 +397,11 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
         for dock in self.findChildren(QtWidgets.QDockWidget):
             dock.show()
+
+    def restoreLayout(self) -> None:
+        settings = QtCore.QSettings()
+        self.restoreGeometry(settings.value("window/geometry"))
+        self.restoreState(settings.value("window/state"))
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         settings = QtCore.QSettings()
