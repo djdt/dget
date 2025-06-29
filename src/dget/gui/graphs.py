@@ -227,7 +227,7 @@ class DGetBarGraph(pyqtgraph.GraphicsView):
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
         # make a menu
         action_zoom_reset = QtGui.QAction(
-            QtGui.QIcon.fromTheme("zoom-reset"), "Reset Zoom"
+            QtGui.QIcon.fromTheme("zoom-original"), "Reset Zoom"
         )
         action_zoom_reset.triggered.connect(self.resetZoom)
 

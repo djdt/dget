@@ -200,7 +200,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.action_zoom_data.setEnabled(False)
 
         self.action_zoom_reset = QtGui.QAction(
-            QtGui.QIcon.fromTheme("zoom-reset"), "Reset Zoom"
+            QtGui.QIcon.fromTheme("zoom-original"), "Reset Zoom"
         )
         self.action_zoom_reset.triggered.connect(self.graph_ms.zoomReset)
 
