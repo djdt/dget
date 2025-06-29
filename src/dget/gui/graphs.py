@@ -71,6 +71,7 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         # Common options
         self.plot.setMenuEnabled(False)
         self.plot.hideButtons()
+        self.plot.setContentsMargins(10, 10, 10, 10)
 
         self.ms_shift = 0.0
         self.ms_series = pyqtgraph.PlotCurveItem(
@@ -165,7 +166,7 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
             if dstate <= self.d_count:
                 self.hover_text.setText(f"D{dstate}")
             else:
-                self.hover_text.setText(f"D{self.d_count}+{dstate-self.d_count}")
+                self.hover_text.setText(f"D{self.d_count}+{dstate - self.d_count}")
             self.hover_text.setVisible(True)
 
     def zoomReset(self) -> None:
@@ -216,6 +217,7 @@ class DGetBarGraph(pyqtgraph.GraphicsView):
         self.series = pyqtgraph.BarGraphItem(x=0, height=0, width=0.33)
         self.plot.addItem(self.series)
         self.plot.setLimits(yMin=0.0)
+        self.plot.setContentsMargins(10, 10, 10, 10)
 
         self.setCentralWidget(self.plot)
 

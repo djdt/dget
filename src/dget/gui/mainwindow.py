@@ -86,6 +86,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.results_graph = DGetResultsGraph()
 
         self.graph_ms = DGetMSGraph()
+
         self.graph_spectra = DGetFormulaSpectra()
 
         self.controls.adductChanged.connect(self.onAdductChanged)
@@ -370,6 +371,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             action = QtGui.QAction(str(path), self)
             self.action_open_recent.addAction(action)
             self.menu_recent.addAction(action)
+
     def defaultLayout(self) -> None:
         self.addToolBar(QtCore.Qt.ToolBarArea.RightToolBarArea, self.toolbar)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self.controls)
