@@ -1,5 +1,6 @@
 import datetime
 from importlib.metadata import version
+from pathlib import Path
 from typing import Sequence
 
 from PySide6 import QtCore, QtGui, QtPrintSupport, QtWidgets
@@ -160,7 +161,16 @@ class DGetReportDialog(QtWidgets.QDialog):
             font_size=8,
             bottom_margin_lines=2,
         )
-        cursor.insertText(f"Report generated using the DGet ({version('dget')}) GUI")
+        cursor.insertText(
+            f"Report generated using the DGet ({version('dget')}) GUI, please cite "
+        )
+        old_format = cursor.charFormat()
+        format = cursor.charFormat()
+        format.setAnchor(True)
+        format.setAnchorHref("https://doi.org/10.1186/s13321-024-00828-x")
+        format.setUnderlineStyle(QtGui.QTextCharFormat.UnderlineStyle.SingleUnderline)
+        cursor.insertText("10.1186/s13321-024-00828-x", format)
+        cursor.insertText(".", old_format)
 
     def _addTable(
         self, cursor: QtGui.QTextCursor, title: str, contents: Sequence[tuple[str, ...]]
