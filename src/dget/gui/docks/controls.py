@@ -7,29 +7,17 @@ from dget.dget import DGet
 
 
 class DGetFormulaValidator(QtGui.QValidator):
-    def __init__(self, le: QtWidgets.QLineEdit, parent: QtCore.QObject | None = None):
+    def __init__(self, parent: QtCore.QObject | None = None):
         super().__init__(parent)
-        self.le = le
         self.acceptable_tokens = [element.symbol for element in ELEMENTS]
         self.acceptable_tokens.extend([k for k in GROUPS.keys()])
         self.acceptable_tokens.append("D")
         self.acceptable_tokens.sort(key=lambda s: -len(s))
 
-    def validate(self, input: str, pos: int) -> QtGui.QValidator.State:
-        if "D" not in input or "[2H]" not in input:
-            return QtGui.QValidator.State.Intermediate
-
-        try:
-            formula = Formula(input, parse_oligos=False)
-            formula.formula
-        except FormulaError:
-            return QtGui.QValidator.State.Intermediate
-
-        return QtGui.QValidator.State.Acceptable
-
     def fixup(self, input: str) -> str:
         bad_chars = []
         new_input = ""
+
         while len(new_input) < len(input):
             pos = len(new_input)
             if not input[pos].isalpha():
@@ -42,18 +30,31 @@ class DGetFormulaValidator(QtGui.QValidator):
                     new_input += token
                     found = True
                     break
+
             if not found:
                 for token in self.acceptable_tokens:
                     if input[pos:].lower().startswith(token.lower()):
                         new_input += token
                         found = True
                         break
+
             if not found:
                 bad_chars.append(pos)
                 new_input += input[pos]
-        if input != new_input:
-            self.le.setText(new_input)
+
         return new_input
+
+    def validate(self, input: str, pos: int) -> QtGui.QValidator.State:
+        if "D" not in input and "[2H]" not in input:
+            return QtGui.QValidator.State.Intermediate
+
+        try:
+            formula = Formula(input, parse_oligos=False)
+            formula.formula
+        except FormulaError:
+            return QtGui.QValidator.State.Intermediate
+
+        return QtGui.QValidator.State.Acceptable
 
 
 class DGetControls(QtWidgets.QDockWidget):
@@ -68,7 +69,7 @@ class DGetControls(QtWidgets.QDockWidget):
         self.dockLocationChanged.connect(self.changeLayout)
 
         self.le_formula = QtWidgets.QLineEdit()
-        self.le_formula.setValidator(DGetFormulaValidator(self.le_formula))
+        self.le_formula.setValidator(DGetFormulaValidator())
         self.le_formula.textChanged.connect(self.onFormulaChange)
 
         self.cb_adduct = QtWidgets.QComboBox()
