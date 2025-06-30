@@ -329,10 +329,11 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
     def updateSettings(self) -> None:
         self.controls.loadAdducts()
-        if self.controls.adduct() is None:
+        adduct = self.controls.adduct()
+        if adduct is None:
             self.updateDGet()
         else:
-            self.onAdductChanged(self.controls.adduct())  # calls updateDGet
+            self.onAdductChanged(adduct)  # calls updateDGet
 
     def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:
         self.graph_ms.setData(x, y)
