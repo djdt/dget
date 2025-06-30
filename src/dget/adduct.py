@@ -3,7 +3,7 @@
 import re
 from typing import Tuple
 
-from molmass import Composition, Formula, Spectrum
+from molmass import Composition, Formula, FormulaError, Spectrum
 
 
 class Adduct(object):
@@ -98,9 +98,9 @@ class Adduct(object):
         match = Adduct.regex.fullmatch(adduct)
         if match is None:
             return False
-        if len(match.group(2)) > 0:
-            return sum(  # check all of group 2 covered by matches
-                m.span()[1] - m.span()[0]
-                for m in Adduct.regex_split.finditer(match.group(2))
-            ) == len(match.group(2))
+        for m in Adduct.regex_split.finditer(match.group(2)):
+            try:
+                Formula(m.group(3)).monoisotopic_mass
+            except FormulaError:
+                return False
         return True
