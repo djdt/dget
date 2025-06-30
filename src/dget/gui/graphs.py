@@ -101,6 +101,7 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         self.doi_label.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, 10))
 
         self.adduct_labels: list[pyqtgraph.TextItem] = []
+        self.adduct_labels_visible = True
 
         self.setCentralWidget(self.plot)
 
@@ -153,8 +154,14 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
                 label.setPos(
                     adduct.formula.monoisotopic_mass, self.ms_series.yData[idx]
                 )
+                label.setVisible(self.adduct_labels_visible)
                 self.plot.addItem(label)
                 self.adduct_labels.append(label)
+
+    def toggleAdductLabels(self) -> None:
+        self.adduct_labels_visible = not self.adduct_labels_visible
+        for label in self.adduct_labels:
+            label.setVisible(self.adduct_labels_visible)
 
     def updateHoverText(
         self,
@@ -174,7 +181,39 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
                 self.hover_text.setText(f"D{self.d_count}+{dstate - self.d_count}")
             self.hover_text.setVisible(True)
 
-    def zoomReset(self) -> None:
+    def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
+        # make a menu
+        action_show_labels = QtGui.QAction(
+            QtGui.QIcon.fromTheme("view-visible"), "Show Adduct Labels"
+        )
+        action_show_labels.setCheckable(True)
+        action_show_labels.setChecked(self.adduct_labels_visible)
+        action_show_labels.triggered.connect(self.toggleAdductLabels)
+
+        action_copy_image = QtGui.QAction(
+            QtGui.QIcon.fromTheme("viewimage"), "Copy Image To Clipboard"
+        )
+        action_copy_image.triggered.connect(self.copyToClipboard)
+
+        action_zoom_reset = QtGui.QAction(
+            QtGui.QIcon.fromTheme("zoom-original"), "Reset Zoom"
+        )
+        action_zoom_reset.triggered.connect(self.resetZoom)
+
+        menu = QtWidgets.QMenu()
+        menu.addAction(action_show_labels)
+        menu.addAction(action_copy_image)
+        menu.addAction(action_zoom_reset)
+        menu.exec(event.globalPos())
+
+    def copyToClipboard(self) -> None:
+        pixmap = QtGui.QPixmap(self.viewport().size())
+        painter = QtGui.QPainter(pixmap)
+        self.render(painter)
+        painter.end()
+        QtWidgets.QApplication.clipboard().setPixmap(pixmap)  # type: ignore
+
+    def resetZoom(self) -> None:
         self.plot.getViewBox().enableAutoRange()
 
     def zoomToData(self) -> None:
