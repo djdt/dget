@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 name = "DGet"
 version = "1.0.0"
 dependencies = [
-    "numpy>=2.0",
+    "numpy >= 2.0",
     "molmass",
 ]
 description = "Calculates compound deuteration from ToF-MS data."
@@ -21,7 +21,7 @@ authors = [{name = "Thomas Lockwood", email = "thomas.lockwood@uts.edu.au"}]
 
 [project.optional-dependencies]
 tests = ["pytest"]
-gui = ["PySide6"]
+gui = ["PySide6 != 6.9.1"]
 
 [project.urls]
 Homepage = "https://dget.app"
