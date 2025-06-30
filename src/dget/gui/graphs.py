@@ -95,6 +95,11 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         self.adduct_label = pyqtgraph.LabelItem("", parent=self.yaxis)
         self.adduct_label.anchor(itemPos=(0, 0), parentPos=(1, 0), offset=(10, 10))
 
+        self.doi_label = pyqtgraph.LabelItem(
+            "doi: 10.1186/s13321-024-00828-x", parent=self.plot
+        )
+        self.doi_label.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, 10))
+
         self.adduct_labels: list[pyqtgraph.TextItem] = []
 
         self.setCentralWidget(self.plot)
