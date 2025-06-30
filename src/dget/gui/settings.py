@@ -61,16 +61,17 @@ class DGetSettingsDialog(QtWidgets.QDialog):
         self.signal_mass_width.setSuffix(" m/z")
 
         self.button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.StandardButton.Ok
+            QtWidgets.QDialogButtonBox.StandardButton.Reset
+            | QtWidgets.QDialogButtonBox.StandardButton.Ok
             | QtWidgets.QDialogButtonBox.StandardButton.Cancel
         )
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.close)
+        self.button_box.clicked.connect(self.buttonPressed)
 
         layout = QtWidgets.QFormLayout()
         layout.addRow("Default adducts:", adduct_layout)
         layout.addRow("Signal mode:", mode_box)
         layout.addRow("Mass width:", self.signal_mass_width)
+        layout.addRow(self.button_box)
         self.setLayout(layout)
 
         self.loadSettings()
@@ -94,17 +95,19 @@ class DGetSettingsDialog(QtWidgets.QDialog):
         self.saveSettings()
         super().accept()
 
-    def completeChanged(self) -> None:
-        self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Ok).setEnabled(
-            self.isComplete()
-        )
-
-    def isComplete(self) -> bool:
-        return True
+    def buttonPressed(self, button: QtWidgets.QAbstractButton) -> None:
+        sb = self.button_box.standardButton(button)
+        if sb == QtWidgets.QDialogButtonBox.StandardButton.Reset:
+            self.restoreDefaults()
+        elif sb == QtWidgets.QDialogButtonBox.StandardButton.Ok:
+            self.accept()
+        else:
+            self.reject()
 
     def loadSettings(self) -> None:
         settings = QtCore.QSettings()
-        if settings.contains("dget/adducts"):
+        self.adducts.clear()
+        if settings.contains("dget/adducts/size"):
             size = settings.beginReadArray("dget/adducts")
             for i in range(size):
                 settings.setArrayIndex(i)
