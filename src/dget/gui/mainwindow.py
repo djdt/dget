@@ -1,6 +1,7 @@
 import logging
 import re
 import sys
+from importlib.metadata import version
 from pathlib import Path
 from types import TracebackType
 
@@ -10,7 +11,8 @@ from spcal.gui.log import LoggingDialog
 
 from dget import DGet
 from dget.adduct import Adduct
-from dget.gui.controls import DGetControls
+from dget.gui.docks.controls import DGetControls
+from dget.gui.docks.results import DGetResultsGraph, DGetResultsText
 from dget.gui.graphs import DGetBarGraph, DGetMSGraph
 from dget.gui.importdialog import TextImportDialog
 from dget.gui.report import DGetReportDialog
@@ -18,40 +20,6 @@ from dget.gui.report import DGetReportDialog
 logger = logging.getLogger(__name__)
 
 re_strip_amp = re.compile("\\&(?!\\&)")
-
-
-class DGetResultsText(QtWidgets.QDockWidget):
-    def __init__(self, parent: QtWidgets.QWidget | None = None):
-        super().__init__("Results", parent)
-        self.setObjectName("dget-results-text-dock")
-
-        self.text = QtWidgets.QTextBrowser()
-        self.text.setFont("courier")
-
-        self.setWidget(self.text)
-
-    def clear(self) -> None:
-        self.text.setHtml("")
-
-    def updateText(
-        self, deuteration: float, states: np.ndarray, probabilities: np.ndarray
-    ) -> None:
-        html = f"<p><b>Deuteration: {deuteration * 100.0:.2f} %</b></p>"
-        html += "<p>States</p>"
-        html += "<table>"
-        for state, prob in zip(states, probabilities):
-            html += f"<tr><td>D{state}</td><td>{prob * 100.0:.2f} %</td></tr>"
-        html += "</table>"
-        self.text.setHtml(html)
-
-
-class DGetResultsGraph(QtWidgets.QDockWidget):
-    def __init__(self, parent: QtWidgets.QWidget | None = None):
-        super().__init__("Deuteration States", parent)
-        self.setObjectName("dget-results-graph-dock")
-
-        self.graph = DGetBarGraph("State", "Percent Abundance")
-        self.setWidget(self.graph)
 
 
 class DGetFormulaSpectra(QtWidgets.QDockWidget):
@@ -71,9 +39,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         super().__init__(parent)
         self.setWindowTitle("DGet!")
         self.resize(1280, 800)
-
-        self.signal_mode = "peak height"
-        self.signal_mass_width = 0.3
 
         self.dget: DGet | None = None
 
@@ -110,6 +75,9 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
         self.restoreLayout()
         self.updateRecentFiles()
+
+        status = self.statusBar()
+        status.showMessage(f"Welcome to DGet! version {version('dget')}.")
 
     def onAdductChanged(self, adduct: Adduct) -> None:
         self.graph_ms.setAdductLabel(adduct)
@@ -157,13 +125,14 @@ class DGetMainWindow(QtWidgets.QMainWindow):
                 cutoff = None
 
         try:
+            settings = QtCore.QSettings()
             self.dget = DGet(
                 adduct.base,
                 tofdata=self.graph_ms.ms_series.getData(),
                 adduct=adduct.adduct,
                 cutoff=cutoff,
-                signal_mode=self.signal_mode,
-                signal_mass_width=self.signal_mass_width,
+                signal_mode=str(settings.value("dget/signal mode", "peak height")),
+                signal_mass_width=float(settings.value("dget/signal mass width", 0.3)),
             )
             self.action_report.setEnabled(True)
         except ValueError:
@@ -222,7 +191,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             QtGui.QIcon.fromTheme("office-report"), "Generate &Report"
         )
         self.action_report.setStatusTip(
-            "Generate a PDF report for the current compound"
+            "Generate a PDF report for the current compound."
         )
         self.action_report.setShortcut(QtGui.QKeySequence.fromString("Ctrl+R"))
         self.action_report.triggered.connect(self.startReportDialog)
@@ -234,7 +203,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.action_quit.setStatusTip("Quit DGet!")
         self.action_quit.triggered.connect(self.close)
         self.action_layout_default = QtGui.QAction(
-            QtGui.QIcon.fromTheme("view-group"), "Restore default layout"
+            QtGui.QIcon.fromTheme("view-group"), "Restore Default Layout"
         )
         self.action_layout_default.setStatusTip("Restore the default window layout.")
         self.action_layout_default.triggered.connect(self.defaultLayout)
@@ -312,7 +281,13 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
     def openRecentFile(self, action: QtGui.QAction) -> None:
         path = Path(re_strip_amp.sub("", action.text()))
-        self.startHRMSBrowser(path)
+        if path.exists():
+            self.startHRMSBrowser(path)
+        else:
+            QtWidgets.QMessageBox.warning(
+                self, "File Not Found", f"File '{path}' does not exist."
+            )
+            self.updateRecentFiles(remove=path)
 
     def startHRMSBrowser(self, file: str | Path | None = None, dir: str = "") -> None:
         if file is None:
@@ -338,19 +313,21 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
         self.updateRecentFiles(path)
 
-    def updateRecentFiles(self, new_path: Path | None = None) -> None:
+    def updateRecentFiles(
+        self, insert: Path | None = None, remove: Path | None = None
+    ) -> None:
         settings = QtCore.QSettings()
         num = settings.beginReadArray("RecentFiles")
         paths = []
         for i in range(num):
             settings.setArrayIndex(i)
             path = Path(settings.value("Path"))
-            if path != new_path:
+            if path not in [insert, remove]:
                 paths.append(path)
         settings.endArray()
 
-        if new_path is not None:
-            paths.insert(0, new_path)
+        if insert is not None:
+            paths.insert(0, insert)
             paths = paths[: self.max_recent_files]
 
             settings.remove("RecentFiles")
@@ -369,6 +346,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.menu_recent.setEnabled(len(paths) > 0)
         for path in paths:
             action = QtGui.QAction(str(path), self)
+            action.setIconText("1")
             self.action_open_recent.addAction(action)
             self.menu_recent.addAction(action)
 

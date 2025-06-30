@@ -18,11 +18,13 @@ class DGetFormulaValidator(QtGui.QValidator):
     def validate(self, input: str, pos: int) -> QtGui.QValidator.State:
         if "D" not in input or "[2H]" not in input:
             return QtGui.QValidator.State.Intermediate
-        formula = Formula(input, parse_oligos=False)
+
         try:
+            formula = Formula(input, parse_oligos=False)
             formula.formula
         except FormulaError:
             return QtGui.QValidator.State.Intermediate
+
         return QtGui.QValidator.State.Acceptable
 
     def fixup(self, input: str) -> None:
