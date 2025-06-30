@@ -73,16 +73,8 @@ class DGetControls(QtWidgets.QDockWidget):
         self.le_formula.textChanged.connect(self.onFormulaChange)
 
         self.cb_adduct = QtWidgets.QComboBox()
+        self.loadAdducts()
 
-        settings = QtCore.QSettings()
-        if settings.contains("dget/adducts/size"):
-            size = settings.beginReadArray("dget/adducts")
-            for i in range(size):
-                settings.setArrayIndex(i)
-                self.cb_adduct.addItem(str(settings.value("adduct")))
-            settings.endArray()
-        else:
-            self.cb_adduct.addItems(DGet.common_adducts)
         self.cb_adduct.setEditable(True)
         self.cb_adduct.currentTextChanged.connect(self.onFormulaChange)
         self.cb_adduct.editTextChanged.connect(self.onFormulaChange)
@@ -122,6 +114,26 @@ class DGetControls(QtWidgets.QDockWidget):
         widget.setLayout(self.main_layout)
 
         self.setWidget(widget)
+
+    def loadAdducts(self) -> None:
+        current = self.cb_adduct.currentText()
+        index = 0
+        self.cb_adduct.blockSignals(True)
+        self.cb_adduct.clear()
+        settings = QtCore.QSettings()
+        if settings.contains("dget/adducts/size"):
+            size = settings.beginReadArray("dget/adducts")
+            for i in range(size):
+                settings.setArrayIndex(i)
+                adduct = str(settings.value("adduct"))
+                self.cb_adduct.addItem(adduct)
+                if adduct == current:
+                    index = i
+            settings.endArray()
+        else:
+            self.cb_adduct.addItems(DGet.common_adducts)
+        self.cb_adduct.blockSignals(False)
+        self.cb_adduct.setCurrentIndex(index)
 
     def onFormulaChange(self) -> None:
         adduct = self.adduct()

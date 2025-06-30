@@ -324,7 +324,12 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
     def startSettingsDialog(self) -> None:
         dlg = DGetSettingsDialog(self)
+        dlg.accepted.connect(self.updateSettings)
         dlg.exec()
+
+    def updateSettings(self) -> None:
+        self.controls.loadAdducts()
+        self.updateDGet(self.controls.adduct())  # signal mode and mass width
 
     def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:
         self.graph_ms.setData(x, y)
