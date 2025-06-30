@@ -16,6 +16,7 @@ from dget.gui.docks.results import DGetResultsGraph, DGetResultsText
 from dget.gui.graphs import DGetBarGraph, DGetMSGraph
 from dget.gui.importdialog import TextImportDialog
 from dget.gui.report import DGetReportDialog
+from dget.gui.settings import DGetSettingsDialog
 
 logger = logging.getLogger(__name__)
 
@@ -81,13 +82,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
     def onAdductChanged(self, adduct: Adduct) -> None:
         self.graph_ms.setAdductLabel(adduct)
-        adducts = []
-        for ad in DGet.common_adducts:
-            try:
-                adducts.append(Adduct(adduct.base, ad))
-            except ValueError:
-                pass
-        self.graph_ms.labelAdducts(adducts)
 
         spectra = adduct.formula.spectrum(min_fraction=DGet.min_fraction_for_spectra)
 
@@ -99,6 +93,17 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.graph_spectra.graph.resetZoom()
 
         self.updateDGet(adduct)
+
+        adduct_list = []
+        for i in range(self.controls.cb_adduct.count()):
+            try:
+                adduct_list.append(
+                    Adduct(adduct.base, self.controls.cb_adduct.itemText(i))
+                )
+            except ValueError:
+                pass
+
+        self.graph_ms.labelAdducts(adduct_list)
 
     def updateDGet(self, adduct: Adduct | None = None) -> None:
         self.results_text.clear()
@@ -202,6 +207,13 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         )
         self.action_quit.setStatusTip("Quit DGet!")
         self.action_quit.triggered.connect(self.close)
+
+        self.action_settings = QtGui.QAction(
+            QtGui.QIcon.fromTheme("settings-configure"), "Settings"
+        )
+        self.action_settings.setStatusTip("Set plotting and processing options.")
+        self.action_settings.triggered.connect(self.startSettingsDialog)
+
         self.action_layout_default = QtGui.QAction(
             QtGui.QIcon.fromTheme("view-group"), "Restore Default Layout"
         )
@@ -236,6 +248,9 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         menu_file.addAction(self.action_report)
         menu_file.addAction(self.action_quit)
 
+        menu_edit = QtWidgets.QMenu("Edit")
+        menu_edit.addAction(self.action_settings)
+
         menu_view = QtWidgets.QMenu("View")
         menu_view.addAction(self.action_layout_default)
         menu_view.addSection("Show/hide dock widgets")
@@ -248,6 +263,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         menu_help.addAction(self.action_about)
 
         self.menuBar().addMenu(menu_file)
+        self.menuBar().addMenu(menu_edit)
         self.menuBar().addMenu(menu_view)
         self.menuBar().addMenu(menu_help)
 
@@ -304,6 +320,10 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
     def startReportDialog(self) -> None:
         dlg = DGetReportDialog(self.dget)
+        dlg.exec()
+
+    def startSettingsDialog(self) -> None:
+        dlg = DGetSettingsDialog(self)
         dlg.exec()
 
     def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:

@@ -73,7 +73,16 @@ class DGetControls(QtWidgets.QDockWidget):
         self.le_formula.textChanged.connect(self.onFormulaChange)
 
         self.cb_adduct = QtWidgets.QComboBox()
-        self.cb_adduct.addItems(DGet.common_adducts)
+
+        settings = QtCore.QSettings()
+        if settings.contains("dget/adducts/size"):
+            size = settings.beginReadArray("dget/adducts")
+            for i in range(size):
+                settings.setArrayIndex(i)
+                self.cb_adduct.addItem(str(settings.value("adduct")))
+            settings.endArray()
+        else:
+            self.cb_adduct.addItems(DGet.common_adducts)
         self.cb_adduct.setEditable(True)
         self.cb_adduct.currentTextChanged.connect(self.onFormulaChange)
         self.cb_adduct.editTextChanged.connect(self.onFormulaChange)
