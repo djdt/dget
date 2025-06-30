@@ -132,8 +132,8 @@ class DGetControls(QtWidgets.QDockWidget):
             settings.endArray()
         else:
             self.cb_adduct.addItems(DGet.common_adducts)
-        self.cb_adduct.blockSignals(False)
         self.cb_adduct.setCurrentIndex(index)
+        self.cb_adduct.blockSignals(False)
 
     def onFormulaChange(self) -> None:
         adduct = self.adduct()
