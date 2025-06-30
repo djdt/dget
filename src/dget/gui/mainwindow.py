@@ -329,7 +329,10 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
     def updateSettings(self) -> None:
         self.controls.loadAdducts()
-        self.updateDGet(self.controls.adduct())  # signal mode and mass width
+        if self.controls.adduct() is None:
+            self.updateDGet()
+        else:
+            self.onAdductChanged(self.controls.adduct())  # calls updateDGet
 
     def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:
         self.graph_ms.setData(x, y)
