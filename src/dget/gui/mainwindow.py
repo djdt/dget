@@ -405,6 +405,24 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.restoreGeometry(settings.value("window/geometry"))
         self.restoreState(settings.value("window/state"))
 
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+        if event.mimeData().hasUrls():
+            mime_db = QtCore.QMimeDatabase()
+            for url in event.mimeData().urls():
+                if mime_db.mimeTypeForUrl(url).name() in ["text/plain", "text/csv"]:
+                    event.acceptProposedAction()
+        super().dragEnterEvent(event)
+
+    def dropEvent(self, event: QtGui.QDropEvent) -> None:
+        if event.mimeData().hasUrls():
+            mime_db = QtCore.QMimeDatabase()
+            for url in event.mimeData().urls():
+                if mime_db.mimeTypeForUrl(url).name() in ["text/plain", "text/csv"]:
+                    self.startHRMSBrowser(Path(url.toLocalFile()))
+                    event.acceptProposedAction()
+                    return
+        super().dropEvent(event)
+
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         settings = QtCore.QSettings()
         settings.setValue("window/geometry", self.saveGeometry())
