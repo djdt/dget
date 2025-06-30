@@ -27,7 +27,7 @@ class DGetFormulaValidator(QtGui.QValidator):
 
         return QtGui.QValidator.State.Acceptable
 
-    def fixup(self, input: str) -> None:
+    def fixup(self, input: str) -> str:
         bad_chars = []
         new_input = ""
         while len(new_input) < len(input):
@@ -53,6 +53,7 @@ class DGetFormulaValidator(QtGui.QValidator):
                 new_input += input[pos]
         if input != new_input:
             self.le.setText(new_input)
+        return new_input
 
 
 class DGetControls(QtWidgets.QDockWidget):
