@@ -142,7 +142,7 @@ class DGetReportDialog(QtWidgets.QDialog):
         self.setLayout(layout)
 
     def accept(self) -> None:
-        dir = str(QtCore.QSettings().value("RecentFiles/1/Path", ""))
+        dir = str(QtCore.QSettings().value("recent files/1/path", ""))
         if dir != "":
             dir = str(Path(dir).parent)
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -282,6 +282,8 @@ class DGetReportDialog(QtWidgets.QDialog):
             format = format.toTableCellFormat()
             format.setBorderStyle(QtGui.QTextFrameFormat.BorderStyle.BorderStyle_None)
             region.setFormat(format)
+
+        page_size = QtCore.QSettings.value("report/page size")
 
         printer = QtPrintSupport.QPrinter(
             QtPrintSupport.QPrinter.PrinterMode.ScreenResolution

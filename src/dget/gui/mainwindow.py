@@ -241,7 +241,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         menu_file = QtWidgets.QMenu("File")
         menu_file.addAction(self.action_open)
 
-        self.menu_recent = menu_file.addMenu("O&pen Recent")
+        self.menu_recent = menu_file.addMenu("O&pen recent")
         self.menu_recent.setIcon(QtGui.QIcon.fromTheme("document-open-recent"))
         self.menu_recent.setEnabled(False)
 
@@ -290,7 +290,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         QtGui.QDesktopServices.openUrl("https://dget.readthedocs.io")
 
     def openFile(self) -> None:
-        dir = str(QtCore.QSettings().value("RecentFiles/1/Path", ""))
+        dir = str(QtCore.QSettings().value("recent files/1/path", ""))
         if dir != "":
             dir = str(Path(dir).parent)
         self.startHRMSBrowser(dir=dir)
@@ -346,11 +346,11 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self, insert: Path | None = None, remove: Path | None = None
     ) -> None:
         settings = QtCore.QSettings()
-        num = settings.beginReadArray("RecentFiles")
+        num = settings.beginReadArray("recent files")
         paths = []
         for i in range(num):
             settings.setArrayIndex(i)
-            path = Path(settings.value("Path"))
+            path = Path(settings.value("path"))
             if path not in [insert, remove]:
                 paths.append(path)
         settings.endArray()
@@ -359,11 +359,11 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             paths.insert(0, insert)
             paths = paths[: self.max_recent_files]
 
-            settings.remove("RecentFiles")
-            settings.beginWriteArray("RecentFiles", len(paths))
+            settings.remove("recent files")
+            settings.beginWriteArray("recent files", len(paths))
             for i, path in enumerate(paths):
                 settings.setArrayIndex(i)
-                settings.setValue("Path", str(path))
+                settings.setValue("path", str(path))
             settings.endArray()
 
         # Clear old actions
