@@ -98,9 +98,13 @@ class Adduct(object):
         match = Adduct.regex.fullmatch(adduct)
         if match is None:
             return False
+        size = 0
         for m in Adduct.regex_split.finditer(match.group(2)):
             try:
                 Formula(m.group(3)).monoisotopic_mass
             except FormulaError:
                 return False
+            size += m.span()[1] - m.span()[0]
+        if size != len(match.group(2)):
+            return False
         return True
