@@ -24,19 +24,8 @@ class DGetSettingsDialog(QtWidgets.QDialog):
 
         self.adducts = QtWidgets.QComboBox()
 
-        adduct_layout = QtWidgets.QHBoxLayout()
-        adduct_layout.addWidget(self.adducts)
-        adduct_layout.addWidget(self.adduct_input)
-        adduct_layout.addWidget(self.adduct_add_button)
-
         self.signal_mode_area = QtWidgets.QRadioButton("Peak area")
         self.signal_mode_height = QtWidgets.QRadioButton("Peak height")
-
-        mode_box = QtWidgets.QGroupBox()
-        mode_layout = QtWidgets.QHBoxLayout()
-        mode_layout.addWidget(self.signal_mode_area)
-        mode_layout.addWidget(self.signal_mode_height)
-        mode_box.setLayout(mode_layout)
 
         self.signal_mass_width = QtWidgets.QDoubleSpinBox()
         self.signal_mass_width.setDecimals(4)
@@ -53,11 +42,34 @@ class DGetSettingsDialog(QtWidgets.QDialog):
         )
         self.button_box.clicked.connect(self.buttonPressed)
 
-        layout = QtWidgets.QFormLayout()
-        layout.addRow("Default adducts:", adduct_layout)
-        layout.addRow("Signal mode:", mode_box)
-        layout.addRow("Mass width:", self.signal_mass_width)
-        layout.addRow(self.button_box)
+        adduct_box = QtWidgets.QGroupBox("Adduct options")
+        adduct_layout = QtWidgets.QFormLayout()
+        adduct_box.setLayout(adduct_layout)
+
+        adduct_add_layout = QtWidgets.QHBoxLayout()
+        adduct_add_layout.addWidget(self.adduct_input)
+        adduct_add_layout.addWidget(self.adduct_add_button)
+
+        adduct_layout.addRow("Default:", self.adducts)
+        adduct_layout.addRow("Add adduct:", adduct_add_layout)
+
+        signal_box = QtWidgets.QGroupBox("Peak detection options")
+        signal_layout = QtWidgets.QFormLayout()
+        signal_box.setLayout(signal_layout)
+
+        mode_box = QtWidgets.QGroupBox()
+        mode_layout = QtWidgets.QHBoxLayout()
+        mode_layout.addWidget(self.signal_mode_area)
+        mode_layout.addWidget(self.signal_mode_height)
+        mode_box.setLayout(mode_layout)
+
+        signal_layout.addRow("Signal mode:", mode_box)
+        signal_layout.addRow("Mass width:", self.signal_mass_width)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(adduct_box)
+        layout.addWidget(signal_box)
+        layout.addWidget(self.button_box)
         self.setLayout(layout)
 
         self.loadSettings()
