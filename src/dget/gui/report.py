@@ -121,17 +121,28 @@ class DGetReportDialog(QtWidgets.QDialog):
         self.doc.setDefaultFont(QtGui.QFont("Courier", pointSize=12))
         self.doc.setUndoRedoEnabled(False)
 
+        self.printer = QtPrintSupport.QPrinter(
+            QtPrintSupport.QPrinter.PrinterMode.ScreenResolution
+        )
+        self.printer.setResolution(96)
+        self.printer.setOutputFormat(QtPrintSupport.QPrinter.OutputFormat.PdfFormat)
+        self.printer.setPageMargins(
+            QtCore.QMarginsF(15.0, 5.0, 15.0, 10.0), QtGui.QPageLayout.Unit.Millimeter
+        )
+        self.printer.setPageSize(QtGui.QPageSize.PageSizeId.A4)
+
         self.edit = TextEditPartialReadOnly()
         self.edit.setDocument(self.doc)
-        self.edit.setBaseSize(794, 1123)
-        self.edit.setMinimumSize(794, 1123 // 2)
+        self.edit.setViewportMargins(self.printer.pageLayout().marginsPixels(96))
+        page_rect = self.printer.pageLayout().fullRectPixels(96)
+        self.edit.setBaseSize(page_rect.width(), page_rect.height())
+        self.edit.setMinimumSize(page_rect.width(), page_rect.height() // 2)
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.StandardButton.Save
             | QtWidgets.QDialogButtonBox.StandardButton.Close,
         )
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
+        self.button_box.clicked.connect(self.buttonClicked)
 
         if dget is not None:
             self.generate(dget)
@@ -140,6 +151,16 @@ class DGetReportDialog(QtWidgets.QDialog):
         layout.addWidget(self.edit, 1)
         layout.addWidget(self.button_box, 0)
         self.setLayout(layout)
+
+    def setPageSetup(self, printer: QtPrintSupport.QPrinter) -> None:
+        pass
+
+    def buttonClicked(self, button: QtWidgets.QAbstractButton) -> None:
+        sb = self.button_box.standardButton(button)
+        if sb == QtWidgets.QDialogButtonBox.StandardButton.Save:
+            self.accept()
+        else:
+            self.reject()
 
     def accept(self) -> None:
         dir = str(QtCore.QSettings().value("recent files/1/path", ""))
@@ -283,17 +304,6 @@ class DGetReportDialog(QtWidgets.QDialog):
             format.setBorderStyle(QtGui.QTextFrameFormat.BorderStyle.BorderStyle_None)
             region.setFormat(format)
 
-        page_size = QtCore.QSettings.value("report/page size")
-
-        printer = QtPrintSupport.QPrinter(
-            QtPrintSupport.QPrinter.PrinterMode.ScreenResolution
-        )
-        printer.setResolution(96)
-        printer.setOutputFormat(QtPrintSupport.QPrinter.OutputFormat.PdfFormat)
-        printer.setPageMargins(
-            QtCore.QMarginsF(15.0, 5.0, 15.0, 10.0), QtGui.QPageLayout.Unit.Millimeter
-        )
-        printer.setPageSize(QtGui.QPageSize.PageSizeId.A4)
-        printer.setOutputFileName(path)
-        self.doc.setPageSize(QtCore.QSizeF(printer.width(), printer.height()))
-        self.doc.print_(printer)
+        self.printer.setOutputFileName(path)
+        self.doc.setPageSize(QtCore.QSizeF(self.printer.width(), self.printer.height()))
+        self.doc.print_(self.printer)
