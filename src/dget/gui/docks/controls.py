@@ -1,61 +1,10 @@
-from molmass import GROUPS, Formula, FormulaError
-from molmass.elements import ELEMENTS
+from molmass import Formula, FormulaError
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from dget.adduct import Adduct
 from dget.dget import DGet
 
-
-class DGetFormulaValidator(QtGui.QValidator):
-    def __init__(self, parent: QtCore.QObject | None = None):
-        super().__init__(parent)
-        self.acceptable_tokens = [element.symbol for element in ELEMENTS]
-        self.acceptable_tokens.extend([k for k in GROUPS.keys()])
-        self.acceptable_tokens.append("D")
-        self.acceptable_tokens.sort(key=lambda s: -len(s))
-
-    def fixup(self, input: str) -> str:
-        bad_chars = []
-        new_input = ""
-
-        while len(new_input) < len(input):
-            pos = len(new_input)
-            if not input[pos].isalpha():
-                new_input += input[pos]
-                continue
-
-            found = False
-            for token in self.acceptable_tokens:
-                if input[pos:].startswith(token):
-                    new_input += token
-                    found = True
-                    break
-
-            if not found:
-                for token in self.acceptable_tokens:
-                    if input[pos:].lower().startswith(token.lower()):
-                        new_input += token
-                        found = True
-                        break
-
-            if not found:
-                bad_chars.append(pos)
-                new_input += input[pos]
-
-        return new_input
-
-    def validate(self, input: str, pos: int) -> QtGui.QValidator.State:
-        if "D" not in input and "[2H]" not in input:
-            return QtGui.QValidator.State.Intermediate
-
-        try:
-            formula = Formula(input, parse_oligos=False)
-            formula.formula
-        except FormulaError:
-            return QtGui.QValidator.State.Intermediate
-
-        return QtGui.QValidator.State.Acceptable
-
+from dget.gui.validators import DGetAdductValidator, DGetFormulaValidator
 
 class DGetControls(QtWidgets.QDockWidget):
     delimiter_names = {"Comma": ",", "Semicolon": ";", "Tab": "\t", "Space": " "}
@@ -71,13 +20,17 @@ class DGetControls(QtWidgets.QDockWidget):
         self.le_formula = QtWidgets.QLineEdit()
         self.le_formula.setValidator(DGetFormulaValidator())
         self.le_formula.textChanged.connect(self.onFormulaChange)
+        self.le_formula.textChanged.connect(self.setFormulaColor)
 
         self.cb_adduct = QtWidgets.QComboBox()
         self.loadAdducts()
 
         self.cb_adduct.setEditable(True)
+        self.cb_adduct.setValidator(DGetAdductValidator())
         self.cb_adduct.currentTextChanged.connect(self.onFormulaChange)
+        self.cb_adduct.currentTextChanged.connect(self.setAdductColor)
         self.cb_adduct.editTextChanged.connect(self.onFormulaChange)
+        self.cb_adduct.editTextChanged.connect(self.setAdductColor)
 
         # self.realign = QtWidgets.QCheckBox("Re-align HRMS data")
         # self.subtract_bg = QtWidgets.QCheckBox("Subtract HRMS baseline")
@@ -134,6 +87,25 @@ class DGetControls(QtWidgets.QDockWidget):
             self.cb_adduct.addItems(DGet.common_adducts)
         self.cb_adduct.setCurrentIndex(index)
         self.cb_adduct.blockSignals(False)
+
+    def setAdductColor(self) -> None:
+        palette = self.cb_adduct.palette()
+        print(self.cb_adduct.lineEdit().hasAcceptableInput())
+        if self.cb_adduct.lineEdit().hasAcceptableInput():
+            color = self.palette().text().color()
+            palette.setColor(QtGui.QPalette.ColorRole.Text, color)
+        else:
+            palette.setColor(QtGui.QPalette.ColorRole.Text, QtCore.Qt.GlobalColor.red)
+        self.cb_adduct.lineEdit().setPalette(palette)
+
+    def setFormulaColor(self) -> None:
+        palette = self.le_formula.palette()
+        if self.le_formula.hasAcceptableInput():
+            color = self.palette().text().color()
+            palette.setColor(QtGui.QPalette.ColorRole.Text, color)
+        else:
+            palette.setColor(QtGui.QPalette.ColorRole.Text, QtCore.Qt.GlobalColor.red)
+        self.le_formula.setPalette(palette)
 
     def onFormulaChange(self) -> None:
         adduct = self.adduct()

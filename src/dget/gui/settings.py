@@ -2,21 +2,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from dget.adduct import Adduct
 from dget.dget import DGet
-
-
-class AdductValidator(QtGui.QValidator):
-    def __init__(self, parent: QtCore.QObject | None = None):
-        super().__init__(parent)
-
-    def fixup(self, input: str) -> str:
-        new_input = input.replace(" ", "")
-        return new_input
-
-    def validate(self, input: str, pos: int) -> QtGui.QValidator.State:
-        if not Adduct.is_valid_adduct(input):
-            return QtGui.QValidator.State.Intermediate
-
-        return QtGui.QValidator.State.Acceptable
+from dget.gui.validators import DGetAdductValidator
 
 
 class DGetSettingsDialog(QtWidgets.QDialog):
@@ -26,7 +12,7 @@ class DGetSettingsDialog(QtWidgets.QDialog):
         self.setWindowTitle("DGet! Settings")
 
         self.adduct_input = QtWidgets.QLineEdit()
-        self.adduct_input.setValidator(AdductValidator())
+        self.adduct_input.setValidator(DGetAdductValidator())
         self.adduct_input.textChanged.connect(self.adductInputChanged)
 
         self.adduct_add_button = QtWidgets.QToolButton()
