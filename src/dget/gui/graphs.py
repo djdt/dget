@@ -128,8 +128,7 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
 
     def setAdductLabel(self, adduct: Adduct) -> None:
         self.adduct_label.setText(
-            f"{adduct.base.formula} {adduct.adduct} <br>"
-            f"m/z={adduct.formula.monoisotopic_mass:.4f}"
+            f"{adduct.base.formula} {adduct.adduct} <br>m/z={adduct.formula.mz:.4f}"
         )
 
     def labelAdducts(self, adducts: list[Adduct]) -> None:
@@ -144,16 +143,12 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
 
         min_signal = np.percentile(self.ms_series.yData, 50)
         for adduct in adducts:
-            idx = np.searchsorted(
-                self.ms_series.xData, adduct.formula.monoisotopic_mass
-            )
+            idx = np.searchsorted(self.ms_series.xData, adduct.formula.mz)
             if idx == 0 or idx == self.ms_series.xData.size:  # under/oversize
                 continue
             if self.ms_series.yData[idx] > min_signal:
                 label = pyqtgraph.TextItem(adduct.adduct, anchor=(0.5, 1.5))
-                label.setPos(
-                    adduct.formula.monoisotopic_mass, self.ms_series.yData[idx]
-                )
+                label.setPos(adduct.formula.mz, self.ms_series.yData[idx])
                 label.setVisible(self.adduct_labels_visible)
                 self.plot.addItem(label)
                 self.adduct_labels.append(label)
