@@ -69,3 +69,34 @@ class DGetAdductValidator(QtGui.QValidator):
             return QtGui.QValidator.State.Intermediate
 
         return QtGui.QValidator.State.Acceptable
+
+
+class DGetCutOffValidator(QtGui.QValidator):
+    def __init__(self, parent: QtCore.QObject | None = None):
+        super().__init__(parent)
+
+    def fixup(self, input: str) -> str:
+        new_input = input.replace(" ", "")
+        return new_input
+
+    def validate(self, input: str, pos: int) -> QtGui.QValidator.State:
+        if len(input) == 0:
+            return QtGui.QValidator.State.Acceptable
+
+        if input.startswith("D"):
+            if len(input) == 1:
+                return QtGui.QValidator.State.Intermediate
+            try:
+                int(input[1:])
+            except ValueError:
+                return QtGui.QValidator.State.Invalid
+        elif input.startswith("-"):
+            return QtGui.QValidator.State.Invalid
+        else:
+            try:
+                float(input)
+            except ValueError:
+                if any(input.endswith(x) for x in "eE+-."):
+                    return QtGui.QValidator.State.Intermediate
+                return QtGui.QValidator.State.Invalid
+        return QtGui.QValidator.State.Acceptable

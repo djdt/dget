@@ -147,7 +147,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         used = self.dget.deuteration_states
         probs = self.dget.deuteration_probabilites
 
-        if np.all(np.isnan(probs)):
+        if used.size == 0 or np.all(np.isnan(probs)):
             return
 
         self.graph_ms.setDeuterationData(

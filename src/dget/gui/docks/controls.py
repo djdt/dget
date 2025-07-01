@@ -3,8 +3,12 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from dget.adduct import Adduct
 from dget.dget import DGet
+from dget.gui.validators import (
+    DGetAdductValidator,
+    DGetCutOffValidator,
+    DGetFormulaValidator,
+)
 
-from dget.gui.validators import DGetAdductValidator, DGetFormulaValidator
 
 class DGetControls(QtWidgets.QDockWidget):
     delimiter_names = {"Comma": ",", "Semicolon": ";", "Tab": "\t", "Space": " "}
@@ -32,13 +36,13 @@ class DGetControls(QtWidgets.QDockWidget):
         self.cb_adduct.editTextChanged.connect(self.onFormulaChange)
         self.cb_adduct.editTextChanged.connect(self.setAdductColor)
 
-        # self.realign = QtWidgets.QCheckBox("Re-align HRMS data")
-        # self.subtract_bg = QtWidgets.QCheckBox("Subtract HRMS baseline")
         self.cutoff = QtWidgets.QLineEdit()
+        self.cutoff.setValidator(DGetCutOffValidator())
         self.cutoff.setToolTip(
             "Deuteration calculation cutoff as a m/z (e.g., 123.4) or state (e.g., D10)"
         )
-        self.cutoff.editingFinished.connect(self.processOptionsChanged)
+        self.cutoff.textChanged.connect(self.processOptionsChanged)
+        self.cutoff.textChanged.connect(self.setCutoffColor)
 
         self.mass_shift = QtWidgets.QDoubleSpinBox()
         self.mass_shift.setRange(-100.0, 100.0)
@@ -49,8 +53,6 @@ class DGetControls(QtWidgets.QDockWidget):
 
         gbox_proc = QtWidgets.QGroupBox("Proccessing options")
         gbox_proc.setLayout(QtWidgets.QFormLayout())
-        # gbox_proc.layout().addWidget(self.realign)
-        # gbox_proc.layout().addWidget(self.subtract_bg)
         gbox_proc.layout().addRow("Cutoff", self.cutoff)
         gbox_proc.layout().addRow("Mass shift", self.mass_shift)
 
@@ -88,9 +90,17 @@ class DGetControls(QtWidgets.QDockWidget):
         self.cb_adduct.setCurrentIndex(index)
         self.cb_adduct.blockSignals(False)
 
+    def setCutoffColor(self) -> None:
+        palette = self.cutoff.palette()
+        if self.cutoff.hasAcceptableInput():
+            color = self.palette().text().color()
+            palette.setColor(QtGui.QPalette.ColorRole.Text, color)
+        else:
+            palette.setColor(QtGui.QPalette.ColorRole.Text, QtCore.Qt.GlobalColor.red)
+        self.cutoff.setPalette(palette)
+
     def setAdductColor(self) -> None:
         palette = self.cb_adduct.palette()
-        print(self.cb_adduct.lineEdit().hasAcceptableInput())
         if self.cb_adduct.lineEdit().hasAcceptableInput():
             color = self.palette().text().color()
             palette.setColor(QtGui.QPalette.ColorRole.Text, color)
