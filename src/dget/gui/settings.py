@@ -109,7 +109,7 @@ class DGetSettingsDialog(QtWidgets.QDialog):
             self.signal_mode_height.setChecked(True)
 
         self.signal_mass_width.setValue(
-            float(settings.value("dget/signal mass width", 0.3))  # type: ignore
+            float(settings.value("dget/signal mass width", 0.1))  # type: ignore
         )
 
     def restoreDefaults(self) -> None:

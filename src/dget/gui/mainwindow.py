@@ -137,7 +137,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
                 adduct=adduct.adduct,
                 cutoff=cutoff,
                 signal_mode=str(settings.value("dget/signal mode", "peak height")),
-                signal_mass_width=float(settings.value("dget/signal mass width", 0.3)),
+                signal_mass_width=float(settings.value("dget/signal mass width", 0.1)),
             )
             self.action_report.setEnabled(True)
         except ValueError:
