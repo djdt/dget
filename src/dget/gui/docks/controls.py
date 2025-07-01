@@ -71,8 +71,6 @@ class DGetControls(QtWidgets.QDockWidget):
         self.setWidget(widget)
 
     def loadAdducts(self) -> None:
-        current = self.cb_adduct.currentText()
-        index = 0
         self.cb_adduct.blockSignals(True)
         self.cb_adduct.clear()
         settings = QtCore.QSettings()
@@ -82,12 +80,10 @@ class DGetControls(QtWidgets.QDockWidget):
                 settings.setArrayIndex(i)
                 adduct = str(settings.value("adduct"))
                 self.cb_adduct.addItem(adduct)
-                if adduct == current:
-                    index = i
             settings.endArray()
         else:
             self.cb_adduct.addItems(DGet.common_adducts)
-        self.cb_adduct.setCurrentIndex(index)
+        self.cb_adduct.setCurrentText(str(settings.value("dget/adduct", "[M]+")))
         self.cb_adduct.blockSignals(False)
 
     def setCutoffColor(self) -> None:

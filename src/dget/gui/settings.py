@@ -102,6 +102,8 @@ class DGetSettingsDialog(QtWidgets.QDialog):
         else:
             self.adducts.addItems(DGet.common_adducts)
 
+        self.adducts.setCurrentText(str(settings.value("dget/adduct", "[M]+")))
+
         mode = settings.value("dget/signal mode", "peak height")
         if mode == "peak area":
             self.signal_mode_area.setChecked(True)
@@ -125,6 +127,8 @@ class DGetSettingsDialog(QtWidgets.QDialog):
             settings.setArrayIndex(i)
             settings.setValue("adduct", self.adducts.itemText(i))
         settings.endArray()
+
+        settings.setValue("dget/adduct", self.adducts.currentText())
 
         mode = "peak area" if self.signal_mode_area.isChecked() else "peak height"
         settings.setValue("dget/signal mode", mode)
