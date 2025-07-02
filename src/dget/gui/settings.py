@@ -34,6 +34,12 @@ class DGetSettingsDialog(QtWidgets.QDialog):
         self.adducts.textChanged.connect(self.completeChanged)
         self.adducts.textChanged.connect(self.setAdductsColor)
 
+
+        adduct_box = QtWidgets.QGroupBox("DGet! Defaults")
+        adduct_layout = QtWidgets.QFormLayout()
+        adduct_layout.addRow("Adducts:", self.adducts)
+        adduct_box.setLayout(adduct_layout)
+
         self.signal_mode_area = QtWidgets.QRadioButton("Peak area")
         self.signal_mode_height = QtWidgets.QRadioButton("Peak height")
 
@@ -45,30 +51,24 @@ class DGetSettingsDialog(QtWidgets.QDialog):
         )
         self.signal_mass_width.setSuffix(" m/z")
 
-        self.button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.StandardButton.Reset
-            | QtWidgets.QDialogButtonBox.StandardButton.Ok
-            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
-        )
-        self.button_box.clicked.connect(self.buttonPressed)
-
-        adduct_box = QtWidgets.QGroupBox("DGet! Defaults")
-        adduct_layout = QtWidgets.QFormLayout()
-        adduct_layout.addRow("Adducts:", self.adducts)
-        adduct_box.setLayout(adduct_layout)
-
-        signal_box = QtWidgets.QGroupBox("Peak detection options")
-        signal_layout = QtWidgets.QFormLayout()
-        signal_box.setLayout(signal_layout)
-
         mode_box = QtWidgets.QGroupBox()
         mode_layout = QtWidgets.QHBoxLayout()
         mode_layout.addWidget(self.signal_mode_area)
         mode_layout.addWidget(self.signal_mode_height)
         mode_box.setLayout(mode_layout)
 
+        signal_box = QtWidgets.QGroupBox("Peak detection options")
+        signal_layout = QtWidgets.QFormLayout()
         signal_layout.addRow("Signal mode:", mode_box)
         signal_layout.addRow("Mass width:", self.signal_mass_width)
+        signal_box.setLayout(signal_layout)
+
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.StandardButton.Reset
+            | QtWidgets.QDialogButtonBox.StandardButton.Ok
+            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+        )
+        self.button_box.clicked.connect(self.buttonPressed)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(adduct_box)
