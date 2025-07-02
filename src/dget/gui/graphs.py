@@ -53,7 +53,7 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(background="white", parent=parent)
 
-        pen = QtGui.QPen(QtCore.Qt.black, 1.0)
+        pen = QtGui.QPen(QtCore.Qt.GlobalColor.black, 1.0)
         pen.setCosmetic(True)
 
         self.xaxis = pyqtgraph.AxisItem("bottom", pen=pen, textPen=pen, tick_pen=pen)
