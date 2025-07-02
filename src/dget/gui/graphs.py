@@ -49,6 +49,7 @@ class ViewBoxForceScaleAtZero(LimitBoundViewBox):
 
 class DGetMSGraph(pyqtgraph.GraphicsView):
     adductLabelClicked = QtCore.Signal(str)
+    dStateClicked = QtCore.Signal(str)
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(background="white", parent=parent)
@@ -84,6 +85,7 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
             pxMode=True, size=10, hoverable=True, tip=None
         )
         self.d_series.sigHovered.connect(self.updateHoverText)
+        self.d_series.sigClicked.connect(self.stateClicked)
         self.plot.addItem(self.d_series)
 
         self.hover_text = pyqtgraph.TextItem(
@@ -157,6 +159,15 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         self.adduct_labels_visible = not self.adduct_labels_visible
         for label in self.adduct_labels:
             label.setVisible(self.adduct_labels_visible)
+
+    def stateClicked(self, 
+        scatter: pyqtgraph.ScatterPlotItem,
+        points: list[pyqtgraph.SpotItem],
+        event: QtWidgets.QGraphicsSceneMouseEvent,
+        ) -> None:
+        state = points[0].data()
+        if state <= self.d_count:
+            self.dStateClicked.emit(f"D{state}")
 
     def updateHoverText(
         self,

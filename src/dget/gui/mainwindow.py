@@ -52,6 +52,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.results_graph = DGetResultsGraph()
 
         self.graph_ms = DGetMSGraph()
+        self.graph_ms.dStateClicked.connect(self.controls.cutoff.setText)
 
         self.graph_spectra = DGetFormulaSpectra()
 
