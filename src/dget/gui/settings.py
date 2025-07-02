@@ -34,7 +34,6 @@ class DGetSettingsDialog(QtWidgets.QDialog):
         self.adducts.textChanged.connect(self.completeChanged)
         self.adducts.textChanged.connect(self.setAdductsColor)
 
-
         adduct_box = QtWidgets.QGroupBox("DGet! Defaults")
         adduct_layout = QtWidgets.QFormLayout()
         adduct_layout.addRow("Adducts:", self.adducts)
