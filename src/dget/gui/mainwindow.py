@@ -106,7 +106,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.graph_ms.labelAdducts(adduct_list)
 
     def updateDGet(self, adduct: Adduct | None = None) -> None:
-        self.results_text.clear()
+        self.results_text.text.clear()
         self.results_graph.graph.series.setOpts(x=[], height=0)
         self.graph_ms.setDeuterationData(np.array([]), np.array([]), np.array([]), 0)
         self.action_zoom_data.setEnabled(False)

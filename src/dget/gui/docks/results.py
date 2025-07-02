@@ -1,5 +1,5 @@
 import numpy as np
-from PySide6 import QtWidgets
+from PySide6 import QtGui, QtWidgets
 
 from dget.gui.graphs import DGetBarGraph
 
@@ -9,13 +9,11 @@ class DGetResultsText(QtWidgets.QDockWidget):
         super().__init__("Results", parent)
         self.setObjectName("dget-results-text-dock")
 
-        self.text = QtWidgets.QTextBrowser()
+        self.text = QtWidgets.QPlainTextEdit()
         self.text.setFont("courier")
+        self.text.setReadOnly(True)
 
         self.setWidget(self.text)
-
-    def clear(self) -> None:
-        self.text.setHtml("")
 
     def updateText(
         self,
@@ -24,14 +22,29 @@ class DGetResultsText(QtWidgets.QDockWidget):
         states: np.ndarray,
         probabilities: np.ndarray,
     ) -> None:
-        html = f"<p><b>Deuteration: {deuteration * 100.0:.2f} %</b></p>"
-        html += f"<p>Residual error: {error * 100.0:.2f} %</p>"
-        html += "<p>States</p>"
-        html += "<table>"
+        self.text.clear()
+
+        cursor = self.text.textCursor()
+        format = cursor.charFormat()
+        format.setFontWeight(QtGui.QFont.Weight.Bold)
+        cursor.setCharFormat(format)
+
+        cursor.insertText(f"Deuteration: {deuteration * 100.0:>10.2f} %")
+        cursor.insertBlock()
+
+        format.setFontWeight(QtGui.QFont.Weight.Normal)
+        cursor.setCharFormat(format)
+
+        cursor.insertText(f"Residual error: {error * 100.0:>7.2f} %")
+        cursor.insertBlock()
+        cursor.insertBlock()
+
+        cursor.insertText("Deuteration Ratio Spectra")
+        cursor.insertBlock()
+
         for state, prob in zip(states, probabilities):
-            html += f"<tr><td>D{state}</td><td>{prob * 100.0:.2f} %</td></tr>"
-        html += "</table>"
-        self.text.setHtml(html)
+            cursor.insertText(f"D{state:>2}: {prob * 100.0:>18.2f} %")
+            cursor.insertBlock()
 
 
 class DGetResultsGraph(QtWidgets.QDockWidget):
