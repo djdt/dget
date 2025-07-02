@@ -273,23 +273,17 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.menuBar().addMenu(menu_view)
         self.menuBar().addMenu(menu_help)
 
-    def about(self) -> QtWidgets.QDialog:
-        dlg = QtWidgets.QMessageBox(
-            QtWidgets.QMessageBox.Icon.Information,
+    def about(self) -> None:
+        QtWidgets.QMessageBox.about(
+            self,
             "About DGet!",
             (
-                "DGet! is a deuteration calculator for HRMS data.\n"
-                f"Version {QtWidgets.QApplication.applicationVersion()}, using Qt {QtCore.qVersion()}.\n"
-                f"Developed by Thomas Lockwood at the University of Technology Sydney.\n"
-                "https://github.com/djdt/dget"
+                "DGet! is a deuteration calculator for HRMS data<br>"
+                f"Version {QtWidgets.QApplication.applicationVersion()}, using Qt {QtCore.qVersion()}<br>"
+                f'© 2023—2025 <a href="mailto:thomas.lockwood@uts.edu.au">Thomas Lockwood</a><br>'
+                "Visit the DGet! <a href=https://github.com/djdt/dget>GitHub</a>"
             ),
-            parent=self,
         )
-
-        if self.windowIcon() is not None:
-            dlg.setIconPixmap(self.windowIcon().pixmap(64, 64))
-        dlg.open()
-        return dlg
 
     # Callbacks
     def linkToDocumentation(self) -> None:
