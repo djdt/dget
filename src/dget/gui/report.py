@@ -124,19 +124,26 @@ class DGetReportDialog(QtWidgets.QDialog):
         self.printer = QtPrintSupport.QPrinter(
             QtPrintSupport.QPrinter.PrinterMode.ScreenResolution
         )
-        self.printer.setResolution(96)
-        self.printer.setOutputFormat(QtPrintSupport.QPrinter.OutputFormat.PdfFormat)
-        self.printer.setPageMargins(
-            QtCore.QMarginsF(15.0, 5.0, 15.0, 10.0), QtGui.QPageLayout.Unit.Millimeter
+        self.restorePageSetup()
+
+        self.doc.setPageSize(
+            self.printer.pageLayout().paintRectPixels(self.printer.resolution()).size()
         )
-        self.printer.setPageSize(QtGui.QPageSize.PageSizeId.A4)
 
         self.edit = TextEditPartialReadOnly()
         self.edit.setDocument(self.doc)
-        self.edit.setViewportMargins(self.printer.pageLayout().marginsPixels(96))
-        page_rect = self.printer.pageLayout().fullRectPixels(96)
-        self.edit.setBaseSize(page_rect.width(), page_rect.height())
-        self.edit.setMinimumSize(page_rect.width(), page_rect.height() // 2)
+        self.edit.setViewportMargins(
+            self.printer.pageLayout().marginsPixels(self.printer.resolution())
+        )
+        page_rect = self.printer.pageLayout().fullRectPixels(self.printer.resolution())
+        self.edit.setBaseSize(
+            page_rect.width() + self.edit.verticalScrollBar().width(),
+            page_rect.height(),
+        )
+        self.edit.setMinimumSize(
+            page_rect.width() + self.edit.verticalScrollBar().width(),
+            page_rect.height() // 2,
+        )
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.StandardButton.Save
@@ -152,8 +159,20 @@ class DGetReportDialog(QtWidgets.QDialog):
         layout.addWidget(self.button_box, 0)
         self.setLayout(layout)
 
-    def setPageSetup(self, printer: QtPrintSupport.QPrinter) -> None:
-        pass
+    def restorePageSetup(self) -> None:
+        settings = QtCore.QSettings()
+        self.printer.setResolution(int(settings.value("report/resolution", 96)))  # type: ignore
+        self.printer.setPageMargins(
+            QtCore.QMarginsF(  # type: ignore
+                settings.value(  # type: ignore
+                    "report/margins", QtCore.QMarginsF(15.0, 5.0, 15.0, 10.0)
+                )
+            ),
+            QtGui.QPageLayout.Unit.Millimeter,
+        )
+        self.printer.setPageSize(
+            settings.value("report/page size", QtGui.QPageSize.PageSizeId.A4)  # type: ignore
+        )
 
     def buttonClicked(self, button: QtWidgets.QAbstractButton) -> None:
         sb = self.button_box.standardButton(button)
@@ -163,16 +182,19 @@ class DGetReportDialog(QtWidgets.QDialog):
             self.reject()
 
     def accept(self) -> None:
-        dir = str(QtCore.QSettings().value("recent files/1/path", ""))
-        if dir != "":
-            dir = str(Path(dir).parent)
+        default_path = Path(str(QtCore.QSettings().value("recent files/1/path", "")))
+        default_path = str(default_path.with_suffix(".pdf").absolute())
+
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save Report", dir, "PDF Documents (*.pdf)", ""
+            self, "Save Report", default_path, "PDF Documents (*.pdf)", ""
         )
         if path == "":
             return
 
-        self.printReport(path)
+        self.printer.setOutputFormat(QtPrintSupport.QPrinter.OutputFormat.PdfFormat)
+        self.printer.setOutputFileName(path)
+        self.printReport(self.printer)
+
         super().accept()
 
     def _addHeader(self, cursor: QtGui.QTextCursor) -> None:
@@ -194,7 +216,10 @@ class DGetReportDialog(QtWidgets.QDialog):
         cursor.insertText(".", old_format)
 
     def _addTable(
-        self, cursor: QtGui.QTextCursor, title: str, contents: Sequence[tuple[str, ...]]
+        self,
+        cursor: QtGui.QTextCursor,
+        title: str,
+        contents: Sequence[tuple[str, ...]],
     ) -> QtGui.QTextTable:
         cursor.insertBlock()
         update_cursor_style(
@@ -237,8 +262,7 @@ class DGetReportDialog(QtWidgets.QDialog):
         table_format.setWidth(
             QtGui.QTextLength(QtGui.QTextLength.Type.PercentageLength, 100.0)
         )
-        # table_format.setPadding
-        columns = cursor.insertTable(1, 2, table_format)
+        columns = cursor.insertTable(1, 3, table_format)
 
         cursor = columns.cellAt(0, 0).lastCursorPosition()
         table = self._addTable(cursor, "Report Information", info)
@@ -265,11 +289,16 @@ class DGetReportDialog(QtWidgets.QDialog):
         for state, prob in zip(dget.deuteration_states, probs):
             results.append((f"D{state}", f"{prob:.2f} %"))
 
-        cursor = columns.cellAt(0, 1).lastCursorPosition()
+        cursor = columns.cellAt(0, 2).lastCursorPosition()
         self._addTable(cursor, "Results", results)
 
+        image_width = (
+            self.printer.pageLayout().paintRectPixels(self.printer.resolution()).width()
+        )
+        image_size = QtCore.QSize(image_width, int(image_width * 3 / 4))
+
         graph = DGetMSGraph()
-        graph.resize(1280, 960)
+        graph.resize(image_size)
         graph.setData(dget.x, dget.y)
         graph.setDeuterationData(
             dget.target_masses,
@@ -279,7 +308,7 @@ class DGetReportDialog(QtWidgets.QDialog):
         )
         graph.zoomToData()
 
-        pixmap = QtGui.QPixmap(QtCore.QSize(1280, 960))
+        pixmap = QtGui.QPixmap(image_size)
         painter = QtGui.QPainter(pixmap)
         graph.render(painter)
         painter.end()
@@ -291,12 +320,12 @@ class DGetReportDialog(QtWidgets.QDialog):
         cursor.insertBlock()
         # update_cursor_style(cursor, align=QtCore.Qt.AlignmentFlag.AlignCenter)
         image_format = QtGui.QTextImageFormat()
-        image_format.setWidth(640)
-        image_format.setHeight(480)
+        image_format.setWidth(pixmap.width())
+        image_format.setHeight(pixmap.height())
         image_format.setName("ms_graph")
-        cursor.insertImage(image_format, QtGui.QTextFrameFormat.Position.FloatRight)
+        cursor.insertImage(image_format, QtGui.QTextFrameFormat.Position.FloatLeft)
 
-    def printReport(self, path: str) -> None:
+    def printReport(self, printer: QtPrintSupport.QPrinter) -> None:
         # get rid of editable region boxes
         for region in self.edit.editable_regions:
             format = region.format()
@@ -304,6 +333,4 @@ class DGetReportDialog(QtWidgets.QDialog):
             format.setBorderStyle(QtGui.QTextFrameFormat.BorderStyle.BorderStyle_None)
             region.setFormat(format)
 
-        self.printer.setOutputFileName(path)
-        self.doc.setPageSize(QtCore.QSizeF(self.printer.width(), self.printer.height()))
-        self.doc.print_(self.printer)
+        self.doc.print_(printer)
