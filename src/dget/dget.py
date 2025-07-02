@@ -238,7 +238,7 @@ class DGet(object):
 
             if self.signal_mode == "peak area":
                 self._target_signals[valid] = [
-                    np.trapz(self.y[s:e], x=self.x[s:e])
+                    np.trapezoid(self.y[s:e], x=self.x[s:e])
                     for s, e in zip(starts[valid], ends[valid])
                 ]
             elif self.signal_mode in ["peak height", "raw"]:
