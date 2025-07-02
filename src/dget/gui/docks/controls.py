@@ -83,7 +83,7 @@ class DGetControls(QtWidgets.QDockWidget):
             settings.endArray()
         else:
             self.cb_adduct.addItems(DGet.common_adducts)
-        self.cb_adduct.setCurrentText(str(settings.value("dget/adduct", "[M]+")))
+
         self.cb_adduct.blockSignals(False)
 
     def setCutoffColor(self) -> None:

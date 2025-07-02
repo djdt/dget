@@ -2,7 +2,26 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from dget.adduct import Adduct
 from dget.dget import DGet
-from dget.gui.validators import DGetAdductValidator
+
+
+class DGetAdductsTextEdit(QtWidgets.QPlainTextEdit):
+    def __init__(self, number_lines: int = 4, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+
+        height = (
+            self.fontMetrics().lineSpacing() * number_lines
+            + (self.document().documentMargin() + self.frameWidth()) * 2
+            + self.contentsMargins().bottom()
+            + self.contentsMargins().top()
+        )
+        self.setMaximumHeight(int(height))
+
+    def hasAcceptableInput(self) -> bool:
+        for token in self.toPlainText().replace(" ", "").split(";"):
+            if not Adduct.is_valid_adduct(token):
+                return False
+
+        return True
 
 
 class DGetSettingsDialog(QtWidgets.QDialog):
@@ -11,18 +30,9 @@ class DGetSettingsDialog(QtWidgets.QDialog):
 
         self.setWindowTitle("DGet! Settings")
 
-        self.adduct_input = QtWidgets.QLineEdit()
-        self.adduct_input.setValidator(DGetAdductValidator())
-        self.adduct_input.textChanged.connect(self.adductInputChanged)
-
-        self.adduct_add_button = QtWidgets.QToolButton()
-        self.adduct_add_button.setIcon(QtGui.QIcon.fromTheme("list-add"))
-        self.adduct_add_button.setEnabled(False)
-
-        self.adduct_input.returnPressed.connect(self.adduct_add_button.pressed)
-        self.adduct_add_button.pressed.connect(self.adductAddPressed)
-
-        self.adducts = QtWidgets.QComboBox()
+        self.adducts = DGetAdductsTextEdit()
+        self.adducts.textChanged.connect(self.completeChanged)
+        self.adducts.textChanged.connect(self.setAdductsColor)
 
         self.signal_mode_area = QtWidgets.QRadioButton("Peak area")
         self.signal_mode_height = QtWidgets.QRadioButton("Peak height")
@@ -42,16 +52,10 @@ class DGetSettingsDialog(QtWidgets.QDialog):
         )
         self.button_box.clicked.connect(self.buttonPressed)
 
-        adduct_box = QtWidgets.QGroupBox("Adduct options")
+        adduct_box = QtWidgets.QGroupBox("DGet! Defaults")
         adduct_layout = QtWidgets.QFormLayout()
+        adduct_layout.addRow("Adducts:", self.adducts)
         adduct_box.setLayout(adduct_layout)
-
-        adduct_add_layout = QtWidgets.QHBoxLayout()
-        adduct_add_layout.addWidget(self.adduct_input)
-        adduct_add_layout.addWidget(self.adduct_add_button)
-
-        adduct_layout.addRow("Default:", self.adducts)
-        adduct_layout.addRow("Add adduct:", adduct_add_layout)
 
         signal_box = QtWidgets.QGroupBox("Peak detection options")
         signal_layout = QtWidgets.QFormLayout()
@@ -74,20 +78,13 @@ class DGetSettingsDialog(QtWidgets.QDialog):
 
         self.loadSettings()
 
-    def adductInputChanged(self, text: str) -> None:
-        self.adduct_add_button.setEnabled(self.adduct_input.hasAcceptableInput())
+    def isComplete(self) -> bool:
+        return self.adducts.hasAcceptableInput()
 
-    def adductAddPressed(self) -> None:
-        adduct = self.adduct_input.text()
-        if not Adduct.is_valid_adduct(adduct):
-            raise ValueError("invalid adduct")  # should not be reachable
-        existing_adducts = [
-            self.adducts.itemText(i) for i in range(self.adducts.count())
-        ]
-        if adduct not in existing_adducts:
-            self.adducts.insertItem(0, adduct)
-            self.adducts.setCurrentIndex(0)
-        self.adduct_input.clear()
+    def completeChanged(self) -> None:
+        self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Ok).setEnabled(
+            self.isComplete()
+        )
 
     def accept(self) -> None:
         self.saveSettings()
@@ -102,19 +99,28 @@ class DGetSettingsDialog(QtWidgets.QDialog):
         else:
             self.reject()
 
+    def setAdductsColor(self) -> None:
+        palette = self.adducts.palette()
+        if self.adducts.hasAcceptableInput():
+            color = self.palette().text().color()
+            palette.setColor(QtGui.QPalette.ColorRole.Text, color)
+        else:
+            palette.setColor(QtGui.QPalette.ColorRole.Text, QtCore.Qt.GlobalColor.red)
+        self.adducts.setPalette(palette)
+
     def loadSettings(self) -> None:
         settings = QtCore.QSettings()
-        self.adducts.clear()
         if settings.contains("dget/adducts/size"):
+            adducts = []
             size = settings.beginReadArray("dget/adducts")
             for i in range(size):
                 settings.setArrayIndex(i)
-                self.adducts.addItem(str(settings.value("adduct")))
+                adducts.append(str(settings.value("adduct")))
             settings.endArray()
         else:
-            self.adducts.addItems(DGet.common_adducts)
+            adducts = DGet.common_adducts
 
-        self.adducts.setCurrentText(str(settings.value("dget/adduct", "[M]+")))
+        self.adducts.setPlainText("; ".join(adducts))
 
         mode = settings.value("dget/signal mode", "peak height")
         if mode == "peak area":
@@ -135,12 +141,11 @@ class DGetSettingsDialog(QtWidgets.QDialog):
         settings = QtCore.QSettings()
 
         settings.beginWriteArray("dget/adducts")
-        for i in range(self.adducts.count()):
+        adducts = self.adducts.toPlainText().replace(" ", "").split(";")
+        for i, adduct in enumerate(adducts):
             settings.setArrayIndex(i)
-            settings.setValue("adduct", self.adducts.itemText(i))
+            settings.setValue("adduct", adduct)
         settings.endArray()
-
-        settings.setValue("dget/adduct", self.adducts.currentText())
 
         mode = "peak area" if self.signal_mode_area.isChecked() else "peak height"
         settings.setValue("dget/signal mode", mode)
