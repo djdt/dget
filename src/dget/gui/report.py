@@ -278,6 +278,7 @@ class DGetReportDialog(QtWidgets.QDialog):
 
         results = [
             ("Deuteration", f"<b>{dget.deuteration * 100:.2f} %</b>"),
+            ("Residual error", f"{(dget.residual_error or 0.0) * 100:.2f} %"),
             ("Deuteration Ratio Spectra", ""),
         ]
         probs = dget.deuteration_probabilites[dget.deuteration_states]
@@ -286,7 +287,15 @@ class DGetReportDialog(QtWidgets.QDialog):
             results.append((f"D{state}", f"{prob:.2f} %"))
 
         cursor = columns.cellAt(0, 2).lastCursorPosition()
-        self._addTable(cursor, "Results", results)
+        results_table = self._addTable(cursor, "Results", results)
+
+        # right align the % column
+        for row in range(results_table.rows()):
+            cell = results_table.cellAt(row, 1)
+            format = cell.lastCursorPosition().blockFormat()
+            format.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+            cell.lastCursorPosition().setBlockFormat(format)
+
 
         image_width = (
             self.printer.pageLayout().paintRectPixels(self.printer.resolution()).width()

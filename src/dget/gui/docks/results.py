@@ -18,9 +18,14 @@ class DGetResultsText(QtWidgets.QDockWidget):
         self.text.setHtml("")
 
     def updateText(
-        self, deuteration: float, states: np.ndarray, probabilities: np.ndarray
+        self,
+        deuteration: float,
+        error: float,
+        states: np.ndarray,
+        probabilities: np.ndarray,
     ) -> None:
         html = f"<p><b>Deuteration: {deuteration * 100.0:.2f} %</b></p>"
+        html += f"<p>Residual error: {error * 100.0:.2f} %</p>"
         html += "<p>States</p>"
         html += "<table>"
         for state, prob in zip(states, probabilities):

@@ -157,7 +157,12 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             self.dget.deuterium_count,
         )
 
-        self.results_text.updateText(self.dget.deuteration, used, probs)
+        self.results_text.updateText(
+            self.dget.deuteration,
+            (self.dget.residual_error or 0.0),
+            used,
+            probs[used] / probs[used].sum(),
+        )
         self.results_graph.graph.setData(used, probs[used] * 100.0)
         self.results_graph.graph.resetZoom()
         self.action_zoom_data.setEnabled(True)
