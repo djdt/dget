@@ -126,10 +126,6 @@ class DGetReportDialog(QtWidgets.QDialog):
         )
         self.restorePageSetup()
 
-        self.doc.setPageSize(
-            self.printer.pageLayout().paintRectPixels(self.printer.resolution()).size()
-        )
-
         self.edit = TextEditPartialReadOnly()
         self.edit.setDocument(self.doc)
         self.edit.setViewportMargins(
@@ -333,4 +329,7 @@ class DGetReportDialog(QtWidgets.QDialog):
             format.setBorderStyle(QtGui.QTextFrameFormat.BorderStyle.BorderStyle_None)
             region.setFormat(format)
 
+        self.doc.setPageSize(
+            self.printer.pageLayout().fullRectPixels(self.printer.resolution()).size()
+        )
         self.doc.print_(printer)
