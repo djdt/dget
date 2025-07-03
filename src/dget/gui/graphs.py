@@ -48,7 +48,7 @@ class ViewBoxForceScaleAtZero(LimitBoundViewBox):
 
 
 class DGetMSGraph(pyqtgraph.GraphicsView):
-    adductLabelClicked = QtCore.Signal(str)
+    adductLabelHovered = QtCore.Signal(str)
     dStateClicked = QtCore.Signal(str)
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
@@ -102,13 +102,15 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         )
         self.doi_label.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=(-10, 10))
 
-        self.adduct_labels: list[pyqtgraph.TextItem] = []
-        self.adduct_labels_visible = True
+        self.possible_adduct_labels: list[pyqtgraph.TextItem] = []
+        self.possible_adduct_labels_visible = True
 
         self.setCentralWidget(self.plot)
 
     def setShift(self, mz_shift: float) -> None:
         x, y = self.ms_series.getData()
+        if x is None:
+            return
         x = x - self.ms_shift + mz_shift
         self.ms_series.setData(x, y)
         self.ms_shift = mz_shift
@@ -116,7 +118,10 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
     def setData(self, x: np.ndarray, y: np.ndarray) -> None:
         self.ms_shift = 0.0
         self.ms_series.setData(x=x, y=y)
-        self.plot.setLimits(xMin=x.min(), xMax=x.max(), yMin=0.0, yMax=y.max() * 1.2)
+
+        vb = self.plot.getViewBox()
+        if vb is not None:
+            vb.setLimits(xMin=x.min(), xMax=x.max(), yMin=0.0, yMax=y.max() * 1.2)
 
     def setDeuterationData(
         self, x: np.ndarray, y: np.ndarray, used: np.ndarray, dcount: int
@@ -133,14 +138,18 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
             f"{adduct.base.formula} {adduct.adduct} <br>m/z={adduct.formula.mz:.4f}"
         )
 
-    def labelAdducts(self, adducts: list[Adduct]) -> None:
+    def labelPossibleAdducts(self, adducts: list[Adduct]) -> None:
         # clear any existing
-        for label in self.adduct_labels:
+        for label in self.possible_adduct_labels:
             self.plot.removeItem(label)
-        self.adduct_labels.clear()
+        self.possible_adduct_labels.clear()
 
         # no data
-        if self.ms_series.yData.size == 0:
+        if (
+            self.ms_series.yData is None
+            or self.ms_series.xData is None
+            or self.ms_series.yData.size == 0
+        ):
             return
 
         min_signal = np.percentile(self.ms_series.yData, 50)
@@ -151,20 +160,21 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
             if self.ms_series.yData[idx] > min_signal:
                 label = pyqtgraph.TextItem(adduct.adduct, anchor=(0.5, 1.5))
                 label.setPos(adduct.formula.mz, self.ms_series.yData[idx])
-                label.setVisible(self.adduct_labels_visible)
+                label.setVisible(self.possible_adduct_labels_visible)
                 self.plot.addItem(label)
-                self.adduct_labels.append(label)
+                self.possible_adduct_labels.append(label)
 
-    def toggleAdductLabels(self) -> None:
-        self.adduct_labels_visible = not self.adduct_labels_visible
-        for label in self.adduct_labels:
-            label.setVisible(self.adduct_labels_visible)
+    def togglePossibleAdductLabels(self) -> None:
+        self.possible_adduct_labels_visible = not self.possible_adduct_labels_visible
+        for label in self.possible_adduct_labels:
+            label.setVisible(self.possible_adduct_labels_visible)
 
-    def stateClicked(self, 
+    def stateClicked(
+        self,
         scatter: pyqtgraph.ScatterPlotItem,
         points: list[pyqtgraph.SpotItem],
         event: QtWidgets.QGraphicsSceneMouseEvent,
-        ) -> None:
+    ) -> None:
         state = points[0].data()
         if state <= self.d_count:
             self.dStateClicked.emit(f"D{state}")
@@ -187,31 +197,6 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
                 self.hover_text.setText(f"D{self.d_count}+{dstate - self.d_count}")
             self.hover_text.setVisible(True)
 
-    def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
-        # make a menu
-        action_show_labels = QtGui.QAction(
-            QtGui.QIcon.fromTheme("view-visible"), "Show Adduct Labels"
-        )
-        action_show_labels.setCheckable(True)
-        action_show_labels.setChecked(self.adduct_labels_visible)
-        action_show_labels.triggered.connect(self.toggleAdductLabels)
-
-        action_copy_image = QtGui.QAction(
-            QtGui.QIcon.fromTheme("viewimage"), "Copy Image To Clipboard"
-        )
-        action_copy_image.triggered.connect(self.copyToClipboard)
-
-        action_zoom_reset = QtGui.QAction(
-            QtGui.QIcon.fromTheme("zoom-original"), "Reset Zoom"
-        )
-        action_zoom_reset.triggered.connect(self.resetZoom)
-
-        menu = QtWidgets.QMenu()
-        menu.addAction(action_show_labels)
-        menu.addAction(action_copy_image)
-        menu.addAction(action_zoom_reset)
-        menu.exec(event.globalPos())
-
     def copyToClipboard(self) -> None:
         pixmap = QtGui.QPixmap(self.viewport().size())
         painter = QtGui.QPainter(pixmap)
@@ -220,16 +205,23 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         QtWidgets.QApplication.clipboard().setPixmap(pixmap)  # type: ignore
 
     def resetZoom(self) -> None:
-        self.plot.getViewBox().enableAutoRange()
+        vb = self.plot.getViewBox()
+        if vb is not None:
+            vb.enableAutoRange()
 
     def zoomToData(self) -> None:
         if self.d_series is None:
             return
+        vb = self.plot.getViewBox()
+        if vb is None:
+            return
+
         x, y = self.d_series.getData()
         if x.size == 0:
             return
+
         dx = x.max() - x.min()
-        self.plot.getViewBox().setRange(
+        vb.setRange(
             xRange=(x.min() - dx * 0.05, x.max() + dx * 0.05),
             yRange=(0.0, y.max() * 1.05),
         )
@@ -244,7 +236,7 @@ class DGetBarGraph(pyqtgraph.GraphicsView):
     ):
         super().__init__(background="white", parent=parent)
 
-        pen = QtGui.QPen(QtCore.Qt.black, 1.0)
+        pen = QtGui.QPen(QtCore.Qt.GlobalColor.black, 1.0)
         pen.setCosmetic(True)
 
         self.xaxis = pyqtgraph.AxisItem("bottom", pen=pen, textPen=pen, tick_pen=pen)
@@ -254,7 +246,6 @@ class DGetBarGraph(pyqtgraph.GraphicsView):
         self.yaxis.setLabel("Relative Abundance")
 
         self.plot = pyqtgraph.PlotItem(
-            # title=title,
             name="central_plot",
             axisItems={"bottom": self.xaxis, "left": self.yaxis},
             viewBox=ViewBoxForceScaleAtZero(),
@@ -266,7 +257,7 @@ class DGetBarGraph(pyqtgraph.GraphicsView):
 
         self.series = pyqtgraph.BarGraphItem(x=0, height=0, width=0.33)
         self.plot.addItem(self.series)
-        self.plot.setLimits(yMin=0.0)
+        self.plot.setLimits(yMin=0.0)  # type: ignore
         self.plot.setContentsMargins(10, 10, 10, 10)
 
         self.setCentralWidget(self.plot)
@@ -287,9 +278,16 @@ class DGetBarGraph(pyqtgraph.GraphicsView):
 
     def setData(self, x: np.ndarray, y: np.ndarray) -> None:
         self.series.setOpts(x=x, height=y)
-        self.plot.setLimits(
-            xMin=x.min() - 1.0, xMax=x.max() + 1.0, yMin=0.0, yMax=y.max() * 1.2
-        )
+        vb = self.plot.getViewBox()
+        if vb is not None:
+            vb.setLimits(
+                xMin=x.min() - 1.0,
+                xMax=x.max() + 1.0,
+                yMin=0.0,
+                yMax=y.max() * 1.2,
+            )
 
     def resetZoom(self) -> None:
-        self.plot.getViewBox().enableAutoRange()
+        vb = self.plot.getViewBox()
+        if vb is not None:
+            vb.enableAutoRange()
