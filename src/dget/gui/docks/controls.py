@@ -22,29 +22,28 @@ class DGetControls(QtWidgets.QDockWidget):
         self.dockLocationChanged.connect(self.changeLayout)
 
         self.le_formula = QtWidgets.QLineEdit()
+        self.le_formula.setStatusTip("Deuterated compound fomrula.")
         self.le_formula.setValidator(DGetFormulaValidator())
         self.le_formula.textChanged.connect(self.onFormulaChange)
         self.le_formula.textChanged.connect(self.setFormulaColor)
 
         self.cb_adduct = QtWidgets.QComboBox()
+        self.cb_adduct.setStatusTip("Form of adduct or fragment ion.")
         self.loadAdducts()
 
         self.cb_adduct.setEditable(True)
         self.cb_adduct.setValidator(DGetAdductValidator())
-        self.cb_adduct.currentTextChanged.connect(self.onFormulaChange)
-        self.cb_adduct.currentTextChanged.connect(self.setAdductColor)
-        self.cb_adduct.editTextChanged.connect(self.onFormulaChange)
-        self.cb_adduct.editTextChanged.connect(self.setAdductColor)
+        self.cb_adduct.currentTextChanged.connect(self.adductEdited)
+        self.cb_adduct.editTextChanged.connect(self.adductEdited)
 
         self.cutoff = QtWidgets.QLineEdit()
         self.cutoff.setValidator(DGetCutOffValidator())
-        self.cutoff.setToolTip(
-            "Deuteration calculation cutoff as a m/z (e.g., 123.4) or state (e.g., D10)"
+        self.cutoff.setStatusTip(
+            "Deuteration calculation cutoff as an m/z (e.g., 123.4) or state (e.g., D10)"
         )
-        self.cutoff.textChanged.connect(self.processOptionsChanged)
-        self.cutoff.textChanged.connect(self.setCutoffColor)
 
         self.mass_shift = QtWidgets.QDoubleSpinBox()
+        self.mass_shift.setStatusTip("Shifts the HRMS data.")
         self.mass_shift.setRange(-100.0, 100.0)
         self.mass_shift.setDecimals(4)
         self.mass_shift.setSuffix(" m/z")
@@ -52,9 +51,10 @@ class DGetControls(QtWidgets.QDockWidget):
         self.mass_shift.valueChanged.connect(self.processOptionsChanged)
 
         gbox_proc = QtWidgets.QGroupBox("Proccessing options")
-        gbox_proc.setLayout(QtWidgets.QFormLayout())
-        gbox_proc.layout().addRow("Cutoff", self.cutoff)
-        gbox_proc.layout().addRow("Mass shift", self.mass_shift)
+        proc_layout = QtWidgets.QFormLayout()
+        proc_layout.addRow("Cutoff", self.cutoff)
+        proc_layout.addRow("Mass shift", self.mass_shift)
+        gbox_proc.setLayout(proc_layout)
 
         layout_formula = QtWidgets.QFormLayout()
         layout_formula.addRow("Formula", self.le_formula)
@@ -69,6 +69,47 @@ class DGetControls(QtWidgets.QDockWidget):
         widget.setLayout(self.main_layout)
 
         self.setWidget(widget)
+
+    def adductEdited(self) -> None:
+        le = self.cb_adduct.lineEdit()
+        if le is not None:
+            palette = self.cb_adduct.palette()
+            if le.hasAcceptableInput():
+                color = self.palette().text().color()
+                palette.setColor(QtGui.QPalette.ColorRole.Text, color)
+            else:
+                palette.setColor(
+                    QtGui.QPalette.ColorRole.Text, QtCore.Qt.GlobalColor.red
+                )
+            le.setPalette(palette)
+
+        adduct = self.adduct()
+        if adduct is not None:
+            self.adductChanged.emit(adduct)
+
+    def cutoffEdited(self) -> None:
+        palette = self.cutoff.palette()
+        if self.cutoff.hasAcceptableInput():
+            color = self.palette().text().color()
+            palette.setColor(QtGui.QPalette.ColorRole.Text, color)
+        else:
+            palette.setColor(QtGui.QPalette.ColorRole.Text, QtCore.Qt.GlobalColor.red)
+        self.cutoff.setPalette(palette)
+
+        self.processOptionsChanged.emit()
+
+    def formulaEdited(self) -> None:
+        palette = self.le_formula.palette()
+        if self.le_formula.hasAcceptableInput():
+            color = self.palette().text().color()
+            palette.setColor(QtGui.QPalette.ColorRole.Text, color)
+        else:
+            palette.setColor(QtGui.QPalette.ColorRole.Text, QtCore.Qt.GlobalColor.red)
+        self.le_formula.setPalette(palette)
+
+        adduct = self.adduct()
+        if adduct is not None:
+            self.adductChanged.emit(adduct)
 
     def loadAdducts(self) -> None:
         self.cb_adduct.blockSignals(True)
@@ -85,38 +126,6 @@ class DGetControls(QtWidgets.QDockWidget):
             self.cb_adduct.addItems(DGet.common_adducts)
 
         self.cb_adduct.blockSignals(False)
-
-    def setCutoffColor(self) -> None:
-        palette = self.cutoff.palette()
-        if self.cutoff.hasAcceptableInput():
-            color = self.palette().text().color()
-            palette.setColor(QtGui.QPalette.ColorRole.Text, color)
-        else:
-            palette.setColor(QtGui.QPalette.ColorRole.Text, QtCore.Qt.GlobalColor.red)
-        self.cutoff.setPalette(palette)
-
-    def setAdductColor(self) -> None:
-        palette = self.cb_adduct.palette()
-        if self.cb_adduct.lineEdit().hasAcceptableInput():
-            color = self.palette().text().color()
-            palette.setColor(QtGui.QPalette.ColorRole.Text, color)
-        else:
-            palette.setColor(QtGui.QPalette.ColorRole.Text, QtCore.Qt.GlobalColor.red)
-        self.cb_adduct.lineEdit().setPalette(palette)
-
-    def setFormulaColor(self) -> None:
-        palette = self.le_formula.palette()
-        if self.le_formula.hasAcceptableInput():
-            color = self.palette().text().color()
-            palette.setColor(QtGui.QPalette.ColorRole.Text, color)
-        else:
-            palette.setColor(QtGui.QPalette.ColorRole.Text, QtCore.Qt.GlobalColor.red)
-        self.le_formula.setPalette(palette)
-
-    def onFormulaChange(self) -> None:
-        adduct = self.adduct()
-        if adduct is not None:
-            self.adductChanged.emit(adduct)
 
     def adduct(self) -> Adduct | None:
         adduct = self.cb_adduct.currentText()
