@@ -1,8 +1,11 @@
+from typing import Any
+
 import numpy as np
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from dget.adduct import Adduct
+from dget.gui.npqt import array_to_polygonf
 
 
 class LimitBoundViewBox(pyqtgraph.ViewBox):
@@ -47,6 +50,118 @@ class ViewBoxForceScaleAtZero(LimitBoundViewBox):
         super().translateBy(t, x, y)
 
 
+class DGetAreaGraphicsItem(QtWidgets.QGraphicsObject):
+    areaHovered = QtCore.Signal(object, object, object)
+    areaClicked = QtCore.Signal(object, object, object)
+
+    data_key = 57473
+
+    def __init__(
+        self, fill_base: float = 0.0, parent: QtWidgets.QGraphicsItem | None = None
+    ):
+        super().__init__(parent)  # type: ignore as different from doc
+
+        self.fill_base = fill_base
+        self.hover_size = 10
+
+        self.brush = QtGui.QBrush()
+        self.pen = QtGui.QPen(QtCore.Qt.PenStyle.NoPen)
+
+        self.polygons: list[QtGui.QPolygonF] = []
+        self.brushes: dict[QtGui.QPolygonF, QtGui.QBrush] = {}
+        self.datas: dict[QtGui.QPolygonF, Any] = {}
+
+        self.hovergon: QtGui.QPolygonF | None = None
+
+    def contains(self, point: QtCore.QPointF) -> bool:  # type: ignore
+        return self.shape().contains(point)
+
+    def paint(
+        self, painter: QtGui.QPainter, options, widget: QtWidgets.QWidget | None = None
+    ) -> None:
+        painter.setPen(self.pen)
+        for poly in self.polygons:
+            if poly in self.brushes:
+                painter.setBrush(self.brushes[poly])
+            else:
+                painter.setBrush(self.brush)
+
+            painter.drawConvexPolygon(poly)
+
+    def boundingRect(self) -> QtCore.QRectF:
+        if len(self.polygons) == 0:
+            return QtCore.QRectF()
+
+        rect = self.polygons[0].boundingRect()
+        for poly in self.polygons[1:]:
+            rect = rect.united(poly.boundingRect())
+        return rect
+
+    def shape(self) -> QtGui.QPainterPath:
+        path = QtGui.QPainterPath()
+        for poly in self.polygons:
+            path.addPolygon(poly)
+            path.closeSubpath()
+        path.setFillRule(QtCore.Qt.FillRule.WindingFill)
+        return path
+
+    def hoverLeaveEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
+        self.hovergon = None
+        self.areaHovered.emit(None, None, event)
+
+    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        stroke = QtGui.QPainterPathStroker(QtGui.QPen(self.hover_size))
+        for poly in self.polygons:
+            path = QtGui.QPainterPath()
+            path.addPolygon(poly)
+            if stroke.createStroke(path).contains(event.pos()):
+                self.areaClicked.emit(poly, self.datas.get(poly, None), event)
+                return
+
+    def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
+        stroke = QtGui.QPainterPathStroker(QtGui.QPen(self.hover_size))
+        for poly in self.polygons:
+            path = QtGui.QPainterPath()
+            path.addPolygon(poly)
+            if stroke.createStroke(path).contains(event.pos()):
+                if poly != self.hovergon:
+                    self.hovergon = poly
+                    self.areaHovered.emit(poly, self.datas.get(poly, None), event)
+                return
+
+        if self.hovergon is not None:
+            self.hovergon = None
+            self.areaHovered.emit(None, None, event)
+
+    def addArea(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        brush: QtGui.QBrush | None = None,
+        data: Any | None = None,
+    ) -> None:
+        points = np.stack(
+            (
+                np.concatenate(([x[0]], x, [x[-1]])),
+                np.concatenate(([self.fill_base], y, [self.fill_base])),
+            ),
+            axis=1,
+        )
+        poly = array_to_polygonf(points)
+        self.polygons.append(poly)
+
+        item = QtWidgets.QGraphicsPolygonItem(poly)
+
+        if brush is not None:
+            self.brushes[poly] = brush
+            item.setBrush(brush)
+        if data is not None:
+            self.datas[poly] = data
+            item.setData(DGetAreaGraphicsItem.data_key, data)
+
+        self.prepareGeometryChange()
+
+
 class DGetMSGraph(pyqtgraph.GraphicsView):
     adductLabelHovered = QtCore.Signal(str)
     dStateClicked = QtCore.Signal(str)
@@ -84,14 +199,20 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         self.d_series = pyqtgraph.ScatterPlotItem(
             pxMode=True, size=10, hoverable=True, tip=None
         )
-        self.d_series.sigHovered.connect(self.updateHoverText)
-        self.d_series.sigClicked.connect(self.stateClicked)
+        self.d_series.sigClicked.connect(self.stateScatterClicked)
+        self.d_series.sigHovered.connect(self.stateScatterHovered)
         self.plot.addItem(self.d_series)
+
+        self.d_areas = DGetAreaGraphicsItem()
+        self.d_areas.setAcceptHoverEvents(True)
+        self.d_areas.areaClicked.connect(self.stateAreaClicked)
+        self.d_areas.areaHovered.connect(self.stateAreaHovered)
+        self.ms_series.sigPlotChanged.connect(self.d_areas.prepareGeometryChange)
+        self.plot.addItem(self.d_areas)
 
         self.hover_text = pyqtgraph.TextItem(
             "", color=QtGui.QColor.fromRgb(0, 0, 0), anchor=(0.5, 1.0)
         )
-        self.hover_text.setVisible(False)
         self.plot.addItem(self.hover_text)
 
         self.adduct_label = pyqtgraph.LabelItem("", parent=self.yaxis)
@@ -124,14 +245,46 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
             vb.setLimits(xMin=x.min(), xMax=x.max(), yMin=0.0, yMax=y.max() * 1.2)
 
     def setDeuterationData(
-        self, x: np.ndarray, y: np.ndarray, used: np.ndarray, dcount: int
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        used: np.ndarray,
+        dcount: int,
+        mode: str = "peak height",
+        mass_width: float = 0.1,
     ) -> None:
         self.d_count = dcount
         brush_used = QtGui.QBrush(QtGui.QColor.fromString("#DB5461"))
         brush_unused = QtGui.QBrush(QtGui.QColor.fromString("#8AA29E"))
-        brushes = [brush_used if i in used else brush_unused for i in range(x.size)]
         dstate = np.arange(x.size)
+        brushes = [brush_used if i in used else brush_unused for i in dstate]
+
+        self.d_series.setVisible(mode == "peak height")
+        self.d_areas.polygons.clear()
         self.d_series.setData(x=x, y=y, brush=brushes, data=dstate)
+
+        if mode == "peak area":
+            if self.ms_series.xData is None or self.ms_series.yData is None:
+                return
+            idx0 = np.searchsorted(self.ms_series.xData, x - mass_width)
+            idx1 = np.searchsorted(self.ms_series.xData, x + mass_width, side="right")
+
+            for center, i0, i1, brush, state in zip(x, idx0, idx1, brushes, dstate):
+                x0, x1 = center - mass_width, center + mass_width
+                y0 = self.ms_series.yData[i0 - 1] + (
+                    x0 - self.ms_series.xData[i0 - 1]
+                ) * (self.ms_series.yData[i0] - self.ms_series.yData[i0 - 1]) / (
+                    self.ms_series.xData[i0] - self.ms_series.xData[i0 - 1]
+                )
+                y1 = self.ms_series.yData[i1 - 1] + (x1 - self.ms_series.xData[i1 - 1]) * (
+                    self.ms_series.yData[i1] - self.ms_series.yData[i1 - 1]
+                ) / (self.ms_series.xData[i1] - self.ms_series.xData[i1 - 1])
+                self.d_areas.addArea(
+                    np.concatenate(([x0], self.ms_series.xData[i0:i1], [x1])),
+                    np.concatenate(([y0], self.ms_series.yData[i0:i1], [y1])),
+                    brush=brush,
+                    data=state,
+                )
 
     def setAdductLabel(self, adduct: Adduct) -> None:
         self.adduct_label.setText(
@@ -169,7 +322,38 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         for label in self.possible_adduct_labels:
             label.setVisible(self.possible_adduct_labels_visible)
 
-    def stateClicked(
+    def updateStateLabel(self, pos: QtCore.QPointF, state: int) -> None:
+        if state <= self.d_count:
+            self.hover_text.setText(f"D{state}")
+        else:
+            self.hover_text.setText(f"D{self.d_count}+{state - self.d_count}")
+        self.hover_text.setPos(pos)
+        self.hover_text.update()
+
+    def stateAreaClicked(
+        self,
+        poly: QtGui.QPolygonF,
+        state: int,
+        event: QtWidgets.QGraphicsSceneMouseEvent,
+    ) -> None:
+        if state <= self.d_count:
+            self.dStateClicked.emit(f"D{state}")
+
+    def stateAreaHovered(
+        self,
+        poly: QtGui.QPolygonF,
+        state: int,
+        event: QtWidgets.QGraphicsSceneMouseEvent,
+    ) -> None:
+        if poly is None:
+            self.hover_text.setVisible(False)
+        else:
+            self.hover_text.setVisible(True)
+            rect = poly.boundingRect()
+            pos = QtCore.QPointF(rect.center().x(), rect.bottom())
+            self.updateStateLabel(pos, state)
+
+    def stateScatterClicked(
         self,
         scatter: pyqtgraph.ScatterPlotItem,
         points: list[pyqtgraph.SpotItem],
@@ -179,7 +363,7 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         if state <= self.d_count:
             self.dStateClicked.emit(f"D{state}")
 
-    def updateHoverText(
+    def stateScatterHovered(
         self,
         scatter: pyqtgraph.ScatterPlotItem,
         points: list[pyqtgraph.SpotItem],
@@ -212,18 +396,25 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
     def zoomToData(self) -> None:
         if self.d_series is None:
             return
+
         vb = self.plot.getViewBox()
         if vb is None:
             return
 
-        x, y = self.d_series.getData()
-        if x.size == 0:
+        if (
+            self.d_series.data is None
+            or self.ms_series.xData is None
+            or self.ms_series.yData is None
+        ):
             return
 
-        dx = x.max() - x.min()
+        x, _ = self.d_series.getData()
+        i0, i1 = np.searchsorted(self.ms_series.xData, (np.amin(x), np.amax(x)))
+        x0, x1 = self.ms_series.xData[i0], self.ms_series.xData[i1]
+        dx = x1 - x0
         vb.setRange(
-            xRange=(x.min() - dx * 0.05, x.max() + dx * 0.05),
-            yRange=(0.0, y.max() * 1.05),
+            xRange=(x0 - dx * 0.05, x1 + dx * 0.05),
+            yRange=(0.0, np.amax(self.ms_series.yData[i0:i1]) * 1.05),
         )
 
 
