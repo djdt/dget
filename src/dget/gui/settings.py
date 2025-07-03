@@ -1,3 +1,5 @@
+from typing import Any
+
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from dget.adduct import Adduct
@@ -22,6 +24,40 @@ class DGetAdductsTextEdit(QtWidgets.QPlainTextEdit):
                 return False
 
         return True
+
+
+class PageSizeModel(QtCore.QAbstractListModel):
+    def __init__(
+        self,
+        sizes: list[QtGui.QPageSize.PageSizeId],
+        parent: QtCore.QObject | None = None,
+    ):
+        super().__init__(parent)
+
+        self.sizes = sizes
+
+    def rowCount(
+        self,
+        parent: QtCore.QModelIndex
+        | QtCore.QPersistentModelIndex = QtCore.QModelIndex(),
+    ) -> int:
+        return len(self.sizes)
+
+    def data(
+        self,
+        index: QtCore.QModelIndex | QtCore.QPersistentModelIndex,
+        role: int = QtCore.Qt.ItemDataRole.DisplayRole,
+    ) -> Any:
+        if not index.isValid():
+            return None
+        if role == QtCore.Qt.ItemDataRole.DisplayRole:
+            size = QtGui.QPageSize.size(
+                self.sizes[index.row()], QtGui.QPageSize.Unit.Millimeter
+            )
+            name = QtGui.QPageSize.name(self.sizes[index.row()])
+            return f"{name} ({size.width():.4g} × {size.height():.4g} mm)"
+        elif role == QtCore.Qt.ItemDataRole.UserRole:
+            return self.sizes[index.row()]
 
 
 class DGetSettingsDialog(QtWidgets.QDialog):
@@ -62,6 +98,17 @@ class DGetSettingsDialog(QtWidgets.QDialog):
         signal_layout.addRow("Mass width:", self.signal_mass_width)
         signal_box.setLayout(signal_layout)
 
+        self.report_page_size = QtWidgets.QComboBox()
+        self.report_page_size.setModel(PageSizeModel([QtGui.QPageSize.PageSizeId.A4]))
+
+        self.report_user = QtWidgets.QLineEdit()
+
+        report_box = QtWidgets.QGroupBox("Report options")
+        report_layout = QtWidgets.QFormLayout()
+        report_layout.addRow("Page size:", self.report_page_size)
+        report_layout.addRow("Default user:", self.report_user)
+        report_box.setLayout(report_layout)
+
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.StandardButton.Reset
             | QtWidgets.QDialogButtonBox.StandardButton.Ok
@@ -72,6 +119,7 @@ class DGetSettingsDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(adduct_box)
         layout.addWidget(signal_box)
+        layout.addWidget(report_box)
         layout.addWidget(self.button_box)
         self.setLayout(layout)
 
@@ -130,10 +178,18 @@ class DGetSettingsDialog(QtWidgets.QDialog):
         self.signal_mass_width.setValue(
             float(settings.value("dget/signal mass width", 0.1))  # type: ignore
         )
+        self.report_page_size.setCurrentIndex(
+            self.report_page_size.findData(
+                settings.value("report/page size", QtGui.QPageSize.PageSizeId.A4),
+                QtCore.Qt.ItemDataRole.UserRole,
+            )
+        )
+        self.report_user.setText(str(settings.value("report/user", "---")))
 
     def restoreDefaults(self) -> None:
         settings = QtCore.QSettings()
         settings.remove("dget")
+        settings.remove("report")
         self.loadSettings()
 
     def saveSettings(self) -> None:
@@ -148,8 +204,15 @@ class DGetSettingsDialog(QtWidgets.QDialog):
 
         mode = "peak area" if self.signal_mode_area.isChecked() else "peak height"
         settings.setValue("dget/signal mode", mode)
-
         settings.setValue("dget/signal mass width", self.signal_mass_width.value())
+
+        settings.setValue(
+            "report/page size",
+            self.report_page_size.itemData(
+                self.report_page_size.currentIndex(), QtCore.Qt.ItemDataRole.UserRole
+            ),
+        )
+        settings.setValue("report/user", self.report_user.text())
 
 
 if __name__ == "__main__":
