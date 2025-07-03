@@ -24,8 +24,7 @@ class DGetControls(QtWidgets.QDockWidget):
         self.le_formula = QtWidgets.QLineEdit()
         self.le_formula.setStatusTip("Deuterated compound fomrula.")
         self.le_formula.setValidator(DGetFormulaValidator())
-        self.le_formula.textChanged.connect(self.onFormulaChange)
-        self.le_formula.textChanged.connect(self.setFormulaColor)
+        self.le_formula.textChanged.connect(self.formulaEdited)
 
         self.cb_adduct = QtWidgets.QComboBox()
         self.cb_adduct.setStatusTip("Form of adduct or fragment ion.")
@@ -41,6 +40,7 @@ class DGetControls(QtWidgets.QDockWidget):
         self.cutoff.setStatusTip(
             "Deuteration calculation cutoff as an m/z (e.g., 123.4) or state (e.g., D10)"
         )
+        self.cutoff.textChanged.connect(self.cutoffEdited)
 
         self.mass_shift = QtWidgets.QDoubleSpinBox()
         self.mass_shift.setStatusTip("Shifts the HRMS data.")
