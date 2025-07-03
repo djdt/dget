@@ -113,6 +113,7 @@ class DGetControls(QtWidgets.QDockWidget):
 
     def loadAdducts(self) -> None:
         self.cb_adduct.blockSignals(True)
+        current = self.cb_adduct.currentText()
         self.cb_adduct.clear()
         settings = QtCore.QSettings()
         if settings.contains("dget/adducts/size"):
@@ -125,6 +126,7 @@ class DGetControls(QtWidgets.QDockWidget):
         else:
             self.cb_adduct.addItems(DGet.common_adducts)
 
+        self.cb_adduct.setCurrentText(current)
         self.cb_adduct.blockSignals(False)
 
     def adduct(self) -> Adduct | None:
