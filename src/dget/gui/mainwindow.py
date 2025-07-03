@@ -37,7 +37,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle("DGet!")
-        self.resize(1280, 800)
 
         self.dget: DGet | None = None
 
@@ -229,7 +228,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         if file is None:
             file, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self,
-                "Open HRMS data",
+                "Open HRMS Data",
                 dir,
                 "CSV Documents (*.csv *.text *.txt);;All files (*)",
             )
@@ -311,7 +310,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             settings = QtCore.QSettings()
             self.dget = DGet(
                 adduct.base,
-                tofdata=self.graph_ms.ms_series.getData(),  # type: ignore
+                tofdata=self.graph_ms.ms_series.getData(),  # type: ignore as checked by yData
                 adduct=adduct.adduct,
                 cutoff=cutoff,
                 signal_mode=str(settings.value("dget/signal mode", "peak height")),
@@ -333,6 +332,8 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             self.dget.target_signals,
             used,
             self.dget.deuterium_count,
+            mode=settings.value("dget/signal mode", "peak height"),
+            mass_width=float(settings.value("dget/signal mass width", 0.1)),  # type: ignore
         )
 
         self.results_text.updateText(
