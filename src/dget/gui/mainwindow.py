@@ -20,8 +20,6 @@ from dget.gui.settings import DGetSettingsDialog
 
 logger = logging.getLogger(__name__)
 
-re_strip_amp = re.compile("\\&(?!\\&)")
-
 
 class DGetFormulaSpectra(QtWidgets.QDockWidget):
     def __init__(self, parent: QtWidgets.QWidget | None = None):
@@ -56,7 +54,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
         self.graph_spectra = DGetFormulaSpectra()
 
-        self.controls.adductChanged.connect(self.onAdductChanged)
+        self.controls.adductChanged.connect(self.updateAdduct)
         self.controls.processOptionsChanged.connect(self.updateDGet)
 
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self.controls)
@@ -80,112 +78,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
 
         status = self.statusBar()
         status.showMessage(f"Welcome to DGet! version {version('dget')}.")
-
-    def onAdductChanged(self, adduct: Adduct) -> None:
-        self.graph_ms.setAdductLabel(adduct)
-
-        spectra = adduct.formula.spectrum(min_fraction=DGet.min_fraction_for_spectra)
-
-        # Seperate from DGet so we can plot non-deuterated formula
-        x = np.array([s.mz for s in spectra.values()])
-        y = np.array([s.fraction for s in spectra.values()])
-        y = y / y.max()
-        self.graph_spectra.graph.setData(x, y)
-        self.graph_spectra.graph.resetZoom()
-
-        self.updateDGet(adduct)
-
-        adduct_list = []
-        for i in range(self.controls.cb_adduct.count()):
-            try:
-                adduct_list.append(
-                    Adduct(adduct.base, self.controls.cb_adduct.itemText(i))
-                )
-            except ValueError:
-                pass
-
-        self.graph_ms.labelAdducts(adduct_list)
-
-    def updateDGet(self, adduct: Adduct | None = None) -> None:
-        self.results_text.text.clear()
-        self.results_graph.graph.series.setOpts(x=[], height=0)
-        self.graph_ms.setDeuterationData(np.array([]), np.array([]), np.array([]), 0)
-        self.action_zoom_data.setEnabled(False)
-
-        if adduct is None:
-            if self.dget is not None:
-                adduct = self.dget.adduct
-            else:
-                return
-
-        if self.graph_ms.ms_series.yData.size == 0:
-            return
-
-        self.graph_ms.setShift(self.controls.mass_shift.value())
-
-        cutoff = self.controls.cutoff.text()
-        try:
-            cutoff = float(cutoff)
-        except ValueError:
-            if len(cutoff) == 0 or cutoff[0] != "D":
-                cutoff = None
-
-        try:
-            settings = QtCore.QSettings()
-            self.dget = DGet(
-                adduct.base,
-                tofdata=self.graph_ms.ms_series.getData(),
-                adduct=adduct.adduct,
-                cutoff=cutoff,
-                signal_mode=str(settings.value("dget/signal mode", "peak height")),
-                signal_mass_width=float(settings.value("dget/signal mass width", 0.1)),
-            )
-            self.action_report.setEnabled(True)
-        except ValueError:
-            self.action_report.setEnabled(False)
-            return
-
-        used = self.dget.deuteration_states
-        probs = self.dget.deuteration_probabilites
-
-        if used.size == 0 or np.all(np.isnan(probs)):
-            return
-
-        self.graph_ms.setDeuterationData(
-            self.dget.target_masses,
-            self.dget.target_signals,
-            used,
-            self.dget.deuterium_count,
-        )
-
-        self.results_text.updateText(
-            self.dget.deuteration,
-            (self.dget.residual_error or 0.0),
-            used,
-            probs[used] / probs[used].sum(),
-        )
-        self.results_graph.graph.setData(used, probs[used] * 100.0)
-        self.results_graph.graph.resetZoom()
-        self.action_zoom_data.setEnabled(True)
-
-    def createToolBar(self) -> None:
-        self.toolbar = QtWidgets.QToolBar("Toolbar")
-        self.toolbar.setObjectName("dget-toolbar")
-        self.addToolBar(QtCore.Qt.ToolBarArea.RightToolBarArea, self.toolbar)
-
-        self.action_zoom_data = QtGui.QAction(
-            QtGui.QIcon.fromTheme("zoom-2-to-1"), "Zoom To D"
-        )
-        self.action_zoom_data.triggered.connect(self.graph_ms.zoomToData)
-        self.action_zoom_data.setEnabled(False)
-
-        self.action_zoom_reset = QtGui.QAction(
-            QtGui.QIcon.fromTheme("zoom-original"), "Reset Zoom"
-        )
-        self.action_zoom_reset.triggered.connect(self.graph_ms.resetZoom)
-
-        self.toolbar.addAction(self.action_zoom_data)
-        self.toolbar.addAction(self.action_zoom_reset)
 
     def createMenus(self) -> None:
         self.action_open = QtGui.QAction(
@@ -273,6 +165,26 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.menuBar().addMenu(menu_view)
         self.menuBar().addMenu(menu_help)
 
+    def createToolBar(self) -> None:
+        self.toolbar = QtWidgets.QToolBar("Toolbar")
+        self.toolbar.setObjectName("dget-toolbar")
+        self.addToolBar(QtCore.Qt.ToolBarArea.RightToolBarArea, self.toolbar)
+
+        self.action_zoom_data = QtGui.QAction(
+            QtGui.QIcon.fromTheme("zoom-2-to-1"), "Zoom To D"
+        )
+        self.action_zoom_data.triggered.connect(self.graph_ms.zoomToData)
+        self.action_zoom_data.setEnabled(False)
+
+        self.action_zoom_reset = QtGui.QAction(
+            QtGui.QIcon.fromTheme("zoom-original"), "Reset Zoom"
+        )
+        self.action_zoom_reset.triggered.connect(self.graph_ms.resetZoom)
+
+        self.toolbar.addAction(self.action_zoom_data)
+        self.toolbar.addAction(self.action_zoom_reset)
+
+    # Callbacks
     def about(self) -> None:
         QtWidgets.QMessageBox.about(
             self,
@@ -285,7 +197,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             ),
         )
 
-    # Callbacks
     def linkToDocumentation(self) -> None:
         QtGui.QDesktopServices.openUrl("https://dget.readthedocs.io")
 
@@ -296,7 +207,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.startHRMSBrowser(dir=dir)
 
     def openRecentFile(self, action: QtGui.QAction) -> None:
-        path = Path(re_strip_amp.sub("", action.text()))
+        path = Path(re.sub("\\&(?!\\&)", "", action.text()))
         if path.exists():
             self.startHRMSBrowser(path)
         else:
@@ -306,6 +217,13 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             self.updateRecentFiles(remove=path)
 
     def startHRMSBrowser(self, file: str | Path | None = None, dir: str = "") -> None:
+        def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:
+            self.graph_ms.setData(x, y)
+            self.graph_ms.plot.setTitle(path.stem)
+            self.updateDGet(self.controls.adduct())
+
+            self.updateRecentFiles(path)
+
         if file is None:
             file, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self,
@@ -315,7 +233,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             )
         if file != "":
             dlg = TextImportDialog(file)
-            dlg.dataImported.connect(self.loadData)
+            dlg.dataImported.connect(loadData)
             dlg.exec()
 
     def startReportDialog(self) -> None:
@@ -323,24 +241,107 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         dlg.exec()
 
     def startSettingsDialog(self) -> None:
+        def updateSettings() -> None:
+            self.controls.loadAdducts()
+            adduct = self.controls.adduct()
+            if adduct is None:
+                self.updateDGet()
+            else:
+                self.updateAdduct(adduct)  # calls updateDGet
+
         dlg = DGetSettingsDialog(self)
-        dlg.accepted.connect(self.updateSettings)
+        dlg.accepted.connect(updateSettings)
         dlg.exec()
 
-    def updateSettings(self) -> None:
-        self.controls.loadAdducts()
-        adduct = self.controls.adduct()
+    def updateAdduct(self, adduct: Adduct) -> None:
+        self.graph_ms.setAdductLabel(adduct)
+
+        spectra = adduct.formula.spectrum(min_fraction=DGet.min_fraction_for_spectra)
+
+        # Seperate from DGet so we can plot non-deuterated formula
+        x = np.array([s.mz for s in spectra.values()])
+        y = np.array([s.fraction for s in spectra.values()])
+        y = y / y.max()
+        self.graph_spectra.graph.setData(x, y)
+        self.graph_spectra.graph.resetZoom()
+
+        self.updateDGet(adduct)
+
+        adduct_list = []
+        for i in range(self.controls.cb_adduct.count()):
+            try:
+                adduct_list.append(
+                    Adduct(adduct.base, self.controls.cb_adduct.itemText(i))
+                )
+            except ValueError:
+                pass
+
+        self.graph_ms.labelAdducts(adduct_list)
+
+    def updateDGet(self, adduct: Adduct | None = None) -> None:
+        self.results_text.text.clear()
+        self.results_graph.graph.series.setOpts(x=[], height=0)
+        self.graph_ms.setDeuterationData(np.array([]), np.array([]), np.array([]), 0)
+        self.action_zoom_data.setEnabled(False)
+
         if adduct is None:
-            self.updateDGet()
-        else:
-            self.onAdductChanged(adduct)  # calls updateDGet
+            if self.dget is not None:
+                adduct = self.dget.adduct
+            else:
+                return
 
-    def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:
-        self.graph_ms.setData(x, y)
-        self.graph_ms.plot.setTitle(path.stem)
-        self.updateDGet(self.controls.adduct())
+        if (
+            self.graph_ms.ms_series.yData is None
+            or self.graph_ms.ms_series.yData.size == 0
+        ):
+            return
 
-        self.updateRecentFiles(path)
+        self.graph_ms.setShift(self.controls.mass_shift.value())
+
+        cutoff = self.controls.cutoff.text()
+        try:
+            cutoff = float(cutoff)
+        except ValueError:
+            if len(cutoff) == 0 or cutoff[0] != "D":
+                cutoff = None
+
+        try:
+            settings = QtCore.QSettings()
+            self.dget = DGet(
+                adduct.base,
+                tofdata=self.graph_ms.ms_series.getData(),  # type: ignore
+                adduct=adduct.adduct,
+                cutoff=cutoff,
+                signal_mode=str(settings.value("dget/signal mode", "peak height")),
+                signal_mass_width=float(settings.value("dget/signal mass width", 0.1)),  # type: ignore
+            )
+            self.action_report.setEnabled(True)
+        except ValueError:
+            self.action_report.setEnabled(False)
+            return
+
+        used = self.dget.deuteration_states
+        probs = self.dget.deuteration_probabilites
+
+        if used.size == 0 or np.all(np.isnan(probs)):
+            return
+
+        self.graph_ms.setDeuterationData(
+            self.dget.target_masses,
+            self.dget.target_signals,
+            used,
+            self.dget.deuterium_count,
+        )
+
+        self.results_text.updateText(
+            self.dget.deuteration,
+            (self.dget.residual_error or 0.0),
+            used,
+            probs[used] / probs[used].sum(),
+        )
+        self.results_graph.graph.setData(used, probs[used] * 100.0)
+        self.results_graph.graph.resetZoom()
+        self.action_zoom_data.setEnabled(True)
 
     def updateRecentFiles(
         self, insert: Path | None = None, remove: Path | None = None
@@ -379,6 +380,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             self.action_open_recent.addAction(action)
             self.menu_recent.addAction(action)
 
+    # Layout
     def defaultLayout(self) -> None:
         self.addToolBar(QtCore.Qt.ToolBarArea.RightToolBarArea, self.toolbar)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, self.controls)
@@ -412,6 +414,13 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.restoreGeometry(settings.value("window/geometry"))
         self.restoreState(settings.value("window/state"))
 
+    # Event overrides
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        settings = QtCore.QSettings()
+        settings.setValue("window/geometry", self.saveGeometry())
+        settings.setValue("window/state", self.saveState())
+        super().closeEvent(event)
+
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
             mime_db = QtCore.QMimeDatabase()
@@ -429,12 +438,6 @@ class DGetMainWindow(QtWidgets.QMainWindow):
                     event.acceptProposedAction()
                     return
         super().dropEvent(event)
-
-    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
-        settings = QtCore.QSettings()
-        settings.setValue("window/geometry", self.saveGeometry())
-        settings.setValue("window/state", self.saveState())
-        super().closeEvent(event)
 
     def exceptHook(
         self, etype: type, value: BaseException, tb: TracebackType | None = None
