@@ -184,6 +184,8 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
             axisItems={"bottom": self.xaxis, "left": self.yaxis},
             viewBox=ViewBoxForceScaleAtZero(),
         )
+        self.plot.setLimits(xMin=0.0, xMax=100.0, yMin=0.0, yMax=100.0)  # type: ignore
+
         # Common options
         self.plot.setMenuEnabled(False)
         self.plot.hideButtons()
