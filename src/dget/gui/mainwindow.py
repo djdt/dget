@@ -173,12 +173,14 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.action_zoom_data = QtGui.QAction(
             QtGui.QIcon.fromTheme("zoom-2-to-1"), "Zoom To D"
         )
+        self.action_zoom_data.setStatusTip("Zoom to the deuterated m/z region.")
         self.action_zoom_data.triggered.connect(self.graph_ms.zoomToData)
         self.action_zoom_data.setEnabled(False)
 
         self.action_zoom_reset = QtGui.QAction(
             QtGui.QIcon.fromTheme("zoom-original"), "Reset Zoom"
         )
+        self.action_zoom_data.setStatusTip("Zoom out to show the entire m/z range.")
         self.action_zoom_reset.triggered.connect(self.graph_ms.resetZoom)
 
         self.toolbar.addAction(self.action_zoom_data)
@@ -217,7 +219,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             self.updateRecentFiles(remove=path)
 
     def startHRMSBrowser(self, file: str | Path | None = None, dir: str = "") -> None:
-        def loadData(self, path: Path, x: np.ndarray, y: np.ndarray) -> None:
+        def loadData(path: Path, x: np.ndarray, y: np.ndarray) -> None:
             self.graph_ms.setData(x, y)
             self.graph_ms.plot.setTitle(path.stem)
             self.updateDGet(self.controls.adduct())
@@ -276,7 +278,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             except ValueError:
                 pass
 
-        self.graph_ms.labelAdducts(adduct_list)
+        self.graph_ms.labelPossibleAdducts(adduct_list)
 
     def updateDGet(self, adduct: Adduct | None = None) -> None:
         self.results_text.text.clear()
