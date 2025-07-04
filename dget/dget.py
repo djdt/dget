@@ -228,19 +228,31 @@ class DGet(object):
         searched for the maximum peak height, depending on the current ``signal_mode``.
         """
         if self._target_signals is None:
-            starts = np.searchsorted(self.x, self.target_masses - self.mass_width / 2.0)
-            ends = np.searchsorted(self.x, self.target_masses + self.mass_width / 2.0)
-            valid = (starts < ends) & (ends < self.x.size - 1)
+            starts = np.searchsorted(
+                self.x, self.target_masses - self.mass_width, side="right"
+            )
+            ends = np.searchsorted(
+                self.x, self.target_masses + self.mass_width, side="left"
+            )
+
+            valid = np.logical_and(starts > 0, ends < self.x.size)
             if np.any(~valid):
                 print("warning: some target m/z fall outside of mass spectrum")
 
             self._target_signals = np.zeros(self.target_masses.size)
 
             if self.signal_mode == "peak area":
-                self._target_signals[valid] = [
-                    np.trapz(self.y[s:e], x=self.x[s:e])
-                    for s, e in zip(starts[valid], ends[valid])
-                ]
+                for i in np.arange(self._target_signals.size)[valid]:
+                    xs = np.concatenate(
+                        (
+                            [self.target_masses[i] - self.mass_width],
+                            self.x[starts[i] : ends[i]],
+                            [self.target_masses[i] + self.mass_width],
+                        )
+                    )
+                    self._target_signals[i] = np.trapezoid(
+                        np.interp(xs, self.x, self.y), x=xs
+                    )
             elif self.signal_mode in ["peak height", "raw"]:
                 self._target_signals[valid] = np.maximum.reduceat(
                     self.y, np.stack((starts[valid], ends[valid]), axis=1).flat
