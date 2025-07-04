@@ -363,12 +363,12 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
 
         min_signal = np.percentile(self.ms_series.yData, 50)
         for adduct in adducts:
-            idx = np.searchsorted(self.ms_series.xData, adduct.formula.mz)
+            idx = np.searchsorted(self.ms_series.xData, adduct.formula.isotope.mz)
             if idx == 0 or idx == self.ms_series.xData.size:  # under/oversize
                 continue
             if self.ms_series.yData[idx] > min_signal:
                 label = pyqtgraph.TextItem(adduct.adduct, anchor=(0.5, 1.5))
-                label.setPos(adduct.formula.mz, self.ms_series.yData[idx])
+                label.setPos(adduct.formula.isotope.mz, self.ms_series.yData[idx])
                 label.setVisible(self.possible_adduct_labels_visible)
                 self.plot.addItem(label)
                 self.possible_adduct_labels.append(label)
