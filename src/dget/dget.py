@@ -181,7 +181,6 @@ class DGet(object):
             cutoff = int(self.deuteration_cutoff[1:])
         else:  # is float
             cutoff = np.searchsorted(self.target_masses, self.deuteration_cutoff)
-        assert isinstance(cutoff, int)
 
         return np.arange(max(cutoff, 0), self.deuterium_count + 1)
 
