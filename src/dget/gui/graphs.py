@@ -5,6 +5,7 @@ import pyqtgraph
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from dget.adduct import Adduct
+from dget.gui.colors import dget_spectra, dget_state_unused, dget_state_used
 from dget.gui.npqt import array_to_polygonf
 
 
@@ -256,8 +257,8 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         mass_width: float = 0.1,
     ) -> None:
         self.d_count = dcount
-        brush_used = QtGui.QBrush(QtGui.QColor.fromString("#DB5461"))
-        brush_unused = QtGui.QBrush(QtGui.QColor.fromString("#8AA29E"))
+        brush_used = QtGui.QBrush(QtGui.QColor.fromString(dget_state_used))
+        brush_unused = QtGui.QBrush(QtGui.QColor.fromString(dget_state_unused))
         dstate = np.arange(x.size)
         brushes = [brush_used if i in used else brush_unused for i in dstate]
 

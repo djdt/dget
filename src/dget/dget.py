@@ -10,6 +10,7 @@ from molmass import Formula, Spectrum
 from dget.adduct import Adduct
 from dget.convolve import deconvolve
 from dget.formula import spectra_mz_spread
+from dget.gui.colors import dget_spectra, dget_state_unused, dget_state_used
 
 logger = logging.getLogger(__name__)
 
@@ -425,16 +426,12 @@ class DGet(object):
         used = np.append(used, np.arange(used[-1] + 1, xs.size))
         not_used = np.flatnonzero(~np.in1d(np.arange(xs.size), used))
 
-        color = np.full(xs.size, "#8aa29e")
-        color[self.deuteration_states] = "#db5461"
-        color[self.deuteration_states.max() :] = "#db5461"
-
-        ax.scatter(xs[used], ys[used], c="#db5461", s=24, label="Deconvolution")
+        ax.scatter(xs[used], ys[used], c=dget_state_used, s=24, label="Deconvolution")
         if not_used.size > 0:
             ax.scatter(
                 xs[not_used],
                 ys[not_used],
-                c="#8aa29e",
+                c=dget_state_unused,
                 s=24,
                 label="Deconvolution (Not included)",
             )
@@ -445,7 +442,7 @@ class DGet(object):
             masses,
             self.psf * ys[self.deuterium_count] / self.psf[0],
             c="none",
-            edgecolors="#364699",
+            edgecolors=dget_spectra,
             linewidths=2,
             s=48,
             label="Isotope Spectra",

@@ -198,11 +198,15 @@ class DGetReportDialog(QtWidgets.QDialog):
             cursor,
             align=QtCore.Qt.AlignmentFlag.AlignRight,
             font_size=8,
+        )
+        cursor.insertText(f"Report generated using the DGet! v{version('dget')} GUI.\n")
+        update_cursor_style(
+            cursor,
+            align=QtCore.Qt.AlignmentFlag.AlignRight,
+            font_size=8,
             bottom_margin_lines=2,
         )
-        cursor.insertText(
-            f"Report generated using the DGet ({version('dget')}) GUI, please cite "
-        )
+        cursor.insertText("When using DGet! in your research please cite ")
         old_format = cursor.charFormat()
         format = cursor.charFormat()
         format.setAnchor(True)
