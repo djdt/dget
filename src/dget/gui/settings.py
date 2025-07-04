@@ -99,7 +99,15 @@ class DGetSettingsDialog(QtWidgets.QDialog):
         signal_box.setLayout(signal_layout)
 
         self.report_page_size = QtWidgets.QComboBox()
-        self.report_page_size.setModel(PageSizeModel([QtGui.QPageSize.PageSizeId.A4]))
+        self.report_page_size.setModel(
+            PageSizeModel(
+                [
+                    QtGui.QPageSize.PageSizeId.A4,
+                    QtGui.QPageSize.PageSizeId.A5,
+                    QtGui.QPageSize.PageSizeId.Letter,
+                ]
+            )
+        )
 
         self.report_user = QtWidgets.QLineEdit()
 
