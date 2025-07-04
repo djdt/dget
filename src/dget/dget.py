@@ -1,5 +1,6 @@
 """Class for deuteration calculations."""
 
+import logging
 from pathlib import Path
 from typing import Generator, List, TextIO, Tuple
 
@@ -9,6 +10,8 @@ from molmass import Formula, Spectrum
 from dget.adduct import Adduct
 from dget.convolve import deconvolve
 from dget.formula import spectra_mz_spread
+
+logger = logging.getLogger(__name__)
 
 
 class DGet(object):
@@ -178,6 +181,8 @@ class DGet(object):
             cutoff = int(self.deuteration_cutoff[1:])
         else:  # is float
             cutoff = np.searchsorted(self.target_masses, self.deuteration_cutoff)
+        assert isinstance(cutoff, int)
+
         return np.arange(max(cutoff, 0), self.deuterium_count + 1)
 
     @property
@@ -237,7 +242,7 @@ class DGet(object):
 
             valid = np.logical_and(starts < ends, ends < self.x.size)
             if np.any(~valid):
-                print("warning: some target m/z fall outside of mass spectrum")
+                logger.warning("some target m/z fall outside of mass spectrum")
 
             self._target_signals = np.zeros(self.target_masses.size)
 
@@ -289,7 +294,7 @@ class DGet(object):
         for kw in ["unpack", "dtype"]:
             if kw in kwargs:
                 kwargs.pop(kw)
-                print(f"warning: removing loadtxt keyword '{kw}'")
+                logger.warning(f"removing loadtxt keyword '{kw}'")
         return np.loadtxt(path, unpack=True, dtype=np.float32, **kwargs)  # type: ignore
 
     def align_tof_with_spectra(self, alignment_mz: float | None = None) -> float:
@@ -320,7 +325,7 @@ class DGet(object):
 
         offset = self.x[onmass] - self.x[start + np.argmax(self.y[start:end])]
         if abs(offset) > 0.5:  # pragma: no cover, warning
-            print("warning: calculated alignment offset greater than 0.5 Da!")
+            logger.warning("calculated alignment offset greater than 0.5 Da!")
         self.x += offset
         return offset
 
