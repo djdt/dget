@@ -267,9 +267,9 @@ class DGetReportDialog(QtWidgets.QDialog):
         cinfo = [
             ("Name / ID", "---"),
             ("Formula", dget.adduct.base.formula),
-            ("m/z", f"{dget.adduct.base.mz:.4f}"),
+            ("m/z", f"{dget.adduct.base.isotope.mz:.4f}"),
             ("Adduct", dget.adduct.adduct),
-            ("Adduct m/z", f"{dget.adduct.formula.mz:.4f}"),
+            ("Adduct m/z", f"{dget.adduct.formula.isotope.mz:.4f}"),
         ]
 
         cursor = columns.cellAt(0, 0).lastCursorPosition()
