@@ -278,9 +278,11 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
                 ) * (self.ms_series.yData[i0] - self.ms_series.yData[i0 - 1]) / (
                     self.ms_series.xData[i0] - self.ms_series.xData[i0 - 1]
                 )
-                y1 = self.ms_series.yData[i1 - 1] + (x1 - self.ms_series.xData[i1 - 1]) * (
-                    self.ms_series.yData[i1] - self.ms_series.yData[i1 - 1]
-                ) / (self.ms_series.xData[i1] - self.ms_series.xData[i1 - 1])
+                y1 = self.ms_series.yData[i1 - 1] + (
+                    x1 - self.ms_series.xData[i1 - 1]
+                ) * (self.ms_series.yData[i1] - self.ms_series.yData[i1 - 1]) / (
+                    self.ms_series.xData[i1] - self.ms_series.xData[i1 - 1]
+                )
                 self.d_areas.addArea(
                     np.concatenate(([x0], self.ms_series.xData[i0:i1], [x1])),
                     np.concatenate(([y0], self.ms_series.yData[i0:i1], [y1])),
@@ -290,7 +292,7 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
 
     def setAdductLabel(self, adduct: Adduct) -> None:
         self.adduct_label.setText(
-            f"{adduct.base.formula} {adduct.adduct} <br>m/z={adduct.formula.mz:.4f}"
+            f"{adduct.base.formula} {adduct.adduct} <br>m/z={adduct.formula.isotope.mz:.4f}"
         )
 
     def labelPossibleAdducts(self, adducts: list[Adduct]) -> None:
