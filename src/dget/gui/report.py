@@ -246,11 +246,13 @@ class DGetReportDialog(QtWidgets.QDialog):
     def generate(self, dget: DGet) -> None:
         self.doc.clear()
 
+        settings = QtCore.QSettings()
+
         cursor = QtGui.QTextCursor(self.doc)
         self._addHeader(cursor)
         info = [
             ("Date", datetime.datetime.now().isoformat(sep=" ", timespec="minutes")),
-            ("User", "---"),
+            ("User", str(settings.value("report/user", "---"))),
         ]
 
         table_format = QtGui.QTextTableFormat()
@@ -296,7 +298,6 @@ class DGetReportDialog(QtWidgets.QDialog):
             format.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
             cell.lastCursorPosition().setBlockFormat(format)
 
-
         image_width = (
             self.printer.pageLayout().paintRectPixels(self.printer.resolution()).width()
         )
@@ -310,6 +311,8 @@ class DGetReportDialog(QtWidgets.QDialog):
             dget.target_signals,
             dget.deuteration_states,
             dget.deuterium_count,
+            mode=str(settings.value("dget/signal mode", "peak height")),
+            mass_width=float(settings.value("dget/signal mass width", 0.1)),  # type: ignore
         )
         graph.zoomToData()
 
@@ -323,12 +326,12 @@ class DGetReportDialog(QtWidgets.QDialog):
 
         cursor.movePosition(cursor.MoveOperation.End, cursor.MoveMode.MoveAnchor)
         cursor.insertBlock()
-        # update_cursor_style(cursor, align=QtCore.Qt.AlignmentFlag.AlignCenter)
+        update_cursor_style(cursor, align=QtCore.Qt.AlignmentFlag.AlignHCenter)
         image_format = QtGui.QTextImageFormat()
         image_format.setWidth(pixmap.width())
         image_format.setHeight(pixmap.height())
         image_format.setName("ms_graph")
-        cursor.insertImage(image_format, QtGui.QTextFrameFormat.Position.FloatLeft)
+        cursor.insertImage(image_format)
 
     def printReport(self, printer: QtPrintSupport.QPrinter) -> None:
         # get rid of editable region boxes
