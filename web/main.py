@@ -231,7 +231,7 @@ def calculate():
         if use_baseline:
             _ = dget.subtract_baseline()
 
-        probabilities = dget.deuteration_probabilites[dget.deuteration_states]
+        probabilities = dget.deuteration_probabilities[dget.deuteration_states]
         probabilities /= probabilities.sum()
     except Exception as e:
         abort(500, description=f"Processing error: {e}")

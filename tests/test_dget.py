@@ -234,7 +234,7 @@ def test_integration():
         signal_mass_width=0.1,
     )
     assert np.allclose(dget.target_signals, [np.pi, 2.0 * np.pi, 0.0], atol=1e-2)
-    assert np.allclose(dget.deuteration_probabilites, [0.33, 0.66], atol=1e-2)
+    assert np.allclose(dget.deuteration_probabilities, [0.33, 0.66], atol=1e-2)
 
     dget = DGet(
         "CH3D",
@@ -244,7 +244,7 @@ def test_integration():
         signal_mass_width=0.1,
     )
     assert np.allclose(dget.target_signals, [0.2 * 2.0, 0.2 * 4.0, 0.0], atol=1e-2)
-    assert np.allclose(dget.deuteration_probabilites, [0.33, 0.66], atol=1e-2)
+    assert np.allclose(dget.deuteration_probabilities, [0.33, 0.66], atol=1e-2)
 
     # Reduced width
     dget = DGet(
@@ -260,7 +260,7 @@ def test_integration():
         [0.2 * np.sqrt(2.0), 0.2 * 2.0 * np.sqrt(2.0), 0.0],
         atol=1e-2,
     )
-    assert np.allclose(dget.deuteration_probabilites, [0.33, 0.66], atol=1e-2)
+    assert np.allclose(dget.deuteration_probabilities, [0.33, 0.66], atol=1e-2)
 
 
 def test_intergral_interpolated():

@@ -287,7 +287,7 @@ class DGetReportDialog(QtWidgets.QDialog):
             ("Residual error", f"{(dget.residual_error or 0.0) * 100:.2f} %"),
             ("Deuteration Ratio Spectra", ""),
         ]
-        probs = dget.deuteration_probabilites[dget.deuteration_states]
+        probs = dget.deuteration_probabilities[dget.deuteration_states]
         probs = probs / probs.sum() * 100.0
         for state, prob in zip(dget.deuteration_states, probs):
             results.append((f"D{state}", f"{prob:.2f} %"))

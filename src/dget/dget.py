@@ -139,12 +139,12 @@ class DGet(object):
         Deuteration is only calculated for the states above the deuteration cutoff.
         """
         states = self.deuteration_states
-        prob = self.deuteration_probabilites[states]
+        prob = self.deuteration_probabilities[states]
         prob = prob / prob.sum()  # re-normalise
         return np.sum(prob * states) / self.deuterium_count
 
     @property
-    def deuteration_probabilites(self) -> np.ndarray:
+    def deuteration_probabilities(self) -> np.ndarray:
         """The deuteration fraction of each possible deuteration.
 
         Probabilities are listed in order of D=0 to N, where N is the number of
@@ -174,7 +174,7 @@ class DGet(object):
         accumulative probability of at least 10%.
         """
         if self.deuteration_cutoff is None:
-            prob = self.deuteration_probabilites[::-1]
+            prob = self.deuteration_probabilities[::-1]
             idx = np.flatnonzero((prob[:-1] < 0.01) & (prob[1:] < 0.01))
             idx = idx[idx > np.argmax(np.cumsum(prob) > 0.1)]
             cutoff = self.deuterium_count - idx[0] if idx.size > 0 else 0
@@ -419,7 +419,7 @@ class DGet(object):
         # Data
         ax.plot(x, y, color="black", zorder=0)
 
-        if self.deuteration_probabilites.size == 0:
+        if self.deuteration_probabilities.size == 0:
             return
 
         used = self.deuteration_states
@@ -462,7 +462,7 @@ class DGet(object):
         """
         pd = self.deuteration  # ensure calculated
         states = self.deuteration_states
-        prob = self.deuteration_probabilites[states]
+        prob = self.deuteration_probabilities[states]
         prob = prob / prob.sum()
 
         print(f"Formula          : {self.base_name}", file=file)

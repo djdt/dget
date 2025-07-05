@@ -322,7 +322,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             return
 
         used = self.dget.deuteration_states
-        probs = self.dget.deuteration_probabilites
+        probs = self.dget.deuteration_probabilities
 
         if used.size == 0 or np.all(np.isnan(probs)):
             return
@@ -335,6 +335,11 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             mode=settings.value("dget/signal mode", "peak height"),
             mass_width=float(settings.value("dget/signal mass width", 0.1)),  # type: ignore
         )
+
+        ys = np.zeros((self.dget.target_signals.size, self.dget.target_signals.size))
+        self.graph_ms.setStateSpectraData(
+                self.dget.target_masses, ys
+                )
 
         self.results_text.updateText(
             self.dget.deuteration,
