@@ -103,10 +103,10 @@ class DGet(object):
 
         self.mass_width = signal_mass_width
 
-        if signal_mode not in ["peak area", "peak height", "raw"]:
+        if signal_mode not in ["peak area", "peak height"]:
             # pragma: no cover, exception
             raise ValueError(
-                "signal_mode must be one of 'peak area', 'peak height', 'raw'"
+                "signal_mode must be one of 'peak area',height'"
             )
         self.signal_mode = signal_mode
 
@@ -151,18 +151,13 @@ class DGet(object):
         deuterium in the original molecular formula. Probabilities will sum to 1.0.
         """
         if self._probabilities is None:
-            if self.signal_mode == "raw":  # Skip deconvolution
-                self._probabilities = self.target_signals[: -self.psf.size + 1]
-            else:
-                self._probabilities, self._deconv_residuals = deconvolve(
-                    self.target_signals, self.psf
-                )
-                # Remove negative probabilities
-                self._probabilities[self._probabilities < 0.0] = 0.0
-            # Normalise
-            self._probabilities = self._probabilities / self._probabilities.sum()
+            self._probabilities, self._deconv_residuals = deconvolve(
+                self.target_signals, self.psf
+            )
+            # Remove negative probabilities
+            self._probabilities[self._probabilities < 0.0] = 0.0
 
-        return self._probabilities  # type: ignore
+        return self._probabilities / self._probabilities.sum()  # type: ignore
 
     @property
     def deuteration_states(self) -> np.ndarray:
@@ -258,13 +253,13 @@ class DGet(object):
                     self._target_signals[i] = np.trapezoid(
                         np.interp(xs, self.x, self.y), x=xs
                     )
-            elif self.signal_mode in ["peak height", "raw"]:
+            elif self.signal_mode == "peak height":
                 self._target_signals[valid] = np.maximum.reduceat(
                     self.y, np.stack((starts[valid], ends[valid]), axis=1).flat
                 )[::2]
             else:  # pragma: no cover, exception
                 raise ValueError(
-                    "DGet.signal_mode must be 'peak area', 'peak height', 'raw'"
+                    "DGet.signal_mode must be 'peak area' or 'peak height'"
                 )
         return self._target_signals
 
