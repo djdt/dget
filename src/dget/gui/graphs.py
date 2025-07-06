@@ -117,7 +117,9 @@ class DGetAreaGraphicsItem(QtWidgets.QGraphicsObject):
             path.addPolygon(poly)
             if stroke.createStroke(path).contains(event.pos()):
                 self.areaClicked.emit(poly, self.datas.get(poly, None), event)
+                event.accept()
                 return
+        super().mousePressEvent(event)
 
     def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
         stroke = QtGui.QPainterPathStroker(QtGui.QPen(self.hover_size))
