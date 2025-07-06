@@ -5,7 +5,7 @@ import pyqtgraph
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from dget.adduct import Adduct
-from dget.gui.colors import dget_spectra, dget_state_unused, dget_state_used
+from dget.gui.colors import dget_spectra_series, dget_state_unused, dget_state_used
 from dget.gui.npqt import array_to_polygonf
 
 
@@ -192,12 +192,14 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         self.plot.hideButtons()
         self.plot.setContentsMargins(10, 10, 10, 10)
 
+        # Main HRMS data series
         self.ms_shift = 0.0
         self.ms_series = pyqtgraph.PlotCurveItem(
             pen=pen, connect="all", skipFiniteCheck=True
         )
         self.plot.addItem(self.ms_series)
 
+        # Dueteration indicator series
         self.d_count = 0
         self.d_series = pyqtgraph.ScatterPlotItem(
             pxMode=True, size=10, hoverable=True, tip=None
@@ -213,6 +215,18 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
         self.ms_series.sigPlotChanged.connect(self.d_areas.prepareGeometryChange)
         self.plot.addItem(self.d_areas)
 
+        # Result series
+        pen = QtGui.QPen(QtGui.QColor.fromString("#a56eff"), 2.0)
+        pen.setCosmetic(True)
+        self.deconv_series = pyqtgraph.PlotCurveItem(
+            pen=pen, connect="all", skipFiniteCheck=True
+        )
+        self.plot.addItem(self.deconv_series)
+
+        self.spectra_bars = []
+        self.spectra_bar_visible = False
+
+        # Texts
         self.hover_text = pyqtgraph.TextItem(
             "", color=QtGui.QColor.fromRgb(0, 0, 0), anchor=(0.5, 1.0)
         )
@@ -290,6 +304,41 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
                     brush=brush,
                     data=state,
                 )
+
+    def setDeconvolutionResultData(self, x: np.ndarray, y: np.ndarray) -> None:
+        self.deconv_series.setData(x=x, y=y)
+
+    def setStateSpectraData(
+        self,
+        x: np.ndarray,
+        ys: np.ndarray,
+    ) -> None:
+        for bar in self.spectra_bars:
+            self.plot.removeItem(bar)
+
+        y0 = np.zeros(x.shape)
+        for i in range(ys.shape[0] - 1, 0, -1):
+            bar = pyqtgraph.BarGraphItem(
+                x=x,
+                y0=y0,
+                y1=y0 + ys[i],
+                width=0.1,
+                pen=QtGui.QPen(QtCore.Qt.GlobalColor.black, 0.0),
+                brush=QtGui.QBrush(
+                    QtGui.QColor.fromString(
+                        dget_spectra_series[i % len(dget_spectra_series)]
+                    )
+                ),
+            )
+            bar.setVisible(self.spectra_bar_visible)
+            y0 += ys[i]
+            self.plot.addItem(bar)
+            self.spectra_bars.append(bar)
+
+    def setStateSpectraVisibility(self, visible: bool) -> None:
+        self.spectra_bar_visible = visible
+        for bar in self.spectra_bars:
+            bar.setVisible(visible)
 
     def setAdductLabel(self, adduct: Adduct) -> None:
         self.adduct_label.setText(
@@ -428,6 +477,8 @@ class DGetBarGraph(pyqtgraph.GraphicsView):
         self,
         xlabel: str,
         ylabel: str,
+        pen: QtGui.QPen | None = None,
+        brush: QtGui.QBrush | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(background="white", parent=parent)
@@ -451,7 +502,9 @@ class DGetBarGraph(pyqtgraph.GraphicsView):
         self.plot.setMenuEnabled(False)
         self.plot.hideButtons()
 
-        self.series = pyqtgraph.BarGraphItem(x=0, height=0, width=0.33)
+        self.series = pyqtgraph.BarGraphItem(
+            x=0, height=0, width=0.33, pen=pen, brush=brush
+        )
         self.plot.addItem(self.series)
         self.plot.setLimits(yMin=0.0)  # type: ignore
         self.plot.setContentsMargins(10, 10, 10, 10)

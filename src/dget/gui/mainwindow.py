@@ -11,6 +11,7 @@ from spcal.gui.log import LoggingDialog
 
 from dget import DGet
 from dget.adduct import Adduct
+from dget.gui.colors import dget_state_unused
 from dget.gui.docks.controls import DGetControls
 from dget.gui.docks.results import DGetResultsGraph, DGetResultsText
 from dget.gui.graphs import DGetBarGraph, DGetMSGraph
@@ -26,7 +27,12 @@ class DGetFormulaSpectra(QtWidgets.QDockWidget):
         super().__init__("Formula Spectra", parent)
         self.setObjectName("dget-formula-spectra-dock")
 
-        self.graph = DGetBarGraph("m/z", "Relative Abundance")
+        self.graph = DGetBarGraph(
+            "m/z",
+            "Relative Abundance",
+            pen=QtGui.QPen(QtCore.Qt.GlobalColor.black, 0.0),
+            brush=QtGui.QBrush(QtGui.QColor.fromString(dget_state_unused)),
+        )
         self.setWidget(self.graph)
 
 
@@ -169,6 +175,27 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.toolbar.setObjectName("dget-toolbar")
         self.addToolBar(QtCore.Qt.ToolBarArea.RightToolBarArea, self.toolbar)
 
+        self.action_show_deconv = QtGui.QAction(
+            QtGui.QIcon.fromTheme("office-chart-line"), "Show Deconvolution Result"
+        )
+        self.action_show_deconv.setStatusTip(
+            "Display the result of deconvolving the spectra from the isotopologues."
+        )
+        self.action_show_deconv.setCheckable(True)
+        self.action_show_deconv.setChecked(self.graph_ms.deconv_series.isVisible())
+        self.action_show_deconv.toggled.connect(self.graph_ms.deconv_series.setVisible)
+
+        self.action_show_individual = QtGui.QAction(
+            QtGui.QIcon.fromTheme("office-chart-bar"), "Show Isotopologues"
+        )
+        self.action_show_individual.setStatusTip(
+            "Show the contributions of individual isotopologues."
+        )
+        self.action_show_individual.setCheckable(True)
+        self.action_show_individual.toggled.connect(
+            self.graph_ms.setStateSpectraVisibility
+        )
+
         self.action_zoom_data = QtGui.QAction(
             QtGui.QIcon.fromTheme("zoom-2-to-1"), "Zoom To D"
         )
@@ -182,6 +209,8 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.action_zoom_data.setStatusTip("Zoom out to show the entire m/z range.")
         self.action_zoom_reset.triggered.connect(self.graph_ms.resetZoom)
 
+        self.toolbar.addAction(self.action_show_deconv)
+        self.toolbar.addAction(self.action_show_individual)
         self.toolbar.addAction(self.action_zoom_data)
         self.toolbar.addAction(self.action_zoom_reset)
 
@@ -292,7 +321,8 @@ class DGetMainWindow(QtWidgets.QMainWindow):
                 return
 
         if (
-            self.graph_ms.ms_series.yData is None
+            self.graph_ms.ms_series.xData is None
+            or self.graph_ms.ms_series.yData is None
             or self.graph_ms.ms_series.yData.size == 0
         ):
             return
@@ -306,50 +336,85 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             if len(cutoff) == 0 or cutoff[0] != "D":
                 cutoff = None
 
+        settings = QtCore.QSettings()
+        signal_mode = str(settings.value("dget/signal mode", "peak height"))
+        signal_mass_width = float(settings.value("dget/signal mass width", 0.1))  # type: ignore
+
         try:
-            settings = QtCore.QSettings()
             self.dget = DGet(
                 adduct.base,
                 tofdata=self.graph_ms.ms_series.getData(),  # type: ignore as checked by yData
                 adduct=adduct.adduct,
                 cutoff=cutoff,
-                signal_mode=str(settings.value("dget/signal mode", "peak height")),
-                signal_mass_width=float(settings.value("dget/signal mass width", 0.1)),  # type: ignore
+                signal_mode=signal_mode,
+                signal_mass_width=signal_mass_width,
             )
             self.action_report.setEnabled(True)
         except ValueError:
             self.action_report.setEnabled(False)
             return
 
+        deuteration = self.dget.deuteration
         used = self.dget.deuteration_states
-        probs = self.dget.deuteration_probabilities
+        probs: np.ndarray = self.dget._probabilities  # type: ignore as can't be None after deuteration
 
-        if used.size == 0 or np.all(np.isnan(probs)):
+        if used.size == 0:
             return
 
+        # update the text results
+        self.results_text.updateText(
+            deuteration,
+            (self.dget.residual_error or 0.0),
+            used,
+            probs[used] / probs[used].sum(),
+        )
+        # update graph results
+        self.results_graph.graph.setData(used, probs[used] * 100.0)
+        self.results_graph.graph.resetZoom()
+        self.action_zoom_data.setEnabled(True)
+
+        # update the central graph
         self.graph_ms.setDeuterationData(
             self.dget.target_masses,
             self.dget.target_signals,
             used,
             self.dget.deuterium_count,
-            mode=settings.value("dget/signal mode", "peak height"),
-            mass_width=float(settings.value("dget/signal mass width", 0.1)),  # type: ignore
+            mode=signal_mode,
+            mass_width=signal_mass_width,
         )
 
-        ys = np.zeros((self.dget.target_signals.size, self.dget.target_signals.size))
-        self.graph_ms.setStateSpectraData(
-                self.dget.target_masses, ys
-                )
-
-        self.results_text.updateText(
-            self.dget.deuteration,
-            (self.dget.residual_error or 0.0),
-            used,
-            probs[used] / probs[used].sum(),
+        probs = np.concatenate(
+            (probs[:-1], np.convolve(probs[-1], self.dget.psf, mode="full"))
         )
-        self.results_graph.graph.setData(used, probs[used] * 100.0)
-        self.results_graph.graph.resetZoom()
-        self.action_zoom_data.setEnabled(True)
+
+        if signal_mode == "peak area":
+            # rescale to the peak maxima
+            starts = np.searchsorted(
+                self.graph_ms.ms_series.xData,
+                self.dget.target_masses - signal_mass_width,
+                side="right",
+            )
+            ends = np.searchsorted(
+                self.graph_ms.ms_series.xData,
+                self.dget.target_masses + signal_mass_width,
+                side="left",
+            )
+            maxes = np.maximum.reduceat(
+                self.graph_ms.ms_series.yData, np.stack((starts, ends), axis=1).flat
+            )[::2]
+            probs = probs * (maxes.mean() / probs.mean())
+
+        self.graph_ms.setDeconvolutionResultData(self.dget.target_masses, probs)
+
+        ys = np.apply_along_axis(
+            np.convolve,
+            1,
+            np.diagflat(probs[: -(self.dget.psf.size - 1)]),
+            self.dget.psf,
+            mode="full",
+        )
+
+        self.graph_ms.setStateSpectraData(self.dget.target_masses, ys)
 
     def updateRecentFiles(
         self, insert: Path | None = None, remove: Path | None = None

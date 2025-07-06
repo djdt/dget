@@ -66,6 +66,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.adduct is not None:
         window.controls.cb_adduct.setCurrentText(args.adduct)
 
+    if args.formula is not None and args.adduct is not None and args.msdata is not None:
+        window.graph_ms.zoomToData()
+
+
     return app.exec_()
 
 

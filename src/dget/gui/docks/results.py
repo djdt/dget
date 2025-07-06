@@ -1,6 +1,7 @@
 import numpy as np
-from PySide6 import QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
+from dget.gui.colors import dget_state_used
 from dget.gui.graphs import DGetBarGraph
 
 
@@ -52,5 +53,10 @@ class DGetResultsGraph(QtWidgets.QDockWidget):
         super().__init__("Deuteration States", parent)
         self.setObjectName("dget-results-graph-dock")
 
-        self.graph = DGetBarGraph("State", "Percent Abundance")
+        self.graph = DGetBarGraph(
+            "State",
+            "Percent Abundance",
+            pen=QtGui.QPen(QtCore.Qt.GlobalColor.black, 0.0),
+            brush=QtGui.QBrush(QtGui.QColor.fromString(dget_state_used)),
+        )
         self.setWidget(self.graph)
