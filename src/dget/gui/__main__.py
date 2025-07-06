@@ -51,6 +51,10 @@ def main(argv: list[str] | None = None) -> int:
 
     logger.addHandler(window.log.handler)
     logger.info(f"DGet! {app.applicationVersion()} started.")
+    logger.info(f"Using PySide6 version {QtCore.qVersion()}.")
+    logger.info(f"Using NumPy version {version('numpy')}.")
+    logger.info(f"Using molmass version {version('molmass')}.")
+    logger.info(f"Using pyqtgraph version {version('pyqtgraph')}.")
 
     window.show()
 
@@ -68,7 +72,6 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.formula is not None and args.adduct is not None and args.msdata is not None:
         window.graph_ms.zoomToData()
-
 
     return app.exec_()
 

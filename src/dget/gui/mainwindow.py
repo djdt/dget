@@ -220,9 +220,8 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             self,
             "About DGet!",
             (
-                "DGet! is a deuteration calculator for HRMS data<br>"
-                f"Version {QtWidgets.QApplication.applicationVersion()}, using Qt {QtCore.qVersion()}<br>"
-                f'© 2023—2025 <a href="mailto:thomas.lockwood@uts.edu.au">Thomas Lockwood</a><br>'
+                "DGet! is a deuteration calculator for HRMS data<br><br>"
+                f'Version {QtWidgets.QApplication.applicationVersion()} © 2023—2025 <a href="mailto:thomas.lockwood@uts.edu.au">Thomas Lockwood</a><br>'
                 "Visit the DGet! <a href=https://github.com/djdt/dget>GitHub</a>"
             ),
         )
