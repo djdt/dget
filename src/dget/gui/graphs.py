@@ -8,6 +8,8 @@ from dget.adduct import Adduct
 from dget.gui.colors import dget_spectra_series, dget_state_unused, dget_state_used
 from dget.gui.npqt import array_to_polygonf
 
+pyqtgraph.setConfigOptions(antialias=True)
+
 
 class LimitBoundViewBox(pyqtgraph.ViewBox):
     """Viewbox that autoRanges to any set limits."""
