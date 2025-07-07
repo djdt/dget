@@ -55,6 +55,36 @@ A Qt based GUI is also available and can be started using::
 
 Windows executables are available for each release on the DGet! GitHub `<https://github.com/djdt/dget/releases>`_.
 
+.. figure:: img/gui_mainwindow_annotated_v1.0.0.png
+
+   The main interface of the DGet! GUI. Annotated details are described below.
+
+To get started load a file into the GUI, and input the formula of the fully deuterated compound into (1).
+If the form of ion is known then it can be selected using (2), a custom adduct/fragment may also be input.
+Likely adducts are highlighted in the mass spectra graph in grey text.
+
+The lowest isotopolouge to include in the calculation of total deuterium content can be specified using (3).
+Input a deuterium state as `Dx` or a m/z value. Clicking on the states in the mass spectra graph will also set this. By default the lowest state after two consecutive signals < 1% of the maximum is used.
+States included in the calculation are shown in red and those excluded in green.
+
+Once the formula (1) and adduct (2) are input the  isotopic spectra is displayed in (5).
+Results are shown in text (6) and as a histogram of isotopolouge abundance in (8).
+
+Controls for (7), such as displaying deuteration results as a line plot or a stack of isotopolouge contributions, are in the toolbar (9).
+
+Loading data
+^^^^^^^^^^^^
+
+HRMS data files can be loaded into the DGet! GUI using the menu *File->Open HRMS Data File* or by drag-dropping a file directly into the DGet! window. This will start an import dialog where the user can input specifics about the text data format. Data files must contain a column of m/z value and column of signal responses.
+
+The full mass spectra is then displayed in (7).
+
+Generating reports
+^^^^^^^^^^^^^^^^^^
+
+Once the data has been processed a PDF report can be generated using *File->Generate Report*, or Ctrl+R.
+Report options can be set in the settings menu *Edit->Settings*.
+
 Web App
 -------
 
