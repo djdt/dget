@@ -78,7 +78,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--sizes",
         nargs="+",
-        default=[16, 24, 32, 48],
+        default=[16, 22, 24, 32],
         help="icon sizes to use",
     )
     parser.add_argument(
