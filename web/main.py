@@ -11,7 +11,7 @@ from dget import DGet
 from dget.adduct import Adduct
 from dget.io import shimadzu, text
 
-__web_version__ = "0.27.3"
+__web_version__ = "0.27.4"
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "dev56179e7461961afa552021c4e0957"
@@ -235,6 +235,7 @@ def calculate():
         probabilities /= probabilities.sum()
     except Exception as e:
         abort(500, description=f"Processing error: {e}")
+        return {}
 
     start, end = np.searchsorted(
         dget.x, (dget.target_masses[0], dget.target_masses[-1])
