@@ -30,5 +30,5 @@ else:
         debug=False,
         upx_exclude=["Qt*.dll", "PySide*.pyd"],
         console=False,
-        icon="app.ico",
+        icon="src/dget/gui/resources/app.ico",
     )
