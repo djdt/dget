@@ -16,7 +16,7 @@ license = "GPL-3.0-or-later"
 authors = [{name = "Thomas Lockwood", email = "thomas.lockwood@uts.edu.au"}]
 
 [project.optional-dependencies]
-tests = ["pytest"]
+test = ["pytest"]
 gui = ["PySide6 != 6.9.1", "pyqtgraph"]
 
 [project.urls]
