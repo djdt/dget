@@ -320,7 +320,7 @@ class DGetReportDialog(QtWidgets.QDialog):
         )
         graph.zoomToData()
 
-        pixmap = QtGui.QPixmap(image_size)
+        pixmap = QtGui.QPixmap(image_size * 2)
         painter = QtGui.QPainter(pixmap)
         graph.render(painter)
         painter.end()
@@ -332,8 +332,8 @@ class DGetReportDialog(QtWidgets.QDialog):
         cursor.insertBlock()
         update_cursor_style(cursor, align=QtCore.Qt.AlignmentFlag.AlignHCenter)
         image_format = QtGui.QTextImageFormat()
-        image_format.setWidth(pixmap.width())
-        image_format.setHeight(pixmap.height())
+        image_format.setWidth(image_size.width())
+        image_format.setHeight(image_size.height())
         image_format.setName("ms_graph")
         cursor.insertImage(image_format)
 
