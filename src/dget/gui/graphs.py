@@ -324,7 +324,7 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
                 x=x,
                 y0=y0,
                 y1=y0 + ys[i],
-                width=0.1,
+                width=0.5,
                 pen=QtGui.QPen(QtCore.Qt.GlobalColor.black, 0.0),
                 brush=QtGui.QBrush(
                     QtGui.QColor.fromString(
