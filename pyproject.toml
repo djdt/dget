@@ -29,3 +29,9 @@ dget = "dget:__main__.main"
 
 [project.gui-scripts]
 dget-gui = "dget.gui:__main__.main"
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
