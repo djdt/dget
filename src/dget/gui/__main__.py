@@ -6,6 +6,7 @@ from importlib.resources import files
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from dget.gui import resources  # noqa
 from dget.gui.mainwindow import DGetMainWindow
 
 logging.captureWarnings(True)
