@@ -7,7 +7,7 @@ from types import TracebackType
 
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
-from spcal.gui.log import LoggingDialog
+from dget.gui.log import LoggingDialog
 
 from dget import DGet
 from dget.adduct import Adduct
