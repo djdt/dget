@@ -101,9 +101,18 @@ def test_dget_cholesterol():
         "C27HD45O",
         data_path.joinpath("Cholesterol D45.txt"),
         adduct="[M+H-H2O]-",
+        signal_mass_width=0.15,
         loadtxt_kws={"delimiter": "\t"},
     )
     assert np.isclose(dget.deuteration * 100.0, 81.5, atol=0.1)
+
+    dget = DGet(
+        "C27HD45O",
+        data_path.joinpath("Cholesterol D45.txt"),
+        adduct="[M+H-H2O]-",
+        loadtxt_kws={"delimiter": "\t"},
+    )
+    assert np.isclose(dget.deuteration * 100.0, 81.7, atol=0.1)
 
 
 def test_dget_auto_adduct():
@@ -218,37 +227,66 @@ def test_deuteration():
 
 
 def test_integration():
-    x = np.concatenate(
-        [
-            np.linspace(16.0, 16.1, 100),
-            np.linspace(17.0, 17.1, 100),
-            np.linspace(18, 22.1, 100),
-        ]
-    )
-    y = np.concatenate(
-        [
-            np.sin(np.linspace(0.0, np.pi, 100, endpoint=False)),
-            2.0 * np.sin(np.linspace(0.0, np.pi, 100, endpoint=False)),
-            np.zeros(100),
-        ]
-    )
-    # Could be better if we could test counts
-    dget = DGet("CH3D", tofdata=(x, y), adduct="[M]+", signal_mode="peak height")
-    assert np.allclose(dget.deuteration_probabilites, [0.33, 0.66], atol=0.01)
+    centers = [i.mz for i in Formula("CH4").spectrum(min_intensity=1e-3).values()]
 
-    dget = DGet("CH3D", tofdata=(x, y), adduct="[M]+", signal_mode="peak area")
-    assert np.allclose(dget.deuteration_probabilites, [0.33, 0.66], atol=0.01)
-
-    # Test height != area
+    x = np.arange(centers[0] - 1.0, centers[-1] + 3.0, 0.001)
     y = np.zeros_like(x)
-    y[40:60] = 2.0
-    y[120:180] = 2.0
+    for i, center in enumerate(centers):
+        start, end = np.searchsorted(x, [center - 0.1, center + 0.1])
+        y[start:end] = np.sin(np.linspace(0.0, np.pi, end - start)) * (i + 1.0) * np.pi
 
-    dget = DGet("CH3D", tofdata=(x, y), adduct="[M]+", signal_mode="peak height")
-    assert np.allclose(dget.deuteration_probabilites, [0.5, 0.5], atol=0.01)
+    dget = DGet(
+        "CH3D",
+        tofdata=(x, y),
+        adduct="[M]+",
+        signal_mode="peak height",
+        signal_mass_width=0.1,
+    )
+    assert np.allclose(dget.target_signals, [np.pi, 2.0 * np.pi, 0.0], atol=1e-2)
+    assert np.allclose(dget.deuteration_probabilities, [0.33, 0.66], atol=1e-2)
 
-    dget = DGet("CH3D", tofdata=(x, y), adduct="[M]+", signal_mode="peak area")
-    assert np.allclose(dget.deuteration_probabilites, [0.25, 0.75], atol=0.01)
+    dget = DGet(
+        "CH3D",
+        tofdata=(x, y),
+        adduct="[M]+",
+        signal_mode="peak area",
+        signal_mass_width=0.1,
+    )
+    assert np.allclose(dget.target_signals, [0.2 * 2.0, 0.2 * 4.0, 0.0], atol=1e-2)
+    assert np.allclose(dget.deuteration_probabilities, [0.33, 0.66], atol=1e-2)
+
+    # Reduced width
+    dget = DGet(
+        "CH3D",
+        tofdata=(x, y),
+        adduct="[M]+",
+        signal_mode="peak area",
+        signal_mass_width=0.05,
+    )
+    # integral from pi/4 to 3pi/4
+    assert np.allclose(
+        dget.target_signals,
+        [0.2 * np.sqrt(2.0), 0.2 * 2.0 * np.sqrt(2.0), 0.0],
+        atol=1e-2,
+    )
+    assert np.allclose(dget.deuteration_probabilities, [0.33, 0.66], atol=1e-2)
+
+
+def test_intergral_interpolated():
+    centers = [i.mz for i in Formula("CH4").spectrum(min_intensity=1e-3).values()]
+
+    x = np.array(
+        [0.0, centers[0] - 0.5, centers[0], centers[0] + 0.5, centers[-1] + 1.0]
+    )
+    y = np.array([0.0, 1.0, 2.0, 1.0, 0.0])
+    dget = DGet(
+        "CH3D",
+        tofdata=(x, y),
+        adduct="[M]+",
+        signal_mode="peak area",
+        signal_mass_width=0.1,
+    )
+    assert np.isclose(dget.target_signals[0], 0.38, atol=1e-2)
 
 
 def test_cutoff():

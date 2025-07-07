@@ -16,6 +16,25 @@ html, body {
 header {
     grid-column: 1 / -1;
     background-color: #db5461;
+    width: 100%;
+}
+header div {
+    width: 100%;
+    display: inline-block;
+}
+header div div {
+    width: 48%;
+}
+header h1 {
+    text-align: left;
+    margin-left: 12pt;
+}
+header a {
+    color: black;
+    font-weight: bold;
+    float: right;
+    margin-left: 12pt;
+    text-align: right;
 }
 main {
     overflow: auto;

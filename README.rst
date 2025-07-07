@@ -45,6 +45,16 @@ These spectra are scaled to fit the mass data so absolute heights will not be in
 
 Plotting depends on `matplotlib <https://matplotlib.org>`_.
 
+GUI
+---
+
+A Qt based GUI is also available and can be started using::
+
+    $ dget-gui
+
+Windows executables are available for each release on the DGet! GitHub `<https://github.com/djdt/dget/releases>`_.
+
+
 Web App
 -------
 
@@ -60,7 +70,11 @@ DGet! is available on PyPI and can be installed via ``pip``::
 
     $ pip install dget
 
-To install DGet from source first clone the repository::
+To install the GUI::
+
+    $ pip install dget[gui]
+
+To install DGet! from source first clone the repository::
 
     $ git clone https://github.com/djdt/dget
 
@@ -73,9 +87,10 @@ Then install using ``pip``::
 Requirements
 ------------
 
-* `numpy >= 1.22 <https://numpy.org>`_
+* `numpy <https://numpy.org>`_
 * `molmass <https://github.com/cgohlke/molmass>`_
 * `matplotlib <https://matplotlib.org>`_ (optional, for plotting)
+* `PySide6 <https://https://doc.qt.io/qtforpython-6>`_ (optional, for GUI)
 
 
 Documentation
@@ -87,6 +102,6 @@ Documentation is available at `<https://dget.readthedocs.io>`_.
 Citation
 ========
 
-If using DGet! for published results please cite:
+When using DGet! in your research please cite:
 
 `Lockwood, T.E., Angeloski, A. DGet! An open source deuteration calculator for mass spectrometry data. J Cheminform 16, 36 (2024). <https://doi.org/10.1186/s13321-024-00828-x>`_

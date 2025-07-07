@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to DGet's documentation!
+Welcome to DGet!'s documentation!
 ================================
 
 .. toctree::
@@ -25,6 +25,6 @@ Indices and tables
 Citation
 ========
 
-If using DGet! for published results please cite:
+When using DGet! in your research please cite:
 
 `Lockwood, T.E., Angeloski, A. DGet! An open source deuteration calculator for mass spectrometry data. J Cheminform 16, 36 (2024). <https://doi.org/10.1186/s13321-024-00828-x>`_

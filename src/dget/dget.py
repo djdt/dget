@@ -1,5 +1,6 @@
 """Class for deuteration calculations."""
 
+import logging
 from pathlib import Path
 from typing import Generator, List, TextIO, Tuple
 
@@ -9,6 +10,9 @@ from molmass import Formula, Spectrum
 from dget.adduct import Adduct
 from dget.convolve import deconvolve
 from dget.formula import spectra_mz_spread
+from dget.gui.colors import dget_spectra, dget_state_unused, dget_state_used
+
+logger = logging.getLogger(__name__)
 
 
 class DGet(object):
@@ -64,7 +68,7 @@ class DGet(object):
         tofdata: str | Path | TextIO | Tuple[np.ndarray, np.ndarray],
         adduct: str = "[M]+",
         cutoff: float | str | None = None,
-        signal_mass_width: float = 0.5,
+        signal_mass_width: float = 0.33,
         signal_mode: str = "peak height",
         loadtxt_kws: dict | None = None,
     ):
@@ -99,10 +103,10 @@ class DGet(object):
 
         self.mass_width = signal_mass_width
 
-        if signal_mode not in ["peak area", "peak height", "raw"]:
+        if signal_mode not in ["peak area", "peak height"]:
             # pragma: no cover, exception
             raise ValueError(
-                "signal_mode must be one of 'peak area', 'peak height', 'raw'"
+                "signal_mode must be one of 'peak area',height'"
             )
         self.signal_mode = signal_mode
 
@@ -135,30 +139,25 @@ class DGet(object):
         Deuteration is only calculated for the states above the deuteration cutoff.
         """
         states = self.deuteration_states
-        prob = self.deuteration_probabilites[states]
+        prob = self.deuteration_probabilities[states]
         prob = prob / prob.sum()  # re-normalise
         return np.sum(prob * states) / self.deuterium_count
 
     @property
-    def deuteration_probabilites(self) -> np.ndarray:
+    def deuteration_probabilities(self) -> np.ndarray:
         """The deuteration fraction of each possible deuteration.
 
         Probabilities are listed in order of D=0 to N, where N is the number of
         deuterium in the original molecular formula. Probabilities will sum to 1.0.
         """
         if self._probabilities is None:
-            if self.signal_mode == "raw":  # Skip deconvolution
-                self._probabilities = self.target_signals[: -self.psf.size + 1]
-            else:
-                self._probabilities, self._deconv_residuals = deconvolve(
-                    self.target_signals, self.psf
-                )
-                # Remove negative probabilities
-                self._probabilities[self._probabilities < 0.0] = 0.0
-            # Normalise
-            self._probabilities = self._probabilities / self._probabilities.sum()
+            self._probabilities, self._deconv_residuals = deconvolve(
+                self.target_signals, self.psf
+            )
+            # Remove negative probabilities
+            self._probabilities[self._probabilities < 0.0] = 0.0
 
-        return self._probabilities  # type: ignore
+        return self._probabilities / self._probabilities.sum()  # type: ignore
 
     @property
     def deuteration_states(self) -> np.ndarray:
@@ -170,7 +169,7 @@ class DGet(object):
         accumulative probability of at least 10%.
         """
         if self.deuteration_cutoff is None:
-            prob = self.deuteration_probabilites[::-1]
+            prob = self.deuteration_probabilities[::-1]
             idx = np.flatnonzero((prob[:-1] < 0.01) & (prob[1:] < 0.01))
             idx = idx[idx > np.argmax(np.cumsum(prob) > 0.1)]
             cutoff = self.deuterium_count - idx[0] if idx.size > 0 else 0
@@ -178,6 +177,7 @@ class DGet(object):
             cutoff = int(self.deuteration_cutoff[1:])
         else:  # is float
             cutoff = np.searchsorted(self.target_masses, self.deuteration_cutoff)
+
         return np.arange(max(cutoff, 0), self.deuterium_count + 1)
 
     @property
@@ -228,26 +228,38 @@ class DGet(object):
         searched for the maximum peak height, depending on the current ``signal_mode``.
         """
         if self._target_signals is None:
-            starts = np.searchsorted(self.x, self.target_masses - self.mass_width / 2.0)
-            ends = np.searchsorted(self.x, self.target_masses + self.mass_width / 2.0)
-            valid = (starts < ends) & (ends < self.x.size - 1)
+            starts = np.searchsorted(
+                self.x, self.target_masses - self.mass_width, side="right"
+            )
+            ends = np.searchsorted(
+                self.x, self.target_masses + self.mass_width, side="left"
+            )
+
+            valid = np.logical_and(starts < ends, ends < self.x.size)
             if np.any(~valid):
-                print("warning: some target m/z fall outside of mass spectrum")
+                logger.warning("some target m/z fall outside of mass spectrum")
 
             self._target_signals = np.zeros(self.target_masses.size)
 
             if self.signal_mode == "peak area":
-                self._target_signals[valid] = [
-                    np.trapz(self.y[s:e], x=self.x[s:e])
-                    for s, e in zip(starts[valid], ends[valid])
-                ]
-            elif self.signal_mode in ["peak height", "raw"]:
+                for i in np.arange(self._target_signals.size)[valid]:
+                    xs = np.concatenate(
+                        (
+                            [self.target_masses[i] - self.mass_width],
+                            self.x[starts[i] : ends[i]],
+                            [self.target_masses[i] + self.mass_width],
+                        )
+                    )
+                    self._target_signals[i] = np.trapezoid(
+                        np.interp(xs, self.x, self.y), x=xs
+                    )
+            elif self.signal_mode == "peak height":
                 self._target_signals[valid] = np.maximum.reduceat(
                     self.y, np.stack((starts[valid], ends[valid]), axis=1).flat
                 )[::2]
             else:  # pragma: no cover, exception
                 raise ValueError(
-                    "DGet.signal_mode must be 'peak area', 'peak height', 'raw'"
+                    "DGet.signal_mode must be 'peak area' or 'peak height'"
                 )
         return self._target_signals
 
@@ -277,7 +289,7 @@ class DGet(object):
         for kw in ["unpack", "dtype"]:
             if kw in kwargs:
                 kwargs.pop(kw)
-                print(f"warning: removing loadtxt keyword '{kw}'")
+                logger.warning(f"removing loadtxt keyword '{kw}'")
         return np.loadtxt(path, unpack=True, dtype=np.float32, **kwargs)  # type: ignore
 
     def align_tof_with_spectra(self, alignment_mz: float | None = None) -> float:
@@ -308,7 +320,7 @@ class DGet(object):
 
         offset = self.x[onmass] - self.x[start + np.argmax(self.y[start:end])]
         if abs(offset) > 0.5:  # pragma: no cover, warning
-            print("warning: calculated alignment offset greater than 0.5 Da!")
+            logger.warning("calculated alignment offset greater than 0.5 Da!")
         self.x += offset
         return offset
 
@@ -402,23 +414,19 @@ class DGet(object):
         # Data
         ax.plot(x, y, color="black", zorder=0)
 
-        if self.deuteration_probabilites.size == 0:
+        if self.deuteration_probabilities.size == 0:
             return
 
         used = self.deuteration_states
         used = np.append(used, np.arange(used[-1] + 1, xs.size))
         not_used = np.flatnonzero(~np.in1d(np.arange(xs.size), used))
 
-        color = np.full(xs.size, "#8aa29e")
-        color[self.deuteration_states] = "#db5461"
-        color[self.deuteration_states.max() :] = "#db5461"
-
-        ax.scatter(xs[used], ys[used], c="#db5461", s=24, label="Deconvolution")
+        ax.scatter(xs[used], ys[used], c=dget_state_used, s=24, label="Deconvolution")
         if not_used.size > 0:
             ax.scatter(
                 xs[not_used],
                 ys[not_used],
-                c="#8aa29e",
+                c=dget_state_unused,
                 s=24,
                 label="Deconvolution (Not included)",
             )
@@ -429,7 +437,7 @@ class DGet(object):
             masses,
             self.psf * ys[self.deuterium_count] / self.psf[0],
             c="none",
-            edgecolors="#364699",
+            edgecolors=dget_spectra,
             linewidths=2,
             s=48,
             label="Isotope Spectra",
@@ -449,7 +457,7 @@ class DGet(object):
         """
         pd = self.deuteration  # ensure calculated
         states = self.deuteration_states
-        prob = self.deuteration_probabilites[states]
+        prob = self.deuteration_probabilities[states]
         prob = prob / prob.sum()
 
         print(f"Formula          : {self.base_name}", file=file)
