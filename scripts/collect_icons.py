@@ -8,7 +8,7 @@ from typing import Set
 
 
 def collect_icons(path: Path) -> Set[str]:
-    regex_icon = "(?:fromTheme|create_action)\\(\\s*['\"]([a-z\\-]+)['\"]"
+    regex_icon = "(?:fromTheme|create_action)\\(\\s*['\"]([a-z0-9\\-]+)['\"]"
     icons = set()
 
     for path in sorted(path.glob("**/*.py")):

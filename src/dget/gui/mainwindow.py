@@ -197,7 +197,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         )
 
         self.action_zoom_data = QtGui.QAction(
-            QtGui.QIcon.fromTheme("zoom-2-to-1"), "Zoom To D"
+            QtGui.QIcon.fromTheme("zoom-1-to-2"), "Zoom To D"
         )
         self.action_zoom_data.setStatusTip("Zoom to the deuterated m/z region.")
         self.action_zoom_data.triggered.connect(self.graph_ms.zoomToData)
