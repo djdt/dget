@@ -101,9 +101,18 @@ def test_dget_cholesterol():
         "C27HD45O",
         data_path.joinpath("Cholesterol D45.txt"),
         adduct="[M+H-H2O]-",
+        signal_mass_width=0.15,
         loadtxt_kws={"delimiter": "\t"},
     )
     assert np.isclose(dget.deuteration * 100.0, 81.5, atol=0.1)
+
+    dget = DGet(
+        "C27HD45O",
+        data_path.joinpath("Cholesterol D45.txt"),
+        adduct="[M+H-H2O]-",
+        loadtxt_kws={"delimiter": "\t"},
+    )
+    assert np.isclose(dget.deuteration * 100.0, 81.7, atol=0.1)
 
 
 def test_dget_auto_adduct():

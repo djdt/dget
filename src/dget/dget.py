@@ -68,7 +68,7 @@ class DGet(object):
         tofdata: str | Path | TextIO | Tuple[np.ndarray, np.ndarray],
         adduct: str = "[M]+",
         cutoff: float | str | None = None,
-        signal_mass_width: float = 0.5,
+        signal_mass_width: float = 0.33,
         signal_mode: str = "peak height",
         loadtxt_kws: dict | None = None,
     ):
