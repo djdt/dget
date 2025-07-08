@@ -95,7 +95,7 @@ Requirements
 * `molmass <https://github.com/cgohlke/molmass>`_
 * `matplotlib <https://matplotlib.org>`_ (optional, for plotting)
 * `PySide6 <https://https://doc.qt.io/qtforpython-6>`_ (optional, for GUI)
-* `pyqtgraph <https://www.pyqtgraph.org/`_ (optional, for GUI)
+* `pyqtgraph <https://www.pyqtgraph.org/>`_ (optional, for GUI)
 
 
 Documentation
