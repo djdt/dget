@@ -29,8 +29,8 @@ jobs:
     - name: Upload binary
       id: upload
       run: |
-        gh release upload "$env:TAG_NAME" "./dist/spcal_$env:DGET_VERSION.exe"
+        gh release upload "$env:TAG_NAME" "./dist/dget_$env:DGET_VERSION.exe"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        SPCAL_VERSION: ${{ steps.set-output.outputs.DGET_VERSION }}
+        DGET_VERSION: ${{ steps.set-output.outputs.DGET_VERSION }}
         TAG_NAME: ${{ github.event.release.tag_name }}
