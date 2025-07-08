@@ -52,7 +52,11 @@ A Qt based GUI is also available and can be started using::
 
     $ dget-gui
 
+.. image:: https://github.com/djdt/djdt.github.io/raw/main/img/gui_mainwindow_v1.0.0.png
+
 Windows executables are available for each release on the DGet! GitHub `<https://github.com/djdt/dget/releases>`_.
+
+Basic usage on the GUI can be found in the `Documentation <https://dget.readthedocs.io/en/latest/usage.html#gui>`_.
 
 
 Web App
@@ -91,6 +95,7 @@ Requirements
 * `molmass <https://github.com/cgohlke/molmass>`_
 * `matplotlib <https://matplotlib.org>`_ (optional, for plotting)
 * `PySide6 <https://https://doc.qt.io/qtforpython-6>`_ (optional, for GUI)
+* `pyqtgraph <https://www.pyqtgraph.org/`_ (optional, for GUI)
 
 
 Documentation
