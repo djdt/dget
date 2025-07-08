@@ -491,10 +491,10 @@ class DGetBarGraph(pyqtgraph.GraphicsView):
         pen.setCosmetic(True)
 
         self.xaxis = pyqtgraph.AxisItem("bottom", pen=pen, textPen=pen, tick_pen=pen)
-        self.xaxis.setLabel("m/z")
+        self.xaxis.setLabel(xlabel)
 
         self.yaxis = pyqtgraph.AxisItem("left", pen=pen, textPen=pen, tick_pen=pen)
-        self.yaxis.setLabel("Relative Abundance")
+        self.yaxis.setLabel(ylabel)
 
         self.plot = pyqtgraph.PlotItem(
             name="central_plot",

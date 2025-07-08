@@ -311,6 +311,8 @@ class DGetMainWindow(QtWidgets.QMainWindow):
         self.results_text.text.clear()
         self.results_graph.graph.series.setOpts(x=[], height=0)
         self.graph_ms.setDeuterationData(np.array([]), np.array([]), np.array([]), 0)
+        self.graph_ms.setDeconvolutionResultData(np.array([]), np.array([]))
+        self.graph_ms.setStateSpectraData(np.array([]), np.array([]))
         self.action_zoom_data.setEnabled(False)
 
         if adduct is None:
@@ -368,7 +370,7 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             probs[used] / probs[used].sum(),
         )
         # update graph results
-        self.results_graph.graph.setData(used, probs[used] * 100.0)
+        self.results_graph.graph.setData(used, (probs[used] / probs[used].sum()) * 100.0)
         self.results_graph.graph.resetZoom()
         self.action_zoom_data.setEnabled(True)
 
