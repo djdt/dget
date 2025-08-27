@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from dget.io import shimadzu
 from dget.io.text import guess_loadtxt_kws
 
 
