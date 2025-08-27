@@ -7,7 +7,6 @@ from types import TracebackType
 
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
-from dget.gui.log import LoggingDialog
 
 from dget import DGet
 from dget.adduct import Adduct
@@ -16,8 +15,10 @@ from dget.gui.docks.controls import DGetControls
 from dget.gui.docks.results import DGetResultsGraph, DGetResultsText
 from dget.gui.graphs import DGetBarGraph, DGetMSGraph
 from dget.gui.importdialog import TextImportDialog
+from dget.gui.log import LoggingDialog
 from dget.gui.report import DGetReportDialog
 from dget.gui.settings import DGetSettingsDialog
+from dget.io import shimadzu
 
 logger = logging.getLogger(__name__)
 
@@ -261,9 +262,14 @@ class DGetMainWindow(QtWidgets.QMainWindow):
                 "CSV Documents (*.csv *.text *.txt);;All files (*)",
             )
         if file != "":
-            dlg = TextImportDialog(file)
-            dlg.dataImported.connect(loadData)
-            dlg.exec()
+            if shimadzu.is_shimadzu_file(file):
+                loadtxt_kws = shimadzu.get_loadtxt_kws(file)
+                x, y = np.loadtxt(file, unpack=True, dtype=np.float32, **loadtxt_kws)
+                loadData(Path(file), x, y)
+            else:
+                dlg = TextImportDialog(file)
+                dlg.dataImported.connect(loadData)
+                dlg.exec()
 
     def startReportDialog(self) -> None:
         dlg = DGetReportDialog(self.dget)
@@ -370,7 +376,9 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             probs[used] / probs[used].sum(),
         )
         # update graph results
-        self.results_graph.graph.setData(used, (probs[used] / probs[used].sum()) * 100.0)
+        self.results_graph.graph.setData(
+            used, (probs[used] / probs[used].sum()) * 100.0
+        )
         self.results_graph.graph.resetZoom()
         self.action_zoom_data.setEnabled(True)
 

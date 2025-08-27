@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from dget.io import shimadzu
 from dget.io.text import guess_loadtxt_kws
 
 
@@ -15,20 +14,16 @@ class TextImportDialog(QtWidgets.QDialog):
         self.setWindowTitle("DGet! Text Import")
         self.file_path = Path(path)
 
-        header_row_count = 10
+        header_row_count = 100
 
         self.file_header = [
             x for _, x in zip(range(header_row_count), self.file_path.open("r"))
         ]
 
         # Guess the delimiter, skip rows and count from header
-        if shimadzu.is_shimadzu_header(self.file_header):
-            loadtxt_kws = shimadzu.get_loadtxt_kws(self.file_path)
-            self.accept(loadtxt_kws)
-        else:
-            loadtxt_kws = guess_loadtxt_kws(
-                self.file_path, {"deilimiter": ",", "usecols": (0, 1), "skiprows": 0}
-            )
+        loadtxt_kws = guess_loadtxt_kws(
+            self.file_path, {"deilimiter": ",", "usecols": (0, 1), "skiprows": 0}
+        )
 
         column_count = (
             max([line.count(loadtxt_kws["delimiter"]) for line in self.file_header]) + 1
@@ -77,9 +72,9 @@ class TextImportDialog(QtWidgets.QDialog):
         box_options.layout().addRow("Signal column:", self.spinbox_signal_column)
 
         self.button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+            QtWidgets.QDialogButtonBox.StandardButton.Ok
+            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
         )
-        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
 
@@ -104,7 +99,9 @@ class TextImportDialog(QtWidgets.QDialog):
 
     def completeChanged(self) -> None:
         complete = self.isComplete()
-        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(complete)
+        self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Ok).setEnabled(
+            complete
+        )
 
     def isComplete(self) -> bool:
         if self.table.columnCount() < 2:
@@ -159,13 +156,13 @@ class TextImportDialog(QtWidgets.QDialog):
                 if item is None:
                     continue
                 if row != header_row:
-                    item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
+                    item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
                 else:
-                    item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+                    item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
                 if row < header_row or col not in self.usecols():
-                    item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEnabled)
+                    item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEnabled)
                 else:
-                    item.setFlags(item.flags() | QtCore.Qt.ItemIsEnabled)
+                    item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEnabled)
 
     def accept(self, loadtxt_kws: dict | None = None) -> None:
         if loadtxt_kws is None:
