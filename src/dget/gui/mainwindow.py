@@ -7,7 +7,6 @@ from types import TracebackType
 
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
-from dget.gui.log import LoggingDialog
 
 from dget import DGet
 from dget.adduct import Adduct
@@ -16,6 +15,7 @@ from dget.gui.docks.controls import DGetControls
 from dget.gui.docks.results import DGetResultsGraph, DGetResultsText
 from dget.gui.graphs import DGetBarGraph, DGetMSGraph
 from dget.gui.importdialog import TextImportDialog
+from dget.gui.log import LoggingDialog
 from dget.gui.report import DGetReportDialog
 from dget.gui.settings import DGetSettingsDialog
 from dget.io import shimadzu
@@ -376,7 +376,9 @@ class DGetMainWindow(QtWidgets.QMainWindow):
             probs[used] / probs[used].sum(),
         )
         # update graph results
-        self.results_graph.graph.setData(used, (probs[used] / probs[used].sum()) * 100.0)
+        self.results_graph.graph.setData(
+            used, (probs[used] / probs[used].sum()) * 100.0
+        )
         self.results_graph.graph.resetZoom()
         self.action_zoom_data.setEnabled(True)
 
