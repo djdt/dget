@@ -18,6 +18,7 @@ from dget.gui.graphs import DGetBarGraph, DGetMSGraph
 from dget.gui.importdialog import TextImportDialog
 from dget.gui.report import DGetReportDialog
 from dget.gui.settings import DGetSettingsDialog
+from dget.io import shimadzu
 
 logger = logging.getLogger(__name__)
 
@@ -261,9 +262,14 @@ class DGetMainWindow(QtWidgets.QMainWindow):
                 "CSV Documents (*.csv *.text *.txt);;All files (*)",
             )
         if file != "":
-            dlg = TextImportDialog(file)
-            dlg.dataImported.connect(loadData)
-            dlg.exec()
+            if shimadzu.is_shimadzu_file(file):
+                loadtxt_kws = shimadzu.get_loadtxt_kws(file)
+                x, y = np.loadtxt(file, unpack=True, dtype=np.float32, **loadtxt_kws)
+                loadData(Path(file), x, y)
+            else:
+                dlg = TextImportDialog(file)
+                dlg.dataImported.connect(loadData)
+                dlg.exec()
 
     def startReportDialog(self) -> None:
         dlg = DGetReportDialog(self.dget)
