@@ -36,10 +36,10 @@ class TextImportDialog(QtWidgets.QDialog):
                 line_count += buffer.count(b"\n")
 
         self.table = QtWidgets.QTableWidget()
-        self.table.itemChanged.connect(self.completeChanged)
+        self.table.setFont(QtGui.QFont("Courier"))
         self.table.setColumnCount(column_count)
         self.table.setRowCount(header_row_count)
-        self.table.setFont(QtGui.QFont("Courier"))
+        self.table.itemChanged.connect(self.completeChanged)
 
         self.combo_delimiter = QtWidgets.QComboBox()
         self.combo_delimiter.addItems([",", ";", "Space", "Tab"])
@@ -50,7 +50,7 @@ class TextImportDialog(QtWidgets.QDialog):
 
         self.spinbox_first_line = QtWidgets.QSpinBox()
         self.spinbox_first_line.setRange(1, header_row_count - 1)
-        self.spinbox_first_line.setValue(loadtxt_kws["skiprows"])
+        self.spinbox_first_line.setValue(loadtxt_kws["skiprows"] + 1)
         self.spinbox_first_line.valueChanged.connect(self.updateTableIgnores)
 
         self.spinbox_mass_column = QtWidgets.QSpinBox()
@@ -109,10 +109,11 @@ class TextImportDialog(QtWidgets.QDialog):
         if self.spinbox_mass_column.value() == self.spinbox_signal_column.value():
             return False
         try:
-            for x in self.file_header[self.spinbox_first_line.value()].split(
+            tokens = self.file_header[self.spinbox_first_line.value()].split(
                 self.delimiter()
-            ):
-                float(x)
+            )
+            float(tokens[self.usecols()[0]])
+            float(tokens[self.usecols()[1]])
         except ValueError:
             return False
         return True
@@ -137,6 +138,8 @@ class TextImportDialog(QtWidgets.QDialog):
     def fillTable(self) -> None:
         lines = [line.split(self.delimiter()) for line in self.file_header]
         col_count = max(len(line) for line in lines)
+
+        self.table.blockSignals(True)
         self.table.setColumnCount(col_count)
 
         for row, line in enumerate(lines):
@@ -144,11 +147,13 @@ class TextImportDialog(QtWidgets.QDialog):
             for col, text in enumerate(line):
                 item = QtWidgets.QTableWidgetItem(text.strip().replace(" ", "_"))
                 self.table.setItem(row, col, item)
+        self.table.blockSignals(False)
 
         self.updateTableIgnores()
         self.table.resizeColumnsToContents()
 
     def updateTableIgnores(self) -> None:
+        self.table.blockSignals(True)
         header_row = self.skiprows()
         for row in range(self.table.rowCount()):
             for col in range(self.table.columnCount()):
@@ -163,6 +168,8 @@ class TextImportDialog(QtWidgets.QDialog):
                     item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEnabled)
                 else:
                     item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEnabled)
+        self.table.blockSignals(False)
+        self.completeChanged()
 
     def accept(self, loadtxt_kws: dict | None = None) -> None:
         if loadtxt_kws is None:

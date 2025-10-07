@@ -1,4 +1,5 @@
 """Module for importing MS data from delimited text files."""
+
 from pathlib import Path
 from typing import TextIO
 
@@ -28,6 +29,14 @@ def guess_loadtxt_kws(
     Returns:
         ``loadtxt_kws`` updated with guessed values
     """
+
+    def is_number(x: str) -> bool:
+        try:
+            float(x)
+            return True
+        except ValueError:
+            return False
+
     if isinstance(file, (str, Path)):  # pragma: no cover
         file = open(file, "r")
     header = file.readlines(2048)
@@ -35,28 +44,27 @@ def guess_loadtxt_kws(
     if loadtxt_kws is None:
         loadtxt_kws = {}
 
-    for delim in delimiters:
-        if all(delim in line for line in header if line[0].isdigit()):
-            loadtxt_kws["delimiter"] = delim
-            break
+    loadtxt_kws["skiprows"] = 0
 
-    if "delimiter" in loadtxt_kws:
-        loadtxt_kws["skiprows"] = 0
-        # check for first line able to be parsed
-        for line in header:
-            try:
-                float(line.split(loadtxt_kws["delimiter"])[-1])
+    delimiter = ""
+    for line in header:
+        try:
+            delimiter = next(
+                d for d in ["\t", ";", ",", " "] if d in line
+            )
+            tokens = line.split(delimiter)
+            if all(is_number(token) for token in tokens):
                 break
-            except ValueError:
-                pass
-            loadtxt_kws["skiprows"] = loadtxt_kws["skiprows"] + 1
+        except StopIteration:  # special case where only one column exists
+            return {}
+        loadtxt_kws["skiprows"] += 1
 
-        # try to find the signal / mass columns
-        last_text_line = header[loadtxt_kws["skiprows"] - 1].split(
-            loadtxt_kws["delimiter"]
-        )
+    if delimiter != "":
+        loadtxt_kws["delimiter"] = delimiter
         masscol, signalcol = None, None
-        for i, text in enumerate(last_text_line):
+        for i, text in enumerate(
+            header[loadtxt_kws["skiprows"] - 1].split(loadtxt_kws["delimiter"])
+        ):
             if masscol is None and any(x in text.lower() for x in mass_hints):
                 masscol = i
                 continue
