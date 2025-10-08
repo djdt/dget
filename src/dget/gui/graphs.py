@@ -468,6 +468,8 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
 
         x, _ = self.d_series.getData()
         i0, i1 = np.searchsorted(self.ms_series.xData, (np.amin(x), np.amax(x)))
+        i0 -= 1
+        i1 += 1
         x0, x1 = self.ms_series.xData[i0], self.ms_series.xData[i1]
         dx = x1 - x0
         vb.setRange(
