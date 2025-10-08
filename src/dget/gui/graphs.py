@@ -321,7 +321,7 @@ class DGetMSGraph(pyqtgraph.GraphicsView):
             self.plot.removeItem(bar)
 
         y0 = np.zeros(x.shape)
-        for i in range(ys.shape[0] - 1, 0, -1):
+        for i in range(ys.shape[0] - 1, -1, -1):
             bar = pyqtgraph.BarGraphItem(
                 x=x,
                 y0=y0,
